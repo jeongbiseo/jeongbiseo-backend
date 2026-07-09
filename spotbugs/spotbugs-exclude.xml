@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Spring dependency injection: field injection creates EI false positives -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+    <!-- JPA entities do not need serialVersionUID unless explicitly serializing -->
+    <Match>
+        <Bug pattern="SE_NO_SERIALVERSIONUID"/>
+    </Match>
+    <!-- Spring Optional / repository return value NullPointerException false positive -->
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+    </Match>
+    <!-- Test code: random usage patterns are intentional -->
+    <Match>
+        <Class name="~.*Test"/>
+        <Bug pattern="DMI_RANDOM_USED_ONLY_ONCE"/>
+    </Match>
+    <!-- Lombok generated code: self-assignment on builder fields -->
+    <Match>
+        <Source name="~.*\.java"/>
+        <Bug pattern="SA_FIELD_SELF_ASSIGNMENT"/>
+    </Match>
+</FindBugsFilter>

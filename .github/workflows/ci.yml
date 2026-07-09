@@ -1,0 +1,58 @@
+# 정본 출처: llm-setup-templates/spring-template examples/ci.yml — Boot 4.0.3 + MySQL + gitmoji 커밋에 맞게 각색함
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+    paths-ignore: ['docs/**', '**.md']
+  pull_request:
+    branches: [main, dev]
+    paths-ignore: ['docs/**', '**.md']
+
+jobs:
+  ci:
+    name: 'CI — Quality + Architecture'
+    runs-on: ubuntu-latest
+
+    # Testcontainers 통합 테스트는 ubuntu-latest 호스트 Docker 사용 (사전 설치됨)
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: 'false'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # commitlint가 PR 전체 커밋을 검사하려면 전체 이력 필요
+
+      - name: Lint commit messages
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: commitlint.config.mjs
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Check format
+        run: ./gradlew checkFormat
+
+      - name: Checkstyle
+        run: ./gradlew checkstyleMain checkstyleTest
+
+      - name: SpotBugs
+        run: ./gradlew spotbugsMain
+
+      - name: Test (Testcontainers MySQL 포함)
+        run: ./gradlew compileJava compileTestJava test
+
+      - name: Coverage (JaCoCo)
+        run: ./gradlew jacocoTestReport jacocoTestCoverageVerification
+
+      - name: Build
+        run: ./gradlew build bootJar

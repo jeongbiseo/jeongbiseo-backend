@@ -1,0 +1,140 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.0.3'
+	id 'io.spring.dependency-management' version '1.1.7'
+	id 'checkstyle'
+	id 'com.github.spotbugs' version '6.5.8'
+	id 'io.spring.javaformat' version '0.0.47'
+	id 'jacoco'
+}
+
+group = 'com.jeongbiseo'
+version = '0.0.1-SNAPSHOT'
+description = 'jeongbiseo-backend'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+// 의존성 정본은 LikeLion14th-BE-fork build.gradle 통일. 제외 2건 — Redis(HANDOFF 확정 제외), webflux(OAuth 없음, 외부 API는 spring-web RestClient 사용)
+dependencies {
+	// Spring Web
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+
+	// Spring Data JPA
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+	// MySQL Driver
+	runtimeOnly 'com.mysql:mysql-connector-j'
+
+	// Validation (Jakarta Bean Validation)
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	// Springdoc OpenAPI (Swagger) — Boot 4.0.3 정합 버전
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
+
+	// Spring Security
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+
+	// JWT (jjwt 0.13)
+	implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+
+	// Actuator (healthcheck)
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+	// Lombok
+	annotationProcessor 'org.projectlombok:lombok'
+	compileOnly 'org.projectlombok:lombok'
+
+	// Test
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Testcontainers (통합 테스트용 실제 MySQL)
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:testcontainers'
+	testImplementation 'org.testcontainers:testcontainers-mysql:2.0.3'
+}
+
+checkstyle {
+	toolVersion = '10.17.0'
+	configFile = file('checkstyle/checkstyle.xml')
+	// checkstyle.xml의 ${config_loc}가 ./checkstyle/로 풀리게 하는 설정 — 없으면 suppressions.xml 로드 실패
+	configDirectory = file('checkstyle')
+	ignoreFailures = false
+}
+
+spotbugs {
+	excludeFilter = file('spotbugs/spotbugs-exclude.xml')
+	ignoreFailures = false
+	toolVersion = '4.10.2'
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+	reports.create('html') { required = true }
+	reports.create('xml') { required = false }
+}
+
+jacoco {
+	toolVersion = '0.8.14'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+	finalizedBy tasks.jacocoTestReport
+}
+
+tasks.jacocoTestReport {
+	dependsOn tasks.test
+	reports {
+		xml.required = true
+		html.required = true
+	}
+}
+
+// 시작 기준 70% — 실제 컨트롤러·서비스가 붙으면 0.80으로 상향 (spring-template 승계)
+tasks.jacocoTestCoverageVerification {
+	violationRules {
+		rule {
+			element = 'CLASS'
+			limit {
+				counter = 'LINE'
+				minimum = 0.70
+			}
+			limit {
+				counter = 'BRANCH'
+				minimum = 0.70
+			}
+			excludes = [
+				'**/config/**',
+				'**/entity/**',
+				'**/dto/**',
+				'**/*Application',
+				'**/apiPayload/**',
+			]
+		}
+	}
+}
+
+tasks.check {
+	dependsOn tasks.jacocoTestCoverageVerification
+}
+
+// boot jar만 생성 (plain jar 비활성) — LikeLion 승계
+jar {
+	enabled = false
+}

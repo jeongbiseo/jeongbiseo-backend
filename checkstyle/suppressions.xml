@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+  "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+  "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<!--
+  Suppress Checkstyle rules that conflict with spring-java-format,
+  or that are not appropriate for test/generated code.
+-->
+<suppressions>
+
+    <!-- spring-java-format owns import ordering  - disable Checkstyle rule -->
+    <suppress checks="ImportOrder" files=".*\.java"/>
+
+    <!-- spring-java-format owns newline at end of file -->
+    <suppress checks="NewlineAtEndOfFile" files=".*\.java"/>
+
+    <!-- spring-java-format owns trailing whitespace -->
+    <suppress checks="RegexpSingleline" files=".*\.java"/>
+
+    <!-- spring-java-format uses tab indentation; Google Java Style forbids
+         tab characters. Suppress the conflict: spring-java-format wins. -->
+    <suppress checks="FileTabCharacter" files=".*\.java"/>
+
+    <!-- Test files: magic numbers are acceptable in assertions -->
+    <suppress checks="MagicNumber" files=".*Test\.java"/>
+    <suppress checks="MagicNumber" files=".*IT\.java"/>
+
+    <!-- Application entry point: not a utility class despite having main() -->
+    <suppress checks="HideUtilityClassConstructor" files=".*Application\.java"/>
+
+    <!-- WhitespaceAround is relaxed for lambda/functional patterns in Spring -->
+    <suppress checks="WhitespaceAround" files=".*Config\.java"/>
+
+</suppressions>

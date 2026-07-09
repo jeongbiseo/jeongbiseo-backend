@@ -1,0 +1,23 @@
+# Gradle / Java
+build/
+.gradle/
+*.class
+out/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 환경
+.env
+.env.*
+application-secret.yml
+demo/
+
+# 로그
+*.log
