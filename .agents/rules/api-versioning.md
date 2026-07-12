@@ -12,12 +12,12 @@
 
 ## 2. 컨트롤러 경로 매핑
 
-각 컨트롤러 클래스에 `@RequestMapping("/api/v1/...")`을 두고, 메소드 매핑(`@GetMapping` 등)은 상대 경로만 씀. 엔드포인트 23개는 아래 8개 컨트롤러로 나뉨(operationId 정본은 API명세서).
+각 컨트롤러 클래스에 `@RequestMapping("/api/v1/...")`을 두고, 메소드 매핑(`@GetMapping` 등)은 상대 경로만 씀. 엔드포인트 20개는 아래 8개 컨트롤러로 나뉨(operationId 정본은 API명세서).
 
 | 컨트롤러 | 클래스 레벨 매핑 | 담당 operationId |
 |---|---|---|
-| AuthController | `/api/v1/auth` | logIn, logOut, requestPasswordReset, resetPassword |
-| MemberController | `/api/v1/members` | signUp, checkNickname, getMyOnboarding, updateMyOnboarding, getNotificationSetting, updateNotificationSetting, deleteMember |
+| AuthController | `/api/v1/auth` | socialAuthorize, socialCallback, logOut, refreshToken |
+| MemberController | `/api/v1/members` | checkNickname, getMyOnboarding, updateMyOnboarding, deleteMember |
 | OnboardingController | `/api/v1/onboarding` | submitOnboarding, setReceivedSubsidies |
 | RegionController | `/api/v1/regions` | getRegions |
 | SubsidyController | `/api/v1/subsidies` | getSubsidyCategories, searchSubsidies, getSubsidyDetail, addFavorite, removeFavorite |
@@ -29,13 +29,23 @@
 
 ```java
 @RestController
+@RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    // GET /api/v1/auth/{provider}  (operationId: socialAuthorize)
+    @GetMapping("/{provider}")
+    public void socialAuthorize(@PathVariable String provider, HttpServletResponse response) { ... }
+
+    // GET /api/v1/auth/{provider}/callback  (operationId: socialCallback)
+    @GetMapping("/{provider}/callback")
+    public CustomResponse<SocialCallbackResDTO> socialCallback(@PathVariable String provider, @RequestParam String code, @RequestParam String state) { ... }
+}
+
+@RestController
 @RequestMapping("/api/v1/members")
 @RequiredArgsConstructor
 public class MemberController {
-
-    // POST /api/v1/members  (operationId: signUp)
-    @PostMapping
-    public CustomResponse<SignUpResDTO> signUp(@Valid @RequestBody SignUpReqDTO request) { ... }
 
     // GET /api/v1/members/nickname/check  (operationId: checkNickname)
     @GetMapping("/nickname/check")
@@ -47,8 +57,8 @@ public class MemberController {
 }
 ```
 
-- signUp은 AUTH 도메인이지만 회원 자원 생성이라 경로가 `POST /api/v1/members`임(API명세서 결정 D1). 컨트롤러 배치는 MemberController 권장이고, AuthController에 두려면 메서드 레벨 절대경로로 매핑함. 어느 쪽이든 노출 경로는 `/api/v1/members` 고정.
-- "내 ~" 자원은 `/me` 세그먼트를 씀(getMyOnboarding, updateMyOnboarding, getNotificationSetting, updateNotificationSetting, deleteMember). `/me` 패턴은 members·auth 도메인에만 허용함. 다른 도메인(subsidies, recommendations, calendar 등)은 `/me`를 쓰지 않음.
+- 인증 방식 재결정(2026-07-09, 소셜 전용)으로 signUp과 D1 결정(회원가입은 회원 자원 생성이라 `POST /api/v1/members`에 둠)은 폐기됨. 소셜 첫 로그인 시 자동 가입이라 별도 회원가입 엔드포인트 자체가 없음.
+- "내 ~" 자원은 `/me` 세그먼트를 씀(getMyOnboarding, updateMyOnboarding, deleteMember). `/me` 패턴은 members·auth 도메인에만 허용함. 다른 도메인(subsidies, recommendations, calendar 등)은 `/me`를 쓰지 않음. 알림 설정 조회·변경(getNotificationSetting, updateNotificationSetting)은 2026-07-09 알림 제거 결정으로 소멸함.
 
 기각한 방식: `WebMvcConfigurer`의 `configurePathMatch(... addPathPrefix("/api/v1", ...))`로 접두사를 일괄 주입하는 방식은 쓰지 않음. 이유는 세 가지임. 첫째, 소스에서 `grep`으로 실제 경로가 안 보여 점검(5절)이 무력화됨. 둘째, 참고 레포 관례가 클래스 레벨 명시 매핑임. 셋째, 컨트롤러별 예외(버전 혼재 등)를 두기 어려움.
 
@@ -62,7 +72,7 @@ public class MemberController {
   - `GET /api/v1/subsidies/{subsidyId}`(getSubsidyDetail): 선택 인증(로그인 시 isFavorite 반영, 비로그인 시 false). 시큐리티는 permitAll로 두고 서비스가 토큰이 있으면 읽음.
   - `POST`·`DELETE /api/v1/subsidies/{subsidyId}/favorite`(addFavorite, removeFavorite): 둘 다 인증 필요.
   - 따라서 `/api/v1/subsidies/**`에 blanket permitAll을 걸면 안 됨. `requestMatchers(HttpMethod.GET, "/api/v1/subsidies/categories").permitAll()`처럼 메소드와 경로를 좁혀 지정함.
-- 인증 불필요 엔드포인트: signUp, checkNickname, logIn, requestPasswordReset, resetPassword, getRegions, getSubsidyCategories. 그 외는 Bearer 토큰 필요이며 getSubsidyDetail만 선택 인증임.
+- 인증 불필요 엔드포인트: socialAuthorize, socialCallback(콜백은 IdP가 code를 붙여 직접 호출함), checkNickname, getRegions, getSubsidyCategories, refreshToken(리프레시 토큰 자체가 자격 증명이라 Authorization 헤더 불필요). 그 외는 Bearer 토큰 필요이며 getSubsidyDetail만 선택 인증임.
 
 ## 4. 버전 증가 기준
 
