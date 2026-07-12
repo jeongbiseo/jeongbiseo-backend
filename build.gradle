@@ -119,12 +119,16 @@ tasks.jacocoTestCoverageVerification {
 				counter = 'BRANCH'
 				minimum = 0.70
 			}
+			// Gradle JacocoViolationRule.excludes는 정규화된 클래스명(FQCN)에 '*'와 '?' 와일드카드만 적용함 —
+			// 경로 구분자 '/'와 '**'를 이해하지 못해 기존 Ant 경로 글롭('**/entity/**')은 아무것도 제외하지
+			// 못하는 no-op이었음(demo 백엔드에서 실측 발견). 의도(엔티티·DTO·설정·Application·응답봉투는
+			// 커버리지 게이트 제외)는 그대로 두고 문법만 교정함 — 70% 기준선 자체는 낮추지 않음
 			excludes = [
-				'**/config/**',
-				'**/entity/**',
-				'**/dto/**',
-				'**/*Application',
-				'**/apiPayload/**',
+				'*.config.*',
+				'*.entity.*',
+				'*.dto.*',
+				'*Application',
+				'*.apiPayload.*',
 			]
 		}
 	}
