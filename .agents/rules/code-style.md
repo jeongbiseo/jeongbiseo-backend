@@ -2,19 +2,24 @@
 
 # 코드 스타일 규칙 — campus-hackathon-2026
 
-> 스택 미확정 단계. 아래는 언어 무관 공통 규칙임. 스택 확정 후 언어별 세부(import 별칭 등)를 보강함.
+> 스택은 Java 17 더하기 Spring Boot 4 더하기 Gradle로 확정됨.
 
 ## 일반
 
-- 들여쓰기 2칸(탭 금지), LF, UTF-8.
-- 정적 타입 언어(TypeScript 등) 채택 시 strict 유지. `as`로 타입·검증 우회 금지. 억제 주석(`@ts-ignore` 등)은 같은 줄 인용 근거 없이 추가 금지.
+- **들여쓰기는 탭임**(spring-javaformat이 강제함). LF, UTF-8.
+
+  > 2026-07-13 정정: 이 문서가 "2칸(탭 금지)"이라고 적고 있었으나 **실제 코드와 formatter는 탭**이다. 규칙대로 2칸을 쓰면 `./gradlew format`이 탭으로 되돌리고 `checkFormat`이 계속 어긋난다. **정본은 spring-javaformat이며 사람이 손으로 맞추지 않는다** — 포맷은 `./gradlew format`에 위임한다.
+
+- Java 17 계약. 로컬 JDK가 21이어도 Java 21 API(`List.getFirst()`, `SequencedCollection` 등)를 쓰지 않고 `get(0)`처럼 17 문법으로 작성함.
 
 ## 네이밍
 
-- 타입/인터페이스/컴포넌트/Enum: PascalCase.
-- 함수/변수/객체 속성: camelCase.
-- 모듈 상수: SCREAMING_SNAKE_CASE.
-- 파일/폴더: kebab-case(프레임워크가 강제하는 경로 규칙은 그대로 따름).
+- 클래스/인터페이스/Enum/레코드: PascalCase (`SocialLoginService`, `CustomResponse`).
+- 메서드/변수/필드: camelCase.
+- 상수: SCREAMING_SNAKE_CASE.
+- **Java 파일명은 클래스명과 일치함**(`SocialLoginService.java`). 개명 대상이 아님.
+- 패키지·폴더: 소문자 단어 연결(`recommendation`, `apiPayload`는 기존 계약 유지). 하이픈·언더스코어를 넣지 않음(Java 패키지 규칙).
+- 프레임워크·도구가 이름을 고정하는 파일은 그 이름을 그대로 씀: `application-local.yml`, `build.gradle`, `settings.gradle`, `commitlint.config.mjs`, `AGENTS.md`, `README.md`.
 
 ## 주석 — 한국어 명사형 종결
 
