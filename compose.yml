@@ -1,0 +1,27 @@
+# 로컬 개발용 MySQL. 통합 테스트는 Testcontainers가 별도 컨테이너를 띄우므로 이것과 무관함.
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: jeongbiseo-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: jeongbiseo
+      MYSQL_USER: jeongbiseo
+      MYSQL_PASSWORD: jeongbiseo
+      MYSQL_ROOT_PASSWORD: root
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # 기동 완료 전에 bootRun이 붙으면 커넥션 실패하므로 healthcheck로 준비 상태를 확인함
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  mysql-data:

@@ -4,3 +4,13 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # ponytail: 로컬 전용 스키마 자동 생성. 마이그레이션 도구(Flyway 등)를 두지 않음.
+      # 상한 — 운영 프로필에는 절대 쓰지 않음(validate 또는 none). 스키마를 팀이
+      # 공유해야 하거나 데이터 보존이 필요해지면 그때 Flyway를 도입함
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true

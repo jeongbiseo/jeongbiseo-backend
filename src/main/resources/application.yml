@@ -2,8 +2,9 @@ spring:
   application:
     name: jeongbiseo-backend
 
-  profiles:
-    active: local
+  # 기본 활성 프로필을 두지 않음 — 실행 환경이 SPRING_PROFILES_ACTIVE 또는
+  # --spring.profiles.active로 선택함. local을 기본값으로 박으면 배포 환경이
+  # 프로필을 명시하지 않았을 때 로컬 DB 설정을 읽음(2026-07-13 정정)
 
   jpa:
     open-in-view: false
