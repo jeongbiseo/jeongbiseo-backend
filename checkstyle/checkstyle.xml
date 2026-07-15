@@ -74,6 +74,16 @@
         <module name="PackageDeclaration"/>
         <module name="OneTopLevelClass"/>
 
+        <!-- Naming conventions (Checkstyle 기본 정규식).
+             ConstantName은 제외 - 팀의 `static final ObjectMapper objectMapper`
+             같은 정적 헬퍼 객체를 오탐하며, google_checks.xml도 같은 이유로 미포함.
+             MethodName은 한글·언더스코어 테스트명 때문에 test 소스에서 suppress(suppressions.xml). -->
+        <module name="TypeName"/>
+        <module name="MethodName"/>
+        <module name="MemberName"/>
+        <module name="ParameterName"/>
+        <module name="LocalVariableName"/>
+
     </module>
 
 </module>

@@ -32,4 +32,8 @@
     <!-- WhitespaceAround is relaxed for lambda/functional patterns in Spring -->
     <suppress checks="WhitespaceAround" files=".*Config\.java"/>
 
+    <!-- Test sources use Korean/underscore descriptive method names.
+         Path-based (not filename suffix) so fixtures/helpers under src/test are covered too. -->
+    <suppress checks="MethodName" files="[\\/]src[\\/]test[\\/]"/>
+
 </suppressions>
