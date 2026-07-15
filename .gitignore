@@ -16,6 +16,7 @@ Thumbs.db
 # 환경
 .env
 .env.*
+!.env.example
 application-secret.yml
 demo/
 
