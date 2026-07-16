@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +50,10 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 
 	// setReceivedSubsidies 존재 검증용. 요청 id 목록 중 실제 존재하는 개수를 세어 전부 존재하는지 판정함.
 	long countByIdIn(List<Long> ids);
+
+	// SubsidyIngestionAdapter의 (source, externalId) upsert 키 조회용. 소스별 기존 행 전체를 한 번에 읽어
+	// 멱등 적재의 존재 여부를 판정함.
+	List<SubsidyEntity> findAllBySourceIdIn(Set<String> sourceIds);
 
 	// 추천 후보 조건: 활성·추천 가능·비융자·대표 행이면서 기준일에 신청 가능함(마감일 미상은 누락 방지를 위해 통과).
 	// 마감 필터(HANDOFF 4장)와 융자 제외(HANDOFF 2.B-13, 2026-07-15)를 레코드 속성 필터로 함께 둠(deadline,

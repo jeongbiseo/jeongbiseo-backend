@@ -133,6 +133,10 @@ public class SubsidyEntity extends BaseEntity {
 	@Column(name = "region_code")
 	private String regionCode;
 
+	// 다중 지역 전체를 보존하는 CSV임(regionScope·regionCode는 대표 단일 코드만 담음). 강등 랭킹은 후속 이슈.
+	@Column(name = "region_codes")
+	private String regionCodes;
+
 	@Column(name = "employment_tags")
 	private String employmentTags;
 
@@ -182,10 +186,10 @@ public class SubsidyEntity extends BaseEntity {
 			PaymentType paymentType, Integer monthlyMonths, Long monthlyAmount, String duplicationPolicy,
 			String exclusivityGroup, TargetAudience targetAudience, OccupationRestriction occupationRestriction,
 			Integer ageMin, Integer ageMax, EligibilitySignal ageSignal, RegionScope regionScope, String regionCode,
-			String employmentTags, EligibilitySignal employmentSignal, String employmentRawCode, Long incomeThreshold,
-			EligibilitySignal incomeSignal, String householdCondition, EligibilitySignal householdSignal,
-			boolean active, boolean recommendable, boolean loanProduct, LocalDateTime dataUpdatedAt,
-			LocalDateTime fetchedAt) {
+			String regionCodes, String employmentTags, EligibilitySignal employmentSignal, String employmentRawCode,
+			Long incomeThreshold, EligibilitySignal incomeSignal, String householdCondition,
+			EligibilitySignal householdSignal, boolean active, boolean recommendable, boolean loanProduct,
+			LocalDateTime dataUpdatedAt, LocalDateTime fetchedAt) {
 		this.id = id;
 		this.sourceId = sourceId;
 		this.externalId = externalId;
@@ -212,6 +216,7 @@ public class SubsidyEntity extends BaseEntity {
 		this.ageSignal = ageSignal;
 		this.regionScope = regionScope;
 		this.regionCode = regionCode;
+		this.regionCodes = regionCodes;
 		this.employmentTags = employmentTags;
 		this.employmentSignal = employmentSignal;
 		this.employmentRawCode = employmentRawCode;

@@ -14,3 +14,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+app:
+  ingestion:
+    enabled: ${INGESTION_ENABLED:true}
+    gov24:
+      service-key: ${ODCLOUD_SERVICE_KEY:}
+      page-size: 1000
+      max-pages: 50
+    youthcenter:
+      api-key: ${YOUTHCENTER_API_KEY:}
+      page-size: 500
+      max-pages: 50
