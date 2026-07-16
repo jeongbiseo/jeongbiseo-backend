@@ -1,0 +1,4 @@
+app:
+  ingestion:
+    # 통합 테스트가 기동 러너로 실 API를 치지 않도록 명시 고정함(SubsidyIngestionConfiguration 참조).
+    enabled: false
