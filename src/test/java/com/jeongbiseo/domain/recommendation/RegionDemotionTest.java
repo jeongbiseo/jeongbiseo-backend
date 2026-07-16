@@ -33,8 +33,8 @@ class RegionDemotionTest {
 
 	@Test
 	void a_강등되나_노출은_유지된다() {
-		// 강남(11680, 시도 11) 지원금에 세종(36110, 시도 36) 신청자 — 시도 prefix가 달라 강등됨. 종전 동작(탈락)과 대비:
-		// 종전엔 이 조합이 후보에서 제거됐음
+		// 강남(11680, 시도 11)만 담은 다중지역 붕괴 지원금(NATIONWIDE+regionCodes)에 세종(36110, 시도 36) 신청자
+		// — 시도 prefix가 달라 강등됨. 종전 동작(탈락)과 대비: 종전엔 이 조합이 후보에서 제거됐음. 진짜 전국(아래 c3)과의 대비쌍
 		SubsidyCriteria criteria = regionalCriteria("11680");
 		ApplicantProfile applicant = applicant("36110");
 
@@ -80,6 +80,19 @@ class RegionDemotionTest {
 	}
 
 	@Test
+	void c3_진짜_전국은_불일치_신청자여도_강등하지_않는다() {
+		// 반대 방향 회귀(a와 대비쌍): regionCodes가 비어있는 진짜 전국은 regionScope=NATIONWIDE라도 시도가 안 맞는
+		// 신청자에게 강등되지 않음. a의 붕괴 지원금(regionCodes 있음)만 강등되고 진짜 전국은 안 되는 것을 박제해,
+		// CodeRabbit이 우려한 "전국이 강등되는" 시나리오가 불가능함을 테스트로 증명함
+		SubsidyCriteria criteria = nationwideCriteria();
+		ApplicantProfile applicant = applicant("36110");
+
+		MatchResult result = policy.evaluate(applicant, criteria);
+
+		assertThat(result.regionDemoted()).isFalse();
+	}
+
+	@Test
 	void 정렬_강등건은_마감이_임박해도_비강등건보다_뒤에_온다() {
 		MatchResult demoted = new MatchResult(1L, true, true, 5, List.of(), LocalDate.of(2026, 7, 18), "gov24", "D1");
 		MatchResult notDemoted = new MatchResult(2L, false, true, 5, List.of(), LocalDate.of(2026, 8, 1), "gov24",
@@ -91,10 +104,14 @@ class RegionDemotionTest {
 		assertThat(sorted).extracting(MatchResult::subsidyId).containsExactly(2L, 1L);
 	}
 
-	private static SubsidyCriteria regionalCriteria(String regionCode) {
+	// 실제 적재 상태를 미러함: 다중 지역은 단일 컬럼에 안 담겨 regionScope=NATIONWIDE·regionCode=null로 붕괴되고
+	// regionCodes CSV만 채워짐. regionCode를 null로 둬 폴백이 아니라 CSV 경로만 타는지 고립 검증하고,
+	// NATIONWIDE인데도
+	// regionCodes가 있으면 강등된다는 의미론을 박제함(CodeRabbit이 제안한 REGIONAL 가드 회귀를 이 테스트가 차단함).
+	private static SubsidyCriteria regionalCriteria(String regionCodes) {
 		return new SubsidyCriteria(1L, TargetAudience.PERSONAL, OccupationRestriction.NONE, null, 19, 34,
-				RegionScope.REGIONAL, regionCode, null, null, null, null, null, null, null, AMOUNT_MIN, AMOUNT_MAX,
-				null, PaymentType.CASH, null, null, null, regionCode);
+				RegionScope.NATIONWIDE, null, null, null, null, null, null, null, null, AMOUNT_MIN, AMOUNT_MAX, null,
+				PaymentType.CASH, null, null, null, regionCodes);
 	}
 
 	private static SubsidyCriteria nationwideCriteria() {

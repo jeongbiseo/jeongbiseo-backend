@@ -177,8 +177,11 @@ class RecommendationScopeIntegrationTest {
 			.duplicationPolicy("ALLOW")
 			.targetAudience(TargetAudience.PERSONAL)
 			.occupationRestriction(OccupationRestriction.NONE)
-			.regionScope(RegionScope.REGIONAL)
-			.regionCode("11680")
+			// 다중지역 붕괴 상태를 미러함(regionScope=NATIONWIDE·regionCode=null·regionCodes만 채움).
+			// regionCode를
+			// null로 둬 폴백이 아니라 CSV 경로를 실제로 타는지 고립 검증함
+			.regionScope(RegionScope.NATIONWIDE)
+			.regionCode(null)
 			.regionCodes("11680")
 			.active(true)
 			.recommendable(true)
