@@ -38,7 +38,13 @@ public class MemberService {
 	public void delete(Long memberId, String reason) {
 		Member member = memberReader.getActiveMember(memberId);
 		member.softDelete(LocalDateTime.now(this.clock));
-		log.info("회원 탈퇴: memberId={}, reason={}", memberId, reason);
+		log.info("회원 탈퇴: memberId={}, reason={}", memberId, sanitizeForLog(reason));
+	}
+
+	// 자유 입력 사유를 로그에 남기기 전 개행(CR·LF)을 공백으로 치환해 로그 위조를 막음(사유는 명세상 로그 전용, DB 미저장). 길이는 DTO
+	// @Size로 이미 제한됨. 사유 원문의 PII 우려로 "로그 자체 금지"는 명세("서버 로그로만 남김")와 상충해 팀 확인 대상임.
+	private static String sanitizeForLog(String reason) {
+		return (reason == null) ? null : reason.replaceAll("[\\r\\n]", " ");
 	}
 
 }

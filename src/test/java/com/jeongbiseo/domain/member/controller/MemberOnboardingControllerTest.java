@@ -21,7 +21,10 @@ import com.jeongbiseo.domain.onboarding.service.OnboardingService;
 import com.jeongbiseo.global.security.FixedMemberResolver;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -81,21 +84,25 @@ class MemberOnboardingControllerTest {
 	}
 
 	@Test
-	void deleteMember_본문_없이_호출해도_200과_성공메시지를_반환한다() throws Exception {
+	void deleteMember_본문_없이_호출하면_사유_없이_삭제를_위임하고_200을_반환한다() throws Exception {
 		mockMvc.perform(delete("/api/v1/members/me"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.code").value("200"))
 			.andExpect(jsonPath("$.result").value("회원 탈퇴 성공"));
+
+		verify(memberService).delete(eq(1L), isNull());
 	}
 
 	@Test
-	void deleteMember_사유_본문이_있어도_200을_반환한다() throws Exception {
+	void deleteMember_사유_본문이_있으면_그_사유로_삭제를_위임하고_200을_반환한다() throws Exception {
 		String body = """
 				{"reason":"필요한 지원금을 찾지 못했어요"}""";
 
 		mockMvc.perform(delete("/api/v1/members/me").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.result").value("회원 탈퇴 성공"));
+
+		verify(memberService).delete(eq(1L), eq("필요한 지원금을 찾지 못했어요"));
 	}
 
 	private static OnboardingProfile profile(String name) {

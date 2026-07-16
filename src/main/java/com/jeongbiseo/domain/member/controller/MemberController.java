@@ -40,14 +40,14 @@ public class MemberController {
 		this.memberResolver = memberResolver;
 	}
 
-	// GET /api/v1/members/me/onboarding (operationId: getMyOnboarding)
+	// 내 온보딩 정보 조회 처리함 (GET /api/v1/members/me/onboarding, operationId getMyOnboarding)
 	@GetMapping("/me/onboarding")
 	public CustomResponse<OnboardingProfileResponse> getMyOnboarding() {
 		OnboardingProfile profile = onboardingService.getMyOnboarding(memberResolver.resolveMemberId());
 		return CustomResponse.ok(toResponse(profile));
 	}
 
-	// PUT /api/v1/members/me/onboarding (operationId: updateMyOnboarding)
+	// 내 온보딩 정보 수정 처리함 (PUT /api/v1/members/me/onboarding, operationId updateMyOnboarding)
 	@PutMapping("/me/onboarding")
 	public CustomResponse<OnboardingProfileResponse> updateMyOnboarding(@Valid @RequestBody OnboardingRequest request) {
 		Long memberId = memberResolver.resolveMemberId();
@@ -57,9 +57,9 @@ public class MemberController {
 		return CustomResponse.ok(toResponse(updated));
 	}
 
-	// DELETE /api/v1/members/me (operationId: deleteMember)
+	// 회원 탈퇴 처리함 (DELETE /api/v1/members/me, operationId deleteMember)
 	@DeleteMapping("/me")
-	public CustomResponse<String> deleteMember(@RequestBody(required = false) DeleteMemberRequest request) {
+	public CustomResponse<String> deleteMember(@Valid @RequestBody(required = false) DeleteMemberRequest request) {
 		Long memberId = memberResolver.resolveMemberId();
 		String reason = (request == null) ? null : request.reason();
 		memberService.delete(memberId, reason);

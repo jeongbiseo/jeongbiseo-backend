@@ -1,6 +1,7 @@
 package com.jeongbiseo.domain.member.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.jeongbiseo.domain.member.entity.Member;
 import com.jeongbiseo.domain.member.repository.MemberRepository;
@@ -26,6 +27,7 @@ public class MemberReader {
 	 * @param memberId 대상 회원 id
 	 * @return 활성 회원
 	 */
+	@Transactional(readOnly = true)
 	public Member getActiveMember(Long memberId) {
 		Member member = memberRepository.findById(memberId)
 			.orElseThrow(() -> new CustomException(MemberErrorCode.MEMBER_NOT_FOUND));

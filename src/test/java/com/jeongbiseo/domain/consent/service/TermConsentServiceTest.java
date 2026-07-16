@@ -104,7 +104,8 @@ class TermConsentServiceTest {
 
 	@Test
 	void hasAgreedAllRequired_한_항목이라도_동의_이력이_없으면_false() {
-		given(termVersionRepository.findTopByTermTypeOrderByEffectiveAtDescIdDesc(any()))
+		given(termVersionRepository.findTopByTermTypeAndEffectiveAtLessThanEqualOrderByEffectiveAtDescIdDesc(any(),
+				any()))
 			.willReturn(Optional.of(termVersion(CURRENT_VERSION)));
 		given(memberTermConsentRepository.findByMemberIdAndTermType(eq(1L), any())).willReturn(Optional.empty());
 
@@ -113,7 +114,8 @@ class TermConsentServiceTest {
 
 	@Test
 	void hasAgreedAllRequired_동의버전이_구버전이면_false() {
-		given(termVersionRepository.findTopByTermTypeOrderByEffectiveAtDescIdDesc(any()))
+		given(termVersionRepository.findTopByTermTypeAndEffectiveAtLessThanEqualOrderByEffectiveAtDescIdDesc(any(),
+				any()))
 			.willReturn(Optional.of(termVersion(CURRENT_VERSION)));
 		given(memberTermConsentRepository.findByMemberIdAndTermType(eq(1L), any()))
 			.willReturn(Optional.of(consentWithVersion("v0.9")));
@@ -122,7 +124,8 @@ class TermConsentServiceTest {
 	}
 
 	private void givenCurrentVersionForAll() {
-		given(termVersionRepository.findTopByTermTypeOrderByEffectiveAtDescIdDesc(any()))
+		given(termVersionRepository.findTopByTermTypeAndEffectiveAtLessThanEqualOrderByEffectiveAtDescIdDesc(any(),
+				any()))
 			.willReturn(Optional.of(termVersion(CURRENT_VERSION)));
 	}
 

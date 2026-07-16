@@ -8,9 +8,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.jeongbiseo.domain.consent.TermType;
 import com.jeongbiseo.domain.consent.entity.MemberTermConsent;
+import com.jeongbiseo.domain.consent.entity.TermVersion;
 import com.jeongbiseo.domain.consent.repository.MemberTermConsentRepository;
 import com.jeongbiseo.domain.consent.repository.TermVersionRepository;
 import com.jeongbiseo.domain.member.entity.Member;
+import com.jeongbiseo.global.apiPayload.code.ConsentErrorCode;
+import com.jeongbiseo.global.apiPayload.exception.CustomException;
 
 /**
  * 약관 동의를 기록하고 회원이 필수 약관을 전부 동의했는지 판정하는 도메인 서비스임. 소셜 첫 로그인(회원가입) 흐름에서 필수 3종을 기록하고, 이후 약관
@@ -75,9 +78,11 @@ public class TermConsentService {
 	}
 
 	private String currentVersionId(TermType termType) {
-		return this.termVersionRepository.findTopByTermTypeOrderByEffectiveAtDescIdDesc(termType)
-			.map(version -> version.getVersionId())
-			.orElseThrow(() -> new IllegalStateException("현재 약관 버전이 등록되지 않았어요: " + termType));
+		LocalDateTime asOf = LocalDateTime.now(this.clock);
+		return this.termVersionRepository
+			.findTopByTermTypeAndEffectiveAtLessThanEqualOrderByEffectiveAtDescIdDesc(termType, asOf)
+			.map(TermVersion::getVersionId)
+			.orElseThrow(() -> new CustomException(ConsentErrorCode.TERM_VERSION_NOT_REGISTERED));
 	}
 
 }

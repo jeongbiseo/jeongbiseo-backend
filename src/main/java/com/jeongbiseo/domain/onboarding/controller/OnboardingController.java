@@ -35,7 +35,7 @@ public class OnboardingController {
 		this.memberResolver = memberResolver;
 	}
 
-	// POST /api/v1/onboarding (operationId: submitOnboarding)
+	// 온보딩 최초 제출 처리함 (POST /api/v1/onboarding, operationId submitOnboarding)
 	@ResponseStatus(HttpStatus.CREATED)
 	@PostMapping
 	public CustomResponse<OnboardingSubmitResponse> submitOnboarding(@Valid @RequestBody OnboardingRequest request) {
