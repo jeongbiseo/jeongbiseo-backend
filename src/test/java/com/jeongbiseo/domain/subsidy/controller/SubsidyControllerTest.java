@@ -4,11 +4,14 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,6 +22,7 @@ import com.jeongbiseo.domain.subsidy.service.SubsidyService;
 import com.jeongbiseo.global.apiPayload.code.SubsidyErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -69,6 +73,33 @@ class SubsidyControllerTest {
 			.andExpect(status().isOk());
 
 		org.mockito.Mockito.verify(subsidyService).search(eq("청년"), eq(SubsidyCategory.YOUTH), any());
+	}
+
+	@Test
+	void searchSubsidies_size는_상한클램프되고_id_오름차순_정렬을_고정한다() throws Exception {
+		given(subsidyService.search(any(), any(), any()))
+			.willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0));
+		ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+
+		mockMvc.perform(get("/api/v1/subsidies").param("size", "500")).andExpect(status().isOk());
+
+		org.mockito.Mockito.verify(subsidyService).search(any(), any(), captor.capture());
+		assertThat(captor.getValue().getPageSize()).isEqualTo(100);
+		Sort.Order idOrder = captor.getValue().getSort().getOrderFor("id");
+		assertThat(idOrder).isNotNull();
+		assertThat(idOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+	}
+
+	@Test
+	void searchSubsidies_size가_0이하면_기본20으로_보정한다() throws Exception {
+		given(subsidyService.search(any(), any(), any()))
+			.willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+		ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+
+		mockMvc.perform(get("/api/v1/subsidies").param("size", "0")).andExpect(status().isOk());
+
+		org.mockito.Mockito.verify(subsidyService).search(any(), any(), captor.capture());
+		assertThat(captor.getValue().getPageSize()).isEqualTo(20);
 	}
 
 	@Test
