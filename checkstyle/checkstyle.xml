@@ -15,6 +15,11 @@
     <property name="charset" value="UTF-8"/>
     <property name="fileExtensions" value="java"/>
 
+    <!-- 들여쓰기가 탭인데 Checkstyle LineLength는 기본 tabWidth=8로 탭을 8칸으로 세, 탭을 문자
+         길이로 세는 spring-javaformat과 어긋나 형식은 맞는데 LineLength만 실패함. tabWidth=1로
+         맞춰 LineLength를 spring-javaformat 측정과 정렬함. -->
+    <property name="tabWidth" value="1"/>
+
     <!-- Suppress rules that conflict with spring-java-format -->
     <module name="SuppressionFilter">
         <property name="file" value="${config_loc}/suppressions.xml"/>
