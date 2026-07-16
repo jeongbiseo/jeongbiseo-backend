@@ -22,6 +22,14 @@
          tab characters. Suppress the conflict: spring-java-format wins. -->
     <suppress checks="FileTabCharacter" files=".*\.java"/>
 
+    <!-- spring-java-format places catch/finally on a new line after the closing
+         brace, but Checkstyle's RightCurly default policy requires same-line
+         placement. spring-java-format is the authoritative formatter (AGENTS 4절),
+         so suppress the conflict. lab checkstyle에 있으나 genesis 시점 팀 레포는
+         try/catch가 없어 누락됐던 스캐폴드 결함 — 약관 도메인(이슈 #6)이 try/catch를
+         도입하며 드러나 lab과 정합하게 추가함. -->
+    <suppress checks="RightCurly" files=".*\.java"/>
+
     <!-- Test files: magic numbers are acceptable in assertions -->
     <suppress checks="MagicNumber" files=".*Test\.java"/>
     <suppress checks="MagicNumber" files=".*IT\.java"/>
