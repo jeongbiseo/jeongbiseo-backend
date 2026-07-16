@@ -103,6 +103,28 @@ class SubsidyIngestionAdapterIntegrationTest {
 	}
 
 	@Test
+	void ingest_255자를_넘는_지역코드_CSV도_잘리지_않고_왕복한다() {
+		// zipCd 나열이 255자를 넘는 온통청년 공고(실측 16.7%, 최대 1,535자)가 VARCHAR(255)에서 배치째 롤백되지 않음을
+		// 고정함.
+		List<String> manyCodes = java.util.stream.IntStream.range(0, 60)
+			.mapToObj(i -> String.format("%05d", 11000 + i))
+			.toList();
+		String expectedCsv = String.join(",", manyCodes);
+		assertThat(expectedCsv.length()).as("테스트 전제: CSV가 255자를 넘어야 함").isGreaterThan(255);
+		NormalizedRegion wideRegion = new NormalizedRegion(manyCodes, "다지역", null, RegionLevel.SIGUNGU,
+				RegionScopeBasis.DECLARED_REGION_CODE, RegionConfidence.HIGH);
+		NormalizedSubsidy subsidy = withRegion(fixture("REGION-WIDE", "광역 다지역 지원금", 50_000L), wideRegion);
+		adapter.ingest(List.of(subsidy), FETCHED_AT);
+
+		SubsidyEntity saved = subsidyRepository.findAllBySourceIdIn(java.util.Set.of("gov24"))
+			.stream()
+			.filter(e -> e.getExternalId().equals("REGION-WIDE"))
+			.findFirst()
+			.orElseThrow();
+		assertThat(saved.getRegionCodes()).isEqualTo(expectedCsv);
+	}
+
+	@Test
 	void ingest_한글과_utf8mb4_문자를_원문_그대로_왕복한다() {
 		String name = "청년월세지원💙(한글+이모지)";
 		NormalizedSubsidy subsidy = fixture("UTF8MB4-1", name, 100_000L);
