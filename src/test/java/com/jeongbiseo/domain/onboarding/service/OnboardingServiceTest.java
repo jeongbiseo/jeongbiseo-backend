@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import com.jeongbiseo.domain.common.enums.EmploymentStatus;
 import com.jeongbiseo.domain.member.entity.Member;
@@ -76,6 +77,19 @@ class OnboardingServiceTest {
 	void submit_이미_온보딩했으면_ONB409_1을_던진다() {
 		given(memberReader.getActiveMember(MEMBER_ID)).willReturn(activeMember());
 		given(onboardingProfileRepository.existsByMemberId(MEMBER_ID)).willReturn(true);
+
+		assertThatThrownBy(() -> onboardingService.submit(MEMBER_ID, "홍길동", BIRTH_DATE, "서울특별시", "강남구",
+				EmploymentStatus.EMPLOYED, null, 1))
+			.isInstanceOf(CustomException.class)
+			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
+			.isEqualTo("ONB409_1");
+	}
+
+	@Test
+	void submit_저장_중_동시_이중제출_UNIQUE_위반이면_ONB409_1로_변환한다() {
+		given(memberReader.getActiveMember(MEMBER_ID)).willReturn(activeMember());
+		given(onboardingProfileRepository.existsByMemberId(MEMBER_ID)).willReturn(false);
+		given(onboardingProfileRepository.save(any())).willThrow(new DataIntegrityViolationException("uk_member"));
 
 		assertThatThrownBy(() -> onboardingService.submit(MEMBER_ID, "홍길동", BIRTH_DATE, "서울특별시", "강남구",
 				EmploymentStatus.EMPLOYED, null, 1))

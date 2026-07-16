@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,7 +61,15 @@ public class OnboardingService {
 			.incomeBracket(incomeBracket)
 			.householdSize(householdSize)
 			.build();
-		return onboardingProfileRepository.save(profile);
+		try {
+			return onboardingProfileRepository.save(profile);
+		}
+		catch (DataIntegrityViolationException e) {
+			// exists 검사와 insert 사이 동시 이중 제출 레이스 시 member_id UNIQUE 위반이 나므로, 최종 안전망의 500이
+			// 아니라
+			// 계약대로 ONB409_1로 변환함(원인 스택은 보존).
+			throw new CustomException(OnboardingErrorCode.ONBOARDING_ALREADY_COMPLETED, e);
+		}
 	}
 
 	/**
