@@ -21,7 +21,7 @@ import com.jeongbiseo.global.apiPayload.exception.CustomException;
 /**
  * 온보딩 프로필 제출·조회·수정을 담당하는 도메인 서비스임. 활성 회원을 MemberReader로 먼저 검증(미존재 MEMBER404_1·탈퇴
  * MEMBER400_1)한 뒤, sido·sigungu에서 RegionCatalog로 매칭용 region_code를 파생하고 이름을 Member에
- * 저장함(v1.4, D6 — 이름은 온보딩 입력이 정본). 미해석 지역은 region_code를 null로 두되 warn 로그를 남김(D3).
+ * 저장함(v1.4, D6, 이름은 온보딩 입력이 정본). 미해석 지역은 region_code를 null로 두되 warn 로그를 남김(D3).
  */
 @Service
 public class OnboardingService {
@@ -98,7 +98,7 @@ public class OnboardingService {
 		return profile;
 	}
 
-	// RegionCatalog 미등록 조합이면 null을 반환하되 warn 로그를 남김(D3) — sido·sigungu는 계약상 자유 문자열이라 미해석도
+	// RegionCatalog 미등록 조합이면 null을 반환하되 warn 로그를 남김(D3). sido·sigungu는 계약상 자유 문자열이라 미해석도
 	// 유효 입력이며, region_code null은 REGIONAL 매칭에서만 자연 탈락하고 NATIONWIDE·온보딩 제출 자체에는 영향이 없음.
 	private String resolveRegionCode(String sido, String sigungu) {
 		String regionCode = RegionCatalog.regionCodeOf(sido, sigungu);

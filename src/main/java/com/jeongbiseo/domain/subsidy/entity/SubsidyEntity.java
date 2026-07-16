@@ -163,7 +163,7 @@ public class SubsidyEntity extends BaseEntity {
 	@Column(name = "is_recommendable", nullable = false)
 	private boolean recommendable;
 
-	// 지원유형이 융자인 상품임(gov24 "현금(융자)" 등). 팀 판정으로 융자 계열은 이자·보증 지원까지 서비스에서 제외함 — 대출 성격
+	// 지원유형이 융자인 상품임(gov24 "현금(융자)" 등). 팀 판정으로 융자 계열은 이자·보증 지원까지 서비스에서 제외함. 대출 성격
 	// 지원금이 오히려 신뢰도를 깎고 해커톤 범위 밖이라, 순수 대출과 이자 지원을 구분하지 않고 융자 유형 전체를 뺌(2026-07-15 확정).
 	// 레코드는 원천 보존을 위해 지우지 않고 플래그로만 남김(사유를 recommendable에 겹치지 않음).
 	@Column(name = "is_loan_product", nullable = false)

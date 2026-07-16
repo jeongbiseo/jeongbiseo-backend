@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * 추천 리스트 항목 응답임(API명세서 14번). estimatedAmountMin과 estimatedAmountMax는 미제공 시 null임
  * (REC-312). uncomputable과 uncomputableReasons는 화면 231913의 "산정불가" 배지를 위해 demo가 계약에 추가한 확장
- * 필드임(DISCUSS.md 3.4 핵심 규칙 — 하위호환 필드 추가이므로 API명세서 4장 버전 증가 기준의 "v1 유지" 해당, v2 신설 대상 아님).
+ * 필드임(DISCUSS.md 3.4 핵심 규칙, 하위호환 필드 추가이므로 API명세서 4장 버전 증가 기준의 "v1 유지" 해당, v2 신설 대상 아님).
  *
  * @param subsidyId 지원금 ID
  * @param name 지원금명

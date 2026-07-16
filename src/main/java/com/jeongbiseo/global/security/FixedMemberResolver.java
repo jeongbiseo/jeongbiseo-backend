@@ -3,8 +3,8 @@ package com.jeongbiseo.global.security;
 import org.springframework.stereotype.Component;
 
 /**
- * 개발용 고정 회원(memberId 1)을 주입함. 소셜 로그인 도입 전까지 인증필요 엔드포인트를 개발하기 위한 한 곳짜리 회원 식별 지점임(결정 7번 —
- * 소셜 인증은 마지막). 인증 도입 지점을 한 곳으로 격리해 나중에 갈아끼우기 쉽게 함.
+ * 개발용 고정 회원(memberId 1)을 주입함. 소셜 로그인 도입 전까지 인증필요 엔드포인트를 개발하기 위한 한 곳짜리 회원 식별 지점임(결정 7번, 소셜
+ * 인증은 마지막). 인증 도입 지점을 한 곳으로 격리해 나중에 갈아끼우기 쉽게 함.
  */
 @Component
 public class FixedMemberResolver {

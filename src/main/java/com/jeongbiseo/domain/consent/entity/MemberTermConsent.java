@@ -27,7 +27,7 @@ import com.jeongbiseo.global.common.entity.BaseEntity;
 /**
  * 회원별 약관 동의 엔티티임(member_term_consent). 약관 본문은 저장하지 않고 동의한 버전 식별자와 동의 시각(decidedAt)만
  * 남김(항목별 동의 행과 결정 시각 명시 저장, 결정 2.B-11). (member_id, term_type) 조합이 UNIQUE라 회원의 항목당 최신 동의
- * 1건만 유지하며, 재동의는 버전과 동의 시각을 덮어씀. 필수 3종만 다뤄 동의·거부 구분(agreed)과 철회(withdrawn_at)는 두지 않음 — 선택
+ * 1건만 유지하며, 재동의는 버전과 동의 시각을 덮어씀. 필수 3종만 다뤄 동의·거부 구분(agreed)과 철회(withdrawn_at)는 두지 않음. 선택
  * 약관 제거(2.B-12)로 그 축이 필요 없어짐.
  */
 @Getter

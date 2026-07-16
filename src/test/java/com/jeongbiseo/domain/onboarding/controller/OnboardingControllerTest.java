@@ -1,6 +1,7 @@
 package com.jeongbiseo.domain.onboarding.controller;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,17 +17,23 @@ import com.jeongbiseo.domain.member.entity.Member;
 import com.jeongbiseo.domain.member.entity.Role;
 import com.jeongbiseo.domain.onboarding.entity.OnboardingProfile;
 import com.jeongbiseo.domain.onboarding.service.OnboardingService;
+import com.jeongbiseo.domain.onboarding.service.ReceivedSubsidyService;
+import com.jeongbiseo.global.apiPayload.code.SubsidyErrorCode;
+import com.jeongbiseo.global.apiPayload.exception.CustomException;
 import com.jeongbiseo.global.security.FixedMemberResolver;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * OnboardingController 웹 슬라이스 테스트임(@WebMvcTest, MockMvc). 서비스는 목이고 FixedMemberResolver만
- * 실제로 로드함(고정 회원). 제출 201 계약과 필드 검증 400(VALID400_1)을 고정함.
+ * 실제로 로드함(고정 회원). 제출 201 계약, 필드 검증 400(VALID400_1), setReceivedSubsidies 200·빈배열·
+ * VALID400_1·SUBSIDY404_1을 고정함.
  */
 @WebMvcTest(OnboardingController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -42,6 +49,9 @@ class OnboardingControllerTest {
 
 	@MockitoBean
 	private OnboardingService onboardingService;
+
+	@MockitoBean
+	private ReceivedSubsidyService receivedSubsidyService;
 
 	@Test
 	void submitOnboarding_유효요청이면_201과_완료응답을_반환한다() throws Exception {
@@ -84,6 +94,51 @@ class OnboardingControllerTest {
 		mockMvc.perform(post("/api/v1/onboarding").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALID400_1"));
+	}
+
+	@Test
+	void setReceivedSubsidies_유효요청이면_200과_교체된목록을_반환한다() throws Exception {
+		given(receivedSubsidyService.replaceAll(anyLong(), any())).willReturn(List.of(1L, 2L));
+
+		mockMvc
+			.perform(put("/api/v1/onboarding/received-subsidies").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"subsidyIds\":[1,2]}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.isSuccess").value(true))
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.result.receivedSubsidyIds[0]").value(1))
+			.andExpect(jsonPath("$.result.receivedSubsidyIds[1]").value(2));
+	}
+
+	@Test
+	void setReceivedSubsidies_빈배열이면_200과_빈목록을_반환한다() throws Exception {
+		given(receivedSubsidyService.replaceAll(anyLong(), any())).willReturn(List.of());
+
+		mockMvc
+			.perform(put("/api/v1/onboarding/received-subsidies").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"subsidyIds\":[]}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result.receivedSubsidyIds").isEmpty());
+	}
+
+	@Test
+	void setReceivedSubsidies_subsidyIds가_null이면_400_VALID400_1() throws Exception {
+		mockMvc
+			.perform(put("/api/v1/onboarding/received-subsidies").contentType(MediaType.APPLICATION_JSON).content("{}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALID400_1"));
+	}
+
+	@Test
+	void setReceivedSubsidies_존재하지않는id면_404_SUBSIDY404_1() throws Exception {
+		given(receivedSubsidyService.replaceAll(anyLong(), any()))
+			.willThrow(new CustomException(SubsidyErrorCode.SUBSIDY_NOT_FOUND));
+
+		mockMvc
+			.perform(put("/api/v1/onboarding/received-subsidies").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"subsidyIds\":[999]}"))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("SUBSIDY404_1"));
 	}
 
 }

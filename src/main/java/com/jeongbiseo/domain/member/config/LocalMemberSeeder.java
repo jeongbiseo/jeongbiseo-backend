@@ -12,7 +12,7 @@ import com.jeongbiseo.domain.member.repository.MemberRepository;
 /**
  * local 프로필 전용 개발 회원 시더임. FixedMemberResolver가 항상 memberId=1을 반환하는데(소셜 인증 도입 전 개발용, 결정
  * 7번) member 테이블이 비면 회원 스코프 엔드포인트가 전부 MEMBER404_1이 되므로, 빈 테이블에 한 번 고정 회원 1행을 넣어 개발을 가능하게
- * 함. IDENTITY 전략이라 빈 DB의 첫 insert가 id=1을 받음 — count()==0 가드로 멱등하게 만들고, 이미 회원이 있으면(탈퇴 soft
+ * 함. IDENTITY 전략이라 빈 DB의 첫 insert가 id=1을 받음. count()==0 가드로 멱등하게 만들고, 이미 회원이 있으면(탈퇴 soft
  * delete 포함) 다시 넣지 않음. local 전용이라 통합 테스트(test 프로필)에는 로드되지 않음.
  */
 // ponytail: 개발용 단일 회원 시드. 소셜 인증 도입 시 실제 가입 흐름이 회원을 만들면 이 시더는 제거함.

@@ -90,7 +90,7 @@ class DeadlineRankingTest {
 		return new MatchResult(subsidyId, true, 5, List.of(), deadline, sourceId, externalId);
 	}
 
-	// 운영 DeadlineRanking.tieHash(private)의 독립 재현임 — 하드코딩 hex 금지, 같은 알고리즘을 테스트에서
+	// 운영 DeadlineRanking.tieHash(private)의 독립 재현임. 하드코딩 hex 금지, 같은 알고리즘을 테스트에서
 	// 재계산해 기대 순서를 도출함(IMPL-PLAN 3.4 절 지시).
 	private static String tieHash(MatchResult result) {
 		try {

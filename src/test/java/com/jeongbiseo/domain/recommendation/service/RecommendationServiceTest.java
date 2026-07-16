@@ -26,7 +26,7 @@ import com.jeongbiseo.global.apiPayload.code.RecommendationErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
 
 /**
- * RecommendationService 단위 테스트임(순수 JUnit, SubsidyReader는 테스트 더블로 대체 — 스프링 컨텍스트 없음).
+ * RecommendationService 단위 테스트임(순수 JUnit, SubsidyReader는 테스트 더블로 대체, 스프링 컨텍스트 없음).
  * RecommendationPolicy 판정 자체는 RecommendationPolicyTest가 정본이고, 이 클래스는 판정 앞뒤(기수령 제외,
  * REC500_1 래핑, limit 정규화, 정렬과 상한)만 검증함.
  */
@@ -49,7 +49,7 @@ class RecommendationServiceTest {
 
 	@Test
 	void recommend_wrapsUnexpectedError_asRecommendationServerError() {
-		// BDD "매칭 0건은 빈 배열의 정상 응답, REC500_1은 예기치 못한 오류일 때만" — findCandidates 자체가 실패하는
+		// BDD "매칭 0건은 빈 배열의 정상 응답, REC500_1은 예기치 못한 오류일 때만": findCandidates 자체가 실패하는
 		// 경로(REC500_1 유발)를 짚음. 0건(정상)과 서버 오류(비정상)를 구분하는 것이 이 테스트의 목적임
 		SubsidyReader failingReader = new StubSubsidyReader(null, true);
 		RecommendationService service = new RecommendationService(failingReader);

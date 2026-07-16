@@ -20,7 +20,7 @@ import com.jeongbiseo.domain.subsidy.SubsidyReader;
 /**
  * 추천 조회 유즈케이스를 조립하는 애플리케이션 서비스임. 컨트롤러가 갖고 있던 오케스트레이션(온보딩 프로필 조회, 신청자 프로필 변환, 기수령 조회, 기준일
  * 산정, 추천 계산, 최신 갱신 시각 조회)을 여기로 모아, 컨트롤러는 HTTP 검증과 응답 변환만 담당하게 함(HANDOFF 2.B-14). 정렬·필터는
- * RecommendationService에 그대로 위임함 — 이 서비스는 개수(limit) 정책을 바꾸지 않고 흐름만 조립함.
+ * RecommendationService에 그대로 위임함. 이 서비스는 개수(limit) 정책을 바꾸지 않고 흐름만 조립함.
  */
 @Service
 public class RecommendationQueryService {
@@ -35,7 +35,7 @@ public class RecommendationQueryService {
 
 	private final Clock clock;
 
-	// clock은 ClockConfig의 Asia/Seoul 고정 빈을 그대로 주입받음(제약 5.2 시간대 계약 — 중복 빈 정의 금지).
+	// clock은 ClockConfig의 Asia/Seoul 고정 빈을 그대로 주입받음(제약 5.2 시간대 계약, 중복 빈 정의 금지).
 	public RecommendationQueryService(OnboardingService onboardingService,
 			ReceivedSubsidyService receivedSubsidyService, RecommendationService recommendationService,
 			SubsidyReader subsidyReader, Clock clock) {
@@ -68,9 +68,8 @@ public class RecommendationQueryService {
 		return new RecommendationView(items, asOf, dataUpdatedAt);
 	}
 
-	// ADAPTATION (F3): lab은 record 접근자(profile.birthDate())였으나 팀 OnboardingProfile은 JPA
-	// 엔티티라 getter로 접근함(getBirthDate 등). 나이도 asOf 기준으로 계산해 마감 판정과 기준일을 통일함 — 단일 arg
-	// calculateAge는 내부에서 wall-clock now를 써 자정·생일 경계에서 asOf와 어긋날 수 있음(Clock 주입 취지 정합).
+	// 나이도 asOf 기준으로 계산해 마감 판정 기준일과 통일함. 단일 인자 calculateAge는 내부 wall-clock을 써
+	// 자정·생일 경계에서 어긋날 수 있음(Clock 주입 취지).
 	private static ApplicantProfile toApplicantProfile(OnboardingProfile profile, LocalDate asOf) {
 		int age = AgeCalculator.calculateAge(profile.getBirthDate(), asOf);
 		return new ApplicantProfile(age, profile.getRegionCode(), profile.getEmploymentStatus(),

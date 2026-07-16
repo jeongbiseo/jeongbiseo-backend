@@ -151,7 +151,7 @@ public final class RecommendationPolicy {
 	 */
 	// ponytail: threshold를 월 소득 상한(원)으로 보고, 구간 하한이 threshold를 초과할 때만 탈락함(보수적으로
 	// 통과 쪽). 계약이 프로필(구간)과 지원금(금액) 비교 규칙을 정의하지 않아 만든 가정이며, 상한은 이 부등호
-	// 규칙 하나로 고정함. 대안은 회의(7/13)에서 규칙이 정해지면 bracketLowerBoundWon 매핑을 교체하는
+	// 규칙 하나로 고정함. 대안은 규칙 확정 시 bracketLowerBoundWon 매핑을 교체하는
 	// 것뿐임(DISCUSS.md 6장 가정 1번, 회의 실증 자료로 가져갈 것).
 	ConditionOutcome matchIncome(IncomeBracket bracket, Long incomeThreshold) {
 		if (bracket == null) {
@@ -238,9 +238,9 @@ public final class RecommendationPolicy {
 	}
 
 	// ponytail: matchScore 산식은 계약에 산식이 없어 5조건 중 통과 개수의 단순 가중합(각 1점,
-	// 0~5점)으로 가정함(DISCUSS.md 6장 가정 3번). 동점 처리(subsidyId 오름차순 등)는 이 값을 쓰는
+	// 0에서 5점)으로 가정함(DISCUSS.md 6장 가정 3번). 동점 처리(subsidyId 오름차순 등)는 이 값을 쓰는
 	// 상위 계층(추천 서비스, W3)의 책임이고 이 메서드는 결정적 값만 보장함. 상한은 5점 고정이며,
-	// 대안(완결도 가중치 등)은 회의에서 산식이 정해지면 이 메서드를 교체하는 것임
+	// 대안(완결도 가중치 등)은 산식 확정 시 이 메서드를 교체하는 것임
 	private static int matchScore(boolean ageOk, boolean regionOk, boolean employmentOk, boolean incomeOk,
 			boolean householdOk) {
 		int score = 0;
