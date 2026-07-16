@@ -2,7 +2,10 @@ package com.jeongbiseo.domain.subsidy.repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -37,11 +40,16 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 		return findCandidateEntities(asOf).stream().map(SubsidyRepository::toCriteria).toList();
 	}
 
-	// 추천 응답 조립용 표시 정보. RecommendationService가 매칭을 마친 subsidyId만 넘김.
-	// id in 조회는 JpaRepository.findAllById를 그대로 씀(별도 JPQL 불필요).
+	// 추천 응답 조립용 표시 정보. RecommendationService가 매칭·정렬을 마친 subsidyId를 정렬 순서대로 넘김.
+	// findAllById는 입력 순서를 보장하지 않으므로 id로 인덱싱한 뒤 입력 순서대로 재구성해 시그니처가 암시하는 순서 대응을 지킴
+	// (현행 소비자는 결과를 subsidyId로 재결합해 순서에 무관하나, 미래 소비자 footgun을 막는 방어적 계약임).
 	@Override
 	default List<SubsidySummary> findSummaries(List<Long> subsidyIds) {
-		return findAllById(subsidyIds).stream().map(SubsidyRepository::toSummary).toList();
+		Map<Long, SubsidySummary> summariesById = new HashMap<>();
+		for (SubsidyEntity entity : findAllById(subsidyIds)) {
+			summariesById.put(entity.getId(), toSummary(entity));
+		}
+		return subsidyIds.stream().map(summariesById::get).filter(Objects::nonNull).toList();
 	}
 
 	/**

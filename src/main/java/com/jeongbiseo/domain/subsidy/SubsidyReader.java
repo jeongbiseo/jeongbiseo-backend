@@ -26,9 +26,9 @@ public interface SubsidyReader {
 
 	/**
 	 * 추천 응답 조립에 쓸 지원금 표시 정보를 조회함. RecommendationService가 매칭·정렬·limit을 마친 subsidyId만 넘겨
-	 * 필요한 만큼만 조회함.
-	 * @param subsidyIds 조회할 지원금 id 목록
-	 * @return 지원금 표시 정보 목록
+	 * 필요한 만큼만 조회함. 반환 순서는 입력 subsidyIds 순서에 대응함(존재하지 않는 id는 결과에서 빠짐).
+	 * @param subsidyIds 조회할 지원금 id 목록(정렬 순서)
+	 * @return 지원금 표시 정보 목록(입력 순서 대응)
 	 */
 	List<SubsidySummary> findSummaries(List<Long> subsidyIds);
 

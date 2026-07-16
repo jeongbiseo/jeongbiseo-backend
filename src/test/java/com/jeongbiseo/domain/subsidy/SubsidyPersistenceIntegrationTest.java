@@ -122,6 +122,19 @@ class SubsidyPersistenceIntegrationTest {
 	}
 
 	@Test
+	void findSummaries_는_입력_id_순서대로_반환한다() {
+		SubsidyEntity first = subsidyRepository.save(base("a").build());
+		SubsidyEntity second = subsidyRepository.save(base("b").build());
+		SubsidyEntity third = subsidyRepository.save(base("c").build());
+
+		// 저장 순서(=id 오름차순)와 다른 순서로 조회해도 입력 순서를 따라야 함
+		List<Long> requested = List.of(third.getId(), first.getId(), second.getId());
+		List<SubsidySummary> summaries = subsidyRepository.findSummaries(requested);
+
+		assertThat(summaries).extracting(SubsidySummary::subsidyId).containsExactlyElementsOf(requested);
+	}
+
+	@Test
 	void findLatestDataUpdatedAt_는_소스_갱신시각_최대값을_반환한다() {
 		subsidyRepository.save(base("old").dataUpdatedAt(LocalDateTime.of(2026, 7, 1, 0, 0)).build());
 		subsidyRepository.save(base("new").dataUpdatedAt(LocalDateTime.of(2026, 7, 15, 12, 0)).build());
