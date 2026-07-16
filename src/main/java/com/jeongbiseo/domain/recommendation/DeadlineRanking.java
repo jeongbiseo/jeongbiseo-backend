@@ -27,8 +27,7 @@ public class DeadlineRanking implements RecommendationRanking {
 		return COMPARATOR;
 	}
 
-	// 동점·null 마감 블록 안의 결정적 타이브레이크임. 키는 MEMBER_ID 없이 sourceId|externalId 2요소(무인증 전제, 정렬
-	// 재설계 결정 B).
+	// 동점·null 마감 블록 안의 결정적 타이브레이크임. sourceId|externalId 2요소 해시(무인증 전제).
 	private static String tieHash(MatchResult result) {
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");

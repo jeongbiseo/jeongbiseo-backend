@@ -10,7 +10,7 @@ import com.jeongbiseo.domain.common.enums.TargetAudience;
 
 /**
  * 매칭에 필요한 지원금 조건 스냅샷임(값 객체). Subsidy 엔티티 전체가 아니라 판정과 정렬에 쓰이는 필드만 담음(storage 계층과의 결합을 끊음).
- * SubsidyReader가 반환하고 추천 도메인이 소비함 — 추천보다 먼저 이식하는 subsidy 슬라이스에 두어 이슈 단위 컴파일 의존을 정방향으로
+ * SubsidyReader가 반환하고 추천 도메인이 소비함. 추천보다 먼저 이식하는 subsidy 슬라이스에 두어 이슈 단위 컴파일 의존을 정방향으로
  * 둠(PLAN 07-subsidy-recommendation 1장).
  *
  * @param subsidyId 지원금 식별자
@@ -32,7 +32,7 @@ import com.jeongbiseo.domain.common.enums.TargetAudience;
  * @param estimatedAmountMax 예상 지원금액 상한
  * @param monthlyAmount 월 지급액(해당 시)
  * @param paymentType 지급 방식
- * @param deadline 신청 마감일. null이면 상시접수 등 종료일 없음 — 정렬 시 nullsLast
+ * @param deadline 신청 마감일. null이면 상시접수 등 종료일 없음, 정렬 시 nullsLast
  * @param sourceId 원천 소스 식별자(정렬 타이브레이크 키 재료)
  * @param externalId 원천 내 외부 식별자(동일 목적)
  */

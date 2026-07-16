@@ -22,8 +22,8 @@ import com.jeongbiseo.global.apiPayload.CustomResponse;
 import com.jeongbiseo.global.security.FixedMemberResolver;
 
 /**
- * 온보딩 최초 제출과 기수령 지원금 설정을 다룸(API명세서 9번 submitOnboarding, setReceivedSubsidies — Subsidy
- * 이식(순위 4) 완료로 결정 D7 이연 해소). 회원 식별은 FixedMemberResolver 고정 회원임(소셜 인증 전, 결정 7번).
+ * 온보딩 최초 제출과 기수령 지원금 설정을 다룸(API명세서 9번 submitOnboarding, setReceivedSubsidies). 회원 식별은
+ * FixedMemberResolver 고정 회원임(소셜 인증 전, 결정 7번).
  */
 @RestController
 @RequestMapping("/api/v1/onboarding")
@@ -42,7 +42,6 @@ public class OnboardingController {
 		this.memberResolver = memberResolver;
 	}
 
-	// 온보딩 최초 제출 처리함 (POST /api/v1/onboarding, operationId submitOnboarding)
 	@ResponseStatus(HttpStatus.CREATED)
 	@PostMapping
 	public CustomResponse<OnboardingSubmitResponse> submitOnboarding(@Valid @RequestBody OnboardingRequest request) {
@@ -55,8 +54,6 @@ public class OnboardingController {
 			.created(new OnboardingSubmitResponse(saved.getId(), saved.getMember().isOnboardingCompleted(), age));
 	}
 
-	// 기수령 지원금 전체 교체(PUT /api/v1/onboarding/received-subsidies, operationId
-	// setReceivedSubsidies)
 	@PutMapping("/received-subsidies")
 	public CustomResponse<ReceivedSubsidiesResponse> setReceivedSubsidies(
 			@Valid @RequestBody ReceivedSubsidiesRequest request) {

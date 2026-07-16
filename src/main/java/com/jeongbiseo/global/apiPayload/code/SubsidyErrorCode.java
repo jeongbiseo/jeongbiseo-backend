@@ -3,8 +3,8 @@ package com.jeongbiseo.global.apiPayload.code;
 import org.springframework.http.HttpStatus;
 
 /**
- * 지원금 도메인 에러코드임(API명세서 §13·§15). subsidyId가 존재하지 않는 지원금 상세 조회나 setReceivedSubsidies 존재 검증
- * 실패 시 이 코드로 통일해 던짐.
+ * 지원금 도메인 에러코드임(API명세서 13번과 15번). subsidyId가 존재하지 않는 지원금 상세 조회나 setReceivedSubsidies 존재
+ * 검증 실패 시 이 코드로 통일해 던짐.
  */
 public enum SubsidyErrorCode implements BaseErrorCode {
 

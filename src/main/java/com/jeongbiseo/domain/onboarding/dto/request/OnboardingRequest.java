@@ -14,10 +14,10 @@ import com.jeongbiseo.domain.common.enums.IncomeBracket;
 
 /**
  * 온보딩 제출과 수정 요청 본문임(API명세서 9번 submitOnboarding과 7번 updateMyOnboarding, 두 요청 필드가 동일해 하나로
- * 공유함). 이름은 실명 2~12자 필수이며 소셜 프로필명이 아니라 사용자 입력이 정본임(v1.4, D6). 소득구간과 가구원 수는 선택이며 생략 시
+ * 공유함). 이름은 실명 2자에서 12자 필수이며 소셜 프로필명이 아니라 사용자 입력이 정본임(v1.4, D6). 소득구간과 가구원 수는 선택이며 생략 시
  * null로 처리함.
  *
- * @param name 이름(실명, 필수, 2~12자)
+ * @param name 이름(실명, 필수, 2자에서 12자)
  * @param birthDate 생년월일(필수, 과거 날짜)
  * @param sido 거주지 시 또는 도(필수)
  * @param sigungu 거주지 시군구(필수)

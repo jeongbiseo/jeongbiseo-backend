@@ -1,8 +1,6 @@
 package com.jeongbiseo.domain.subsidy;
 
-import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -36,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * 지원금 검색·상세·setReceivedSubsidies 종단 통합 테스트임(@SpringBootTest 더하기 Testcontainers 실제 MySQL,
  * Docker 필요). FixedMemberResolver 대신 임의 memberId로 ReceivedSubsidyService를 직접 호출함
- * (RecommendationScopeIntegrationTest 관례 — ReceivedSubsidy는 memberId를 값 컬럼으로만 가져 FK 제약이
+ * (RecommendationScopeIntegrationTest 관례, ReceivedSubsidy는 memberId를 값 컬럼으로만 가져 FK 제약이
  * 없으므로 Member 엔티티 시드가 필요 없음). 각 테스트는 트랜잭션 롤백으로 격리함.
  */
 @SpringBootTest
@@ -66,9 +64,6 @@ class SubsidySearchDetailIntegrationTest {
 
 	@Autowired
 	private ReceivedSubsidyRepository receivedSubsidyRepository;
-
-	@Autowired
-	private Clock clock;
 
 	@Test
 	void search_키워드로_이름과_기관을_검색한다() {

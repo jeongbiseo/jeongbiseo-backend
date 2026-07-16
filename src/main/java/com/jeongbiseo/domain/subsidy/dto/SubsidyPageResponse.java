@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 
 /**
- * 지원금 검색 페이지 응답임(API명세서 §13 searchSubsidies). Page를 그대로 노출하지 않고 필요한 필드만 평평하게 담아 응답 계약을
+ * 지원금 검색 페이지 응답임(API명세서 13번 searchSubsidies). Page를 그대로 노출하지 않고 필요한 필드만 평평하게 담아 응답 계약을
  * 명시적으로 고정함.
  *
  * @param content 이 페이지의 검색 결과 목록
@@ -18,7 +18,6 @@ import org.springframework.data.domain.Page;
 public record SubsidyPageResponse(List<SubsidySearchResult> content, int page, int size, long totalElements,
 		int totalPages, boolean last) {
 
-	/** Spring Data Page를 응답 DTO로 변환함. */
 	public static SubsidyPageResponse from(Page<SubsidySearchResult> page) {
 		return new SubsidyPageResponse(page.getContent(), page.getNumber(), page.getSize(), page.getTotalElements(),
 				page.getTotalPages(), page.isLast());

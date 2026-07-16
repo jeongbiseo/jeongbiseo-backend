@@ -26,7 +26,7 @@ import com.jeongbiseo.global.common.entity.BaseEntity;
 /**
  * 온보딩 프로필 엔티티임(데이터모델 3.4 onboarding_profile). Member와 1:1 소유측(member_id UNIQUE FK).
  * member는 조회 응답에 이름이 항상 필요해 기본 EAGER로 둠(open-in-view=false라 지연 로딩이면 컨트롤러 매핑에서
- * LazyInitializationException). region_code는 매칭 정본 컬럼이나 nullable임(결정 D3) — RegionCatalog
+ * LazyInitializationException). region_code는 매칭 정본 컬럼이나 nullable임(결정 D3). RegionCatalog
  * 미등록 sido/sigungu 조합이면 null 저장하고, RecommendationPolicy가 REGIONAL 매칭에서만 자연
  * 탈락시킴(NATIONWIDE는 정상). NOT NULL로 거부하면 카탈로그 밖 지역 사용자의 온보딩이 전면 차단돼 "누락 최대 죄악" 원칙과 충돌하므로
  * nullable을 택함.
@@ -48,7 +48,7 @@ public class OnboardingProfile extends BaseEntity {
 	@Column(name = "birth_date", nullable = false)
 	private LocalDate birthDate;
 
-	// 매칭 정본. nullable(D3) — 미해석 조합이면 null이며 REGIONAL 매칭에서만 자연 탈락함
+	// 매칭 정본. nullable(D3). 미해석 조합이면 null이며 REGIONAL 매칭에서만 자연 탈락함
 	@Column(name = "region_code", length = 10)
 	private String regionCode;
 

@@ -22,8 +22,8 @@ import com.jeongbiseo.global.apiPayload.exception.CustomException;
 /**
  * 추천 파이프라인 전체를 조율하는 도메인 서비스임: 후보 조회, 기수령 제외, RecommendationPolicy 적용, 정렬, 소스 다양성 re-rank,
  * limit 적용(PLAN.md 3장 W3 절). 5조건 판정 자체는 RecommendationPolicy에 위임하고, 정렬은
- * RecommendationRanking에 위임하며, 이 서비스는 그 앞뒤(후보 수집, 필터, 표시 정보 결합)만 담당함 — 매칭 조건 분기를 여기서 다시
- * 쓰지 않음.
+ * RecommendationRanking에 위임하며, 이 서비스는 그 앞뒤(후보 수집, 필터, 표시 정보 결합)만 담당함. 매칭 조건 분기를 여기서 다시 쓰지
+ * 않음.
  */
 @Service
 public class RecommendationService {
@@ -42,7 +42,7 @@ public class RecommendationService {
 	private final RecommendationRanking ranking;
 
 	// RecommendationPolicy는 상태 없는 순수 도메인 서비스라 스프링 빈으로 등록하지 않고 여기서 직접 만듦
-	// (W1 절 "JPA 비의존 순수 자바" 설계를 유지 — 컨테이너 의존을 강제하지 않음).
+	// ("JPA 비의존 순수 자바" 설계를 유지하며 컨테이너 의존을 강제하지 않음).
 	private final RecommendationPolicy policy = new RecommendationPolicy();
 
 	// SourceDiversityReranker는 정렬 전략(교체 가능 축)이 아니라 노출 정책(고정 축)이라 RecommendationRanking DI
@@ -113,10 +113,7 @@ public class RecommendationService {
 		return new RecommendationItem(summary, result);
 	}
 
-	// ponytail: null이면 DEFAULT_LIMIT(3), MAX_LIMIT(20) 초과는 클램프. 0 이하는 컨트롤러가 VALID400_0으로
-	// 먼저
-	// 막지만, 서비스를 직접 부르는 경로(테스트·실측 하네스)를 위해 방어적으로 DEFAULT_LIMIT로 보정함(음수가 .limit()에 닿아 터지지
-	// 않게).
+	// ponytail: 서비스 직접 호출 경로(테스트) 방어용 보정임. HTTP 검증은 컨트롤러 소관임.
 	private static int normalizeLimit(Integer limit) {
 		if (limit == null || limit <= 0) {
 			return DEFAULT_LIMIT;

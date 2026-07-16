@@ -45,6 +45,8 @@ public class ReceivedSubsidyService {
 	 * @return 교체 완료된 기수령 지원금 id 목록
 	 * @throws CustomException 존재하지 않는 subsidyId가 포함되면 SUBSIDY404_1
 	 */
+	// ponytail: 회원 단위 잠금 없음. 고정 회원 1명 데모라 동시 PUT이 없고,
+	// 실사용 동시성이 생기면 회원 행 잠금 또는 직렬화로 올릴 것(백로그).
 	@Transactional
 	public List<Long> replaceAll(Long memberId, List<Long> subsidyIds) {
 		List<Long> distinct = subsidyIds.stream().distinct().toList();
@@ -53,8 +55,8 @@ public class ReceivedSubsidyService {
 			throw new CustomException(SubsidyErrorCode.SUBSIDY_NOT_FOUND);
 		}
 		repository.deleteByMemberId(memberId); // 벌크 삭제(즉시 실행)
-		List<ReceivedSubsidy> entities = distinct.stream() // distinct로 저장(H3) — 중복 id
-															// UNIQUE 위반 방지
+		// 중복 id 요청 시 uk_received_subsidy_member_subsidy 위반을 막기 위해 distinct만 저장함.
+		List<ReceivedSubsidy> entities = distinct.stream()
 			.map(id -> ReceivedSubsidy.builder().memberId(memberId).subsidyId(id).build())
 			.toList();
 		repository.saveAll(entities);

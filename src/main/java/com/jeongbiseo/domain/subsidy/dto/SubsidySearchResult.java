@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import com.jeongbiseo.domain.common.enums.SubsidyCategory;
 
 /**
- * 지원금 검색 결과 한 건임(API명세서 §13 searchSubsidies). SubsidyRepository.search가 JPQL constructor
+ * 지원금 검색 결과 한 건임(API명세서 13번 searchSubsidies). SubsidyRepository.search가 JPQL constructor
  * expression으로 직접 채워 반환함(엔티티 전체를 노출하지 않음).
  *
  * @param subsidyId 지원금 id

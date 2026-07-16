@@ -99,14 +99,14 @@ class RecommendationPolicyTest {
 
 	@Test
 	void matchRegion_alwaysPasses_whenNationwide() {
-		// BDD "NATIONWIDE 지원금은 지역과 무관하게 통과" — regionCode는 null, target은 임의 지역
+		// BDD "NATIONWIDE 지원금은 지역과 무관하게 통과": regionCode는 null, target은 임의 지역
 		assertThat(policy.matchRegion(null, RegionScope.NATIONWIDE, "11620")).isTrue();
 	}
 
 	@Test
 	void matchRegion_passesOnlyOnCodeMatch_whenRegional() {
 		assertThat(policy.matchRegion("11680", RegionScope.REGIONAL, "11680")).isTrue();
-		// BDD "REGIONAL 지원금은 지역코드가 일치할 때만 통과" — 지원금 11680, 신청자 11620
+		// BDD "REGIONAL 지원금은 지역코드가 일치할 때만 통과": 지원금 11680, 신청자 11620
 		assertThat(policy.matchRegion("11680", RegionScope.REGIONAL, "11620")).isFalse();
 	}
 
@@ -121,7 +121,7 @@ class RecommendationPolicyTest {
 	@Test
 	void matchEmployment_passesAll_whenTagsNull() {
 		assertThat(policy.matchEmployment(EmploymentStatus.JOB_SEEKING, null)).isTrue();
-		// TC-DEMO-013 — OTHER도 tags null이면 통과
+		// TC-DEMO-013: OTHER도 tags null이면 통과
 		assertThat(policy.matchEmployment(EmploymentStatus.OTHER, null)).isTrue();
 	}
 
@@ -186,14 +186,14 @@ class RecommendationPolicyTest {
 
 	@Test
 	void matchHousehold_exactFormat_matchesOnlyExactSize() {
-		// "N인 가구" 정확 일치 형식임 — 일치와 불일치 둘 다 짚음
+		// "N인 가구" 정확 일치 형식임. 일치와 불일치 둘 다 짚음
 		assertThat(policy.matchHousehold(1, "1인 가구").passed()).isTrue();
 		assertThat(policy.matchHousehold(2, "1인 가구").passed()).isFalse();
 	}
 
 	@Test
 	void matchHousehold_atLeastFormat_matchesSizeAtOrAboveThreshold() {
-		// "N인 이상" 형식임 — 상한 이상 통과, 미만 탈락 둘 다 짚음
+		// "N인 이상" 형식임. 상한 이상 통과, 미만 탈락 둘 다 짚음
 		assertThat(policy.matchHousehold(3, "2인 이상").passed()).isTrue();
 		assertThat(policy.matchHousehold(1, "2인 이상").passed()).isFalse();
 	}
@@ -317,7 +317,7 @@ class RecommendationPolicyTest {
 
 	@Test
 	void matchResult_failsOnRegionMismatch_whenOtherConditionsPass() {
-		// TC-DEMO-012 — REGIONAL 11680 지원금에 지역코드 11620 신청자, 나머지 4조건은 통과
+		// TC-DEMO-012: REGIONAL 11680 지원금에 지역코드 11620 신청자, 나머지 4조건은 통과
 		SubsidyCriteria criteria = new SubsidyCriteria(23L, TargetAudience.PERSONAL, OccupationRestriction.NONE, 19, 34,
 				RegionScope.REGIONAL, "11680", null, null, null, AMOUNT_MIN, AMOUNT_MAX, null, PaymentType.CASH);
 		ApplicantProfile applicant = new ApplicantProfile(27, "11620", EmploymentStatus.JOB_SEEKING,
@@ -330,7 +330,7 @@ class RecommendationPolicyTest {
 
 	@Test
 	void matchResult_failsOnEmploymentMismatch_whenOtherConditionsPass() {
-		// TC-DEMO-014 — employmentTags "EMPLOYED,STUDENT"에 JOB_SEEKING 신청자, 나머지 4조건은 통과
+		// TC-DEMO-014: employmentTags "EMPLOYED,STUDENT"에 JOB_SEEKING 신청자, 나머지 4조건은 통과
 		SubsidyCriteria criteria = new SubsidyCriteria(24L, TargetAudience.PERSONAL, OccupationRestriction.NONE, 19, 34,
 				RegionScope.NATIONWIDE, null, "EMPLOYED,STUDENT", null, null, AMOUNT_MIN, AMOUNT_MAX, null,
 				PaymentType.CASH);
@@ -419,7 +419,7 @@ class RecommendationPolicyTest {
 		assertThat(matchingResult.matched()).isTrue();
 		assertThat(matchingResult.uncomputableReasons()).isEmpty();
 
-		// 연령 조건 하나만 탈락(18세, ageMin 19 미만) — 5조건 중 하나라도 탈락하면 종합 탈락
+		// 연령 조건 하나만 탈락(18세, ageMin 19 미만). 5조건 중 하나라도 탈락하면 종합 탈락
 		ApplicantProfile tooYoung = new ApplicantProfile(18, "11620", EmploymentStatus.JOB_SEEKING,
 				IncomeBracket.UNDER_200, 1);
 		MatchResult failingResult = policy.evaluate(tooYoung, criteria);

@@ -22,14 +22,15 @@ import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 
 /**
  * SubsidyEntity Spring Data JPA 저장소임. SubsidyReader(domain.subsidy)를 직접 구현해 DIP 방향을 지킴.
- * findCandidates와 findSummaries는 엔티티 조회 후 정적 매퍼(toCriteria, toSummary)로 매핑함 — 순서 불변식을 매퍼
- * 한 곳에 가둠. storage 타입은 domain 밖으로 새지 않음. search와 countByIdIn은 subsidy 자기 도메인(검색·상세,
+ * findCandidates와 findSummaries는 엔티티 조회 후 정적 매퍼(toCriteria, toSummary)로 매핑함. 순서 불변식을 매퍼 한
+ * 곳에 가둠. storage 타입은 domain 밖으로 새지 않음. search와 countByIdIn은 subsidy 자기 도메인(검색·상세,
  * setReceivedSubsidies 존재 검증)이 직접 쓰는 메서드라 SubsidyReader 포트에는 넣지 않음(추천 경계와 분리, PLAN
  * 08-subsidy-search-detail 1.1).
  */
 public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, SubsidyReader {
 
-	// 지원금 검색(API명세서 §13). 융자 상품은 항상 제외하고, keyword·category는 nullable로 처리함.
+	// 지원금 검색(API명세서 13번 searchSubsidies). 융자 상품은 항상 제외하고, keyword·category는 nullable로
+	// 처리함.
 	@Query(value = """
 			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
 			from SubsidyEntity s
@@ -46,12 +47,12 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 	Page<SubsidySearchResult> search(@Param("keyword") String keyword, @Param("category") SubsidyCategory category,
 			Pageable pageable);
 
-	// setReceivedSubsidies 존재 검증용(M2). 요청 id 목록 중 실제 존재하는 개수를 세어 전부 존재하는지 판정함.
+	// setReceivedSubsidies 존재 검증용. 요청 id 목록 중 실제 존재하는 개수를 세어 전부 존재하는지 판정함.
 	long countByIdIn(List<Long> ids);
 
 	// 추천 후보 조건: 활성·추천 가능·비융자·대표 행이면서 기준일에 신청 가능함(마감일 미상은 누락 방지를 위해 통과).
-	// 마감 필터(HANDOFF 4장)와 융자 제외(2.B-13, 2026-07-15)를 레코드 속성 필터로 함께 둠 —
-	// deadline·recommendable와 같은 자리.
+	// 마감 필터(HANDOFF 4장)와 융자 제외(HANDOFF 2.B-13, 2026-07-15)를 레코드 속성 필터로 함께 둠(deadline,
+	// recommendable와 같은 자리).
 	@Query("""
 			select s
 			from SubsidyEntity s
@@ -66,8 +67,8 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 	}
 
 	// 추천 응답 조립용 표시 정보. RecommendationService가 매칭·정렬을 마친 subsidyId를 정렬 순서대로 넘김.
-	// findAllById는 입력 순서를 보장하지 않으므로 id로 인덱싱한 뒤 입력 순서대로 재구성해 시그니처가 암시하는 순서 대응을 지킴
-	// (현행 소비자는 결과를 subsidyId로 재결합해 순서에 무관하나, 미래 소비자 footgun을 막는 방어적 계약임).
+	// findAllById는 입력 순서를 보장하지 않으므로 id로 인덱싱한 뒤 입력 순서대로 재구성함(SubsidyReader 계약의 입력 순서 대응
+	// 보장).
 	@Override
 	default List<SubsidySummary> findSummaries(List<Long> subsidyIds) {
 		Map<Long, SubsidySummary> summariesById = new HashMap<>();

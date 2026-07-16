@@ -10,7 +10,7 @@ import com.jeongbiseo.domain.subsidy.dto.SubsidySummary;
 /**
  * 지원금 마스터 조회 인터페이스임(도메인 계층, storage 비의존). SubsidyRepository가 구현함(DIP). 도메인이 영속 타입을
  * import하지 않게 이 포트 하나만 두고 리포지토리가 구현하는 것은 레이어 방향을 위한 의도된 예외임(추측성 추상화 금지 원칙의 예외, AGENTS.md
- * 코드 규칙). 검색 (searchSubsidies)은 순위 4 검색 엔드포인트 소관이라 이 슬라이스에서 제외하고, 추천이 쓰는 3메서드만 둠(PLAN
+ * 코드 규칙). 검색(searchSubsidies)은 검색 엔드포인트 소관이라 이 슬라이스에서 제외하고, 추천이 쓰는 3메서드만 둠(PLAN
  * 07-subsidy-recommendation 3.C).
  */
 public interface SubsidyReader {

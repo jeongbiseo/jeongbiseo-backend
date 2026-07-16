@@ -3,7 +3,7 @@ package com.jeongbiseo.global.apiPayload.code;
 import org.springframework.http.HttpStatus;
 
 /**
- * 추천 도메인 에러코드임(API명세서 "공통 에러코드" 절). 추천 계산 도중 예기치 못한 오류가 나면 이 코드로 감싸 던짐 — 매칭 0건(정상)과 서버
+ * 추천 도메인 에러코드임(API명세서 "공통 에러코드" 절). 추천 계산 도중 예기치 못한 오류가 나면 이 코드로 감싸 던짐. 매칭 0건(정상)과 서버
  * 오류(비정상)를 구분함(REC-321).
  */
 public enum RecommendationErrorCode implements BaseErrorCode {
