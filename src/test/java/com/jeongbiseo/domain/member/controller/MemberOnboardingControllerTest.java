@@ -15,12 +15,14 @@ import com.jeongbiseo.domain.common.enums.EmploymentStatus;
 import com.jeongbiseo.domain.common.enums.IncomeBracket;
 import com.jeongbiseo.domain.member.entity.Member;
 import com.jeongbiseo.domain.member.entity.Role;
+import com.jeongbiseo.domain.member.service.MemberService;
 import com.jeongbiseo.domain.onboarding.entity.OnboardingProfile;
 import com.jeongbiseo.domain.onboarding.service.OnboardingService;
 import com.jeongbiseo.global.security.FixedMemberResolver;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,6 +42,9 @@ class MemberOnboardingControllerTest {
 
 	@MockitoBean
 	private OnboardingService onboardingService;
+
+	@MockitoBean
+	private MemberService memberService;
 
 	@Test
 	void getMyOnboarding_이름과_만나이를_담아_200을_반환한다() throws Exception {
@@ -73,6 +78,24 @@ class MemberOnboardingControllerTest {
 		mockMvc.perform(put("/api/v1/members/me/onboarding").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALID400_1"));
+	}
+
+	@Test
+	void deleteMember_본문_없이_호출해도_200과_성공메시지를_반환한다() throws Exception {
+		mockMvc.perform(delete("/api/v1/members/me"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.result").value("회원 탈퇴 성공"));
+	}
+
+	@Test
+	void deleteMember_사유_본문이_있어도_200을_반환한다() throws Exception {
+		String body = """
+				{"reason":"필요한 지원금을 찾지 못했어요"}""";
+
+		mockMvc.perform(delete("/api/v1/members/me").contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result").value("회원 탈퇴 성공"));
 	}
 
 	private static OnboardingProfile profile(String name) {
