@@ -18,6 +18,17 @@ java {
 	}
 }
 
+// 이 머신의 JVM 플랫폼 기본 인코딩이 MS949(한국어 코드페이지)라 인코딩을 명시하지 않으면
+// javac이 UTF-8 소스의 한글 문자열 리터럴을 깨뜨리고, spring-javaformat이 한글 주석 줄 너비를
+// 오계산해 format과 checkFormat이 엇갈림. 컴파일과 포맷 검사 둘 다 UTF-8로 고정함.
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8'
+}
+
+tasks.withType(io.spring.javaformat.gradle.tasks.FormatterTask).configureEach {
+	encoding = 'UTF-8'
+}
+
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
