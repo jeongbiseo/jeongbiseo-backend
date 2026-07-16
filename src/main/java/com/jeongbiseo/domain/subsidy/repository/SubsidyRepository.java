@@ -7,22 +7,47 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.jeongbiseo.domain.common.enums.SubsidyCategory;
 import com.jeongbiseo.domain.subsidy.SubsidyReader;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyCriteria;
+import com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult;
 import com.jeongbiseo.domain.subsidy.dto.SubsidySummary;
 import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 
 /**
  * SubsidyEntity Spring Data JPA 저장소임. SubsidyReader(domain.subsidy)를 직접 구현해 DIP 방향을 지킴.
  * findCandidates와 findSummaries는 엔티티 조회 후 정적 매퍼(toCriteria, toSummary)로 매핑함 — 순서 불변식을 매퍼
- * 한 곳에 가둠. storage 타입은 domain 밖으로 새지 않음. 검색(searchSubsidies)과 소스별 조회(적재)는 순위 4 소관이라 이
- * 슬라이스에서 제외함(PLAN 07-subsidy-recommendation 3.C).
+ * 한 곳에 가둠. storage 타입은 domain 밖으로 새지 않음. search와 countByIdIn은 subsidy 자기 도메인(검색·상세,
+ * setReceivedSubsidies 존재 검증)이 직접 쓰는 메서드라 SubsidyReader 포트에는 넣지 않음(추천 경계와 분리, PLAN
+ * 08-subsidy-search-detail 1.1).
  */
 public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, SubsidyReader {
+
+	// 지원금 검색(API명세서 §13). 융자 상품은 항상 제외하고, keyword·category는 nullable로 처리함.
+	@Query(value = """
+			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
+			from SubsidyEntity s
+			where s.loanProduct = false
+			and (:keyword is null or s.name like concat('%', :keyword, '%') or s.agency like concat('%', :keyword, '%'))
+			and (:category is null or s.category = :category)
+			""",
+			countQuery = """
+					select count(s) from SubsidyEntity s
+					where s.loanProduct = false
+					and (:keyword is null or s.name like concat('%', :keyword, '%') or s.agency like concat('%', :keyword, '%'))
+					and (:category is null or s.category = :category)
+					""")
+	Page<SubsidySearchResult> search(@Param("keyword") String keyword, @Param("category") SubsidyCategory category,
+			Pageable pageable);
+
+	// setReceivedSubsidies 존재 검증용(M2). 요청 id 목록 중 실제 존재하는 개수를 세어 전부 존재하는지 판정함.
+	long countByIdIn(List<Long> ids);
 
 	// 추천 후보 조건: 활성·추천 가능·비융자·대표 행이면서 기준일에 신청 가능함(마감일 미상은 누락 방지를 위해 통과).
 	// 마감 필터(HANDOFF 4장)와 융자 제외(2.B-13, 2026-07-15)를 레코드 속성 필터로 함께 둠 —
