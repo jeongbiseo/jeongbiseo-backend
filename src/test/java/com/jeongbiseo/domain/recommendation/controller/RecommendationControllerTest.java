@@ -71,7 +71,7 @@ class RecommendationControllerTest {
 		LocalDate asOf = LocalDate.of(2026, 7, 16);
 		SubsidySummary summary = new SubsidySummary(1L, "청년월세지원", "국토교통부", asOf.plusDays(10), "만 19~34세 청년", 100_000L,
 				200_000L);
-		MatchResult matchResult = new MatchResult(1L, true, 5, List.of(EligibilityReason.INCOME_MISSING),
+		MatchResult matchResult = new MatchResult(1L, false, true, 5, List.of(EligibilityReason.INCOME_MISSING),
 				asOf.plusDays(10), "gov24", "EXT-1");
 		RecommendationItem item = new RecommendationItem(summary, matchResult);
 		RecommendationView view = new RecommendationView(List.of(item), asOf, LocalDateTime.of(2026, 7, 15, 12, 0));
@@ -94,7 +94,7 @@ class RecommendationControllerTest {
 	void getRecommendations_dDay는_deadline이_null이면_null이다() throws Exception {
 		LocalDate asOf = LocalDate.of(2026, 7, 16);
 		SubsidySummary summary = new SubsidySummary(2L, "상시접수 지원금", "고용노동부", null, "제한 없음", null, null);
-		MatchResult matchResult = new MatchResult(2L, true, 3, List.of(), null, "gov24", "EXT-2");
+		MatchResult matchResult = new MatchResult(2L, false, true, 3, List.of(), null, "gov24", "EXT-2");
 		RecommendationItem item = new RecommendationItem(summary, matchResult);
 		RecommendationView view = new RecommendationView(List.of(item), asOf, null);
 		given(recommendationQueryService.getRecommendations(anyLong(), any())).willReturn(view);

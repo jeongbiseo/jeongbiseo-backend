@@ -171,7 +171,7 @@ class RecommendationServiceTest {
 			String externalId) {
 		return new SubsidyCriteria(subsidyId, TargetAudience.PERSONAL, OccupationRestriction.NONE, null, 19, 34,
 				RegionScope.NATIONWIDE, null, null, null, null, null, null, null, null, 100_000L, 300_000L, null,
-				PaymentType.CASH, deadline, sourceId, externalId);
+				PaymentType.CASH, deadline, sourceId, externalId, null);
 	}
 
 	// SubsidyReader 테스트 더블임. throwOnFindCandidates가 true면 findCandidates에서

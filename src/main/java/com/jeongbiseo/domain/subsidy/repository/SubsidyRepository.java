@@ -94,7 +94,7 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 				entity.getEmploymentRawCode(), entity.getIncomeSignal(), entity.getIncomeThreshold(),
 				entity.getHouseholdSignal(), entity.getHouseholdCondition(), entity.getEstimatedAmountMin(),
 				entity.getEstimatedAmountMax(), entity.getMonthlyAmount(), entity.getPaymentType(),
-				entity.getDeadline(), entity.getSourceId(), entity.getExternalId());
+				entity.getDeadline(), entity.getSourceId(), entity.getExternalId(), entity.getRegionCodes());
 	}
 
 	/**

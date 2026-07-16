@@ -1,6 +1,7 @@
 package com.jeongbiseo.domain.recommendation;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,8 +16,9 @@ import com.jeongbiseo.domain.common.enums.TargetAudience;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyCriteria;
 
 /**
- * 5조건 매칭 판정의 단일 정본임(도메인 서비스, JPA 비의존 순수 자바). 이 클래스 밖에서 매칭 조건 분기를 만들지 않음(DISCUSS.md 3.3,
- * QA.md 3.2 체크리스트).
+ * 매칭 판정의 단일 정본임(도메인 서비스, JPA 비의존 순수 자바). 이 클래스 밖에서 매칭 조건 분기를 만들지 않음(DISCUSS.md 3.3, QA.md
+ * 3.2 체크리스트). matched는 연령·고용·소득·가구 4조건 AND이고, 지역은 탈락 조건이 아니라 정렬 후순위(강등) 신호로 별도 축에서
+ * 판정함(09-region-demotion PLAN D1, D2).
  *
  * <p>
  * "매칭 탈락"과 "산정불가"는 별개 축임. 소득과 가구는 미입력이어도 탈락시키지 않고 통과시키되 EligibilityReason을 붙여 산정불가로
@@ -43,15 +45,16 @@ public final class RecommendationPolicy {
 	}
 
 	/**
-	 * 신청자 프로필과 지원금 조건 1건을 5조건으로 판정함.
+	 * 신청자 프로필과 지원금 조건 1건을 판정함. 지역은 matched AND 체인에 들어가지 않고 regionDemoted 별도 축으로 판정함(D2).
 	 * @param profile 신청자 프로필
 	 * @param criteria 지원금 조건 스냅샷
-	 * @return 매칭 결과(산정불가 사유 포함)
+	 * @return 매칭 결과(강등 여부·산정불가 사유 포함)
 	 */
 	public MatchResult evaluate(ApplicantProfile profile, SubsidyCriteria criteria) {
 		ConditionOutcome ageOutcome = matchAge(profile.age(), criteria.ageSignal(), criteria.ageMin(),
 				criteria.ageMax());
-		boolean regionOk = matchRegion(criteria.regionCode(), criteria.regionScope(), profile.regionCode());
+		boolean demoted = regionDemoted(criteria, profile.regionCode());
+		boolean regionMatched = !demoted;
 		ConditionOutcome employmentOutcome = matchEmployment(profile.employmentStatus(), criteria.employmentSignal(),
 				criteria.employmentTags());
 		ConditionOutcome incomeOutcome = matchIncome(profile.incomeBracket(), criteria.incomeSignal(),
@@ -59,7 +62,7 @@ public final class RecommendationPolicy {
 		ConditionOutcome houseOutcome = matchHousehold(profile.householdSize(), criteria.householdSignal(),
 				criteria.householdCondition());
 
-		boolean matched = ageOutcome.passed() && regionOk && employmentOutcome.passed() && incomeOutcome.passed()
+		boolean matched = ageOutcome.passed() && employmentOutcome.passed() && incomeOutcome.passed()
 				&& houseOutcome.passed();
 
 		List<EligibilityReason> reasons = new ArrayList<>();
@@ -71,10 +74,10 @@ public final class RecommendationPolicy {
 			reasons.add(EligibilityReason.AMOUNT_INFO_MISSING);
 		}
 
-		int score = matchScore(ageOutcome.passed(), regionOk, employmentOutcome.passed(), incomeOutcome.passed(),
+		int score = matchScore(ageOutcome.passed(), regionMatched, employmentOutcome.passed(), incomeOutcome.passed(),
 				houseOutcome.passed());
 
-		return new MatchResult(criteria.subsidyId(), matched, score, List.copyOf(reasons), criteria.deadline(),
+		return new MatchResult(criteria.subsidyId(), demoted, matched, score, List.copyOf(reasons), criteria.deadline(),
 				criteria.sourceId(), criteria.externalId());
 	}
 
@@ -105,13 +108,58 @@ public final class RecommendationPolicy {
 	}
 
 	/**
-	 * 지역 조건을 판정함. scope가 NATIONWIDE면 항상 통과, REGIONAL이면 code와 target 일치 여부로 판정함.
+	 * 지역 강등 여부를 판정함(탈락이 아니라 정렬 후순위, D6). 아래를 전부 만족할 때만 강등함.
+	 * <p>
+	 * 1. 사용자 지역코드가 non-null 2. 지원금 유효 지역코드 집합이 비어있지 않음 3. 사용자 시도 prefix가 지원금 어느 코드의 시도
+	 * prefix와도 안 맞음
+	 * </p>
+	 * 하나라도 불충족이면 강등하지 않음(정상 노출).
+	 * @param criteria 지원금 조건 스냅샷
+	 * @param userRegionCode 신청자 지역코드
+	 * @return 강등 대상이면 true
 	 */
-	boolean matchRegion(String code, RegionScope scope, String target) {
-		if (scope == RegionScope.NATIONWIDE) {
-			return true;
+	boolean regionDemoted(SubsidyCriteria criteria, String userRegionCode) {
+		if (userRegionCode == null) {
+			return false;
 		}
-		return code != null && code.equals(target);
+		List<String> validCodes = validRegionCodes(criteria);
+		if (validCodes.isEmpty()) {
+			return false;
+		}
+		for (String code : validCodes) {
+			if (sidoPrefixMatches(code, userRegionCode)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * 지원금의 유효 지역코드 집합을 계산함(D4). regionCodes CSV를 우선하고, 비어있으면 REGIONAL이면서 regionCode가 있을
+	 * 때만 단일 코드로 폴백함.
+	 */
+	private static List<String> validRegionCodes(SubsidyCriteria criteria) {
+		if (criteria.regionCodes() != null && !criteria.regionCodes().isBlank()) {
+			return Arrays.stream(criteria.regionCodes().split(","))
+				.map(String::trim)
+				.filter(code -> !code.isEmpty())
+				.toList();
+		}
+		if (criteria.regionScope() == RegionScope.REGIONAL && criteria.regionCode() != null) {
+			return List.of(criteria.regionCode());
+		}
+		return List.of();
+	}
+
+	/**
+	 * 시도 prefix(법정동 코드 앞 2자리) 일치 여부를 판정함(D5). 둘 다 길이 2 이상이면 앞 2자리를 비교하고, 아니면 방어적으로 전체
+	 * 문자열을 비교함.
+	 */
+	private static boolean sidoPrefixMatches(String a, String b) {
+		if (a.length() >= 2 && b.length() >= 2) {
+			return a.substring(0, 2).equals(b.substring(0, 2));
+		}
+		return a.equals(b);
 	}
 
 	/**

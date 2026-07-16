@@ -9,15 +9,15 @@ import java.util.HexFormat;
 import org.springframework.stereotype.Component;
 
 /**
- * 마감 임박순(deadline 오름차순, null은 뒤) 더하기 동점·null 블록 내부 결정적 타이브레이크를 적용하는 운영 정렬 구현임(정렬 재설계 결정
- * B, 05-sort-total-decisions). tieHash는 MEMBER_ID 없이 sourceId|externalId 2요소로 계산함(무인증
- * 전제).
+ * 지역 강등건 뒤로(regionDemoted false 우선) 더하기 마감 임박순(deadline 오름차순, null은 뒤) 더하기 동점·null 블록 내부
+ * 결정적 타이브레이크를 적용하는 운영 정렬 구현임(정렬 재설계 결정 B, 05-sort-total-decisions. 지역 강등은
+ * 09-region-demotion D1). tieHash는 MEMBER_ID 없이 sourceId|externalId 2요소로 계산함(무인증 전제).
  */
 @Component
 public class DeadlineRanking implements RecommendationRanking {
 
-	private static final Comparator<MatchResult> COMPARATOR = Comparator
-		.comparing(MatchResult::deadline, Comparator.nullsLast(Comparator.naturalOrder()))
+	private static final Comparator<MatchResult> COMPARATOR = Comparator.comparing(MatchResult::regionDemoted)
+		.thenComparing(MatchResult::deadline, Comparator.nullsLast(Comparator.naturalOrder()))
 		.thenComparing(DeadlineRanking::tieHash)
 		.thenComparing(MatchResult::sourceId, Comparator.nullsLast(Comparator.naturalOrder()))
 		.thenComparing(MatchResult::externalId, Comparator.nullsLast(Comparator.naturalOrder()));

@@ -85,9 +85,8 @@ class RecommendationScopeIntegrationTest {
 	void seedApplicant() {
 		Member member = memberRepository.save(newMember());
 		LocalDate birthDate = LocalDate.now(SEOUL_ZONE).minusYears(27);
-		// D3: RegionCatalog 밖 지역이면 regionCode는 null로 저장되고, REGIONAL 매칭에서만 자연
-		// 탈락함(NATIONWIDE는
-		// 영향 없음).
+		// D3: RegionCatalog 밖 지역이면 regionCode는 null로 저장됨. 사용자 지역코드가 null이면 강등 판정 불가라
+		// 지역형·전국형 모두 정상 노출함(09-region-demotion 반전, 종전 REGIONAL 탈락 폐기).
 		OnboardingProfile profile = OnboardingProfile.builder()
 			.member(member)
 			.birthDate(birthDate)
@@ -165,7 +164,8 @@ class RecommendationScopeIntegrationTest {
 	}
 
 	@Test
-	void recommend_D3_지역코드_null이면_전국형은_통과하고_지역형은_탈락한다() {
+	void recommend_D3_지역코드_null이면_전국형과_지역형_둘_다_노출된다() {
+		// D6 조건1: 신청자 지역코드가 null이면 강등 판정 자체가 불가하므로 지역형도 강등 없이 노출됨(누락-안전 처리, AGENTS.md 1장)
 		SubsidyEntity nationwide = subsidyRepository.save(alwaysMatching("region-nationwide", TargetAudience.PERSONAL,
 				OccupationRestriction.NONE, PaymentType.CASH));
 		SubsidyEntity regional = subsidyRepository.save(SubsidyEntity.builder()
@@ -179,6 +179,7 @@ class RecommendationScopeIntegrationTest {
 			.occupationRestriction(OccupationRestriction.NONE)
 			.regionScope(RegionScope.REGIONAL)
 			.regionCode("11680")
+			.regionCodes("11680")
 			.active(true)
 			.recommendable(true)
 			.build());
@@ -186,8 +187,7 @@ class RecommendationScopeIntegrationTest {
 		RecommendationView view = recommendationQueryService.getRecommendations(memberId, 10);
 
 		List<Long> ids = view.items().stream().map(item -> item.summary().subsidyId()).toList();
-		assertThat(ids).contains(nationwide.getId());
-		assertThat(ids).doesNotContain(regional.getId());
+		assertThat(ids).contains(nationwide.getId(), regional.getId());
 	}
 
 	@Test

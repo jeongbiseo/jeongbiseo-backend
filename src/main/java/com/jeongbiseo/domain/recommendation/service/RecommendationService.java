@@ -21,7 +21,7 @@ import com.jeongbiseo.global.apiPayload.exception.CustomException;
 
 /**
  * 추천 파이프라인 전체를 조율하는 도메인 서비스임: 후보 조회, 기수령 제외, RecommendationPolicy 적용, 정렬, 소스 다양성 re-rank,
- * limit 적용(PLAN.md 3장 W3 절). 5조건 판정 자체는 RecommendationPolicy에 위임하고, 정렬은
+ * limit 적용(PLAN.md 3장 W3 절). 매칭 4조건과 지역 강등 판정 자체는 RecommendationPolicy에 위임하고, 정렬은
  * RecommendationRanking에 위임하며, 이 서비스는 그 앞뒤(후보 수집, 필터, 표시 정보 결합)만 담당함. 매칭 조건 분기를 여기서 다시 쓰지
  * 않음.
  */

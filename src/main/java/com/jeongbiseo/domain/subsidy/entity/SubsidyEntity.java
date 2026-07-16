@@ -133,9 +133,9 @@ public class SubsidyEntity extends BaseEntity {
 	@Column(name = "region_code")
 	private String regionCode;
 
-	// 다중 지역 전체를 보존하는 CSV임(regionScope·regionCode는 대표 단일 코드만 담음). 강등 랭킹은 후속 이슈.
-	// 온통청년 다중 지역코드 CSV를 원문 그대로 담음. 실측상 zipCd 나열이 255자를 넘는 공고가 16.7%(최대 1,535자)라
-	// VARCHAR(255)면 온통청년 배치가 통째로 롤백되므로 TEXT로 둠(강등 랭킹은 후속 이슈).
+	// 다중 지역 전체를 보존하는 CSV임(regionScope·regionCode는 대표 단일 코드만 담음). 추천 지역 강등 랭킹이 소비함
+	// (09-region-demotion). 온통청년 다중 지역코드 CSV를 원문 그대로 담음. 실측상 zipCd 나열이 255자를 넘는 공고가
+	// 16.7%(최대 1,535자)라 VARCHAR(255)면 온통청년 배치가 통째로 롤백되므로 TEXT로 둠.
 	@Column(name = "region_codes", columnDefinition = "TEXT")
 	private String regionCodes;
 
