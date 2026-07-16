@@ -58,14 +58,26 @@ public class RecommendationQueryService {
 	// 경계는 유즈케이스를 조립하는 이 애플리케이션 서비스가 소유함).
 	@Transactional(readOnly = true)
 	public RecommendationView getRecommendations(Long memberId, Integer limit) {
+		ApplicantContext ctx = resolveContext(memberId);
+		List<RecommendationItem> items = recommendationService.recommend(ctx.applicant(), ctx.receivedIds(), ctx.asOf(),
+				limit);
+		LocalDateTime dataUpdatedAt = subsidyReader.findLatestDataUpdatedAt();
+		return new RecommendationView(items, ctx.asOf(), dataUpdatedAt);
+	}
+
+	/**
+	 * 회원의 신청자 컨텍스트(프로필·기수령·기준일)를 조립함. 추천과 예상 총액이 공유하는 진입점이며, 온보딩에서 신청자로의 변환을 이 한 곳으로 좁힘.
+	 * 온보딩 미완료면 OnboardingService가 ONB404_1을 던짐(getMyOnboarding과 동일 예외).
+	 * @param memberId 조회 대상 회원
+	 * @return 신청자 프로필·기수령 id·기준일
+	 */
+	@Transactional(readOnly = true)
+	public ApplicantContext resolveContext(Long memberId) {
 		OnboardingProfile profile = onboardingService.getMyOnboarding(memberId);
 		LocalDate asOf = LocalDate.now(clock);
 		ApplicantProfile applicant = toApplicantProfile(profile, asOf);
 		Set<Long> receivedIds = Set.copyOf(receivedSubsidyService.findReceivedSubsidyIds(memberId));
-
-		List<RecommendationItem> items = recommendationService.recommend(applicant, receivedIds, asOf, limit);
-		LocalDateTime dataUpdatedAt = subsidyReader.findLatestDataUpdatedAt();
-		return new RecommendationView(items, asOf, dataUpdatedAt);
+		return new ApplicantContext(applicant, receivedIds, asOf);
 	}
 
 	// 나이도 asOf 기준으로 계산해 마감 판정 기준일과 통일함. 단일 인자 calculateAge는 내부 wall-clock을 써
@@ -78,6 +90,11 @@ public class RecommendationQueryService {
 
 	/** 추천 조회 결과 뷰임. 기준일(asOf)은 컨트롤러가 dDay를 계산하는 데 씀. */
 	public record RecommendationView(List<RecommendationItem> items, LocalDate asOf, LocalDateTime dataUpdatedAt) {
+
+	}
+
+	/** 신청자 컨텍스트임(추천과 예상 총액이 공유). asOf는 마감 판정과 나이 계산 기준일임. */
+	public record ApplicantContext(ApplicantProfile applicant, Set<Long> receivedIds, LocalDate asOf) {
 
 	}
 

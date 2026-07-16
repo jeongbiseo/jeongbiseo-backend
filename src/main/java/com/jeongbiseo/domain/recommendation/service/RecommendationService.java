@@ -1,12 +1,16 @@
 package com.jeongbiseo.domain.recommendation.service;
 
 import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.jeongbiseo.domain.estimate.EstimateCandidate;
 import com.jeongbiseo.domain.recommendation.ApplicantProfile;
 import com.jeongbiseo.domain.recommendation.DeadlineRanking;
 import com.jeongbiseo.domain.recommendation.MatchResult;
@@ -15,6 +19,7 @@ import com.jeongbiseo.domain.recommendation.RecommendationPolicy;
 import com.jeongbiseo.domain.recommendation.RecommendationRanking;
 import com.jeongbiseo.domain.recommendation.SourceDiversityReranker;
 import com.jeongbiseo.domain.subsidy.SubsidyReader;
+import com.jeongbiseo.domain.subsidy.dto.SubsidyCriteria;
 import com.jeongbiseo.domain.subsidy.dto.SubsidySummary;
 import com.jeongbiseo.global.apiPayload.code.RecommendationErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
@@ -82,27 +87,75 @@ public class RecommendationService {
 		}
 	}
 
+	/**
+	 * 예상 총액 분류에 필요한 후보 목록을 계산함. recommend와 동일한 선택 로직(inScope·매칭·정렬·리랭크·상한)을 공유하되, 표시용
+	 * RecommendationItem이 아니라 분류에 필요한 필드를 담은 EstimateCandidate로 반환함.
+	 * paymentType·targetAudience ·월 지급액은 SubsidySummary에 없고 SubsidyCriteria에만 있어
+	 * criteria를 살려 옮김. 예외는 감싸지 않고 그대로 올려 호출부(EstimatedAmountService)가 AMT500_1로 감싸게 함(추천의
+	 * REC500_1과 도메인 분리).
+	 * @param applicant 신청자 프로필
+	 * @param receivedSubsidyIds 기수령 지원금 id 목록(후보에서 제외)
+	 * @param asOf 신청 가능 여부를 판정할 기준일
+	 * @param limit 노출 상한(예상 총액 모집단 캡)
+	 * @return 예상 총액 후보 목록(정렬·상한 적용)
+	 */
+	public List<EstimateCandidate> estimateCandidates(ApplicantProfile applicant, Set<Long> receivedSubsidyIds,
+			LocalDate asOf, Integer limit) {
+		List<Selected> selected = select(applicant, receivedSubsidyIds, asOf, limit);
+		if (selected.isEmpty()) {
+			return List.of();
+		}
+		List<Long> ids = selected.stream().map(item -> item.result().subsidyId()).toList();
+		List<SubsidySummary> summaries = subsidyReader.findSummaries(ids);
+		return selected.stream().map(item -> toCandidate(item, summaries)).toList();
+	}
+
 	private List<RecommendationItem> doRecommend(ApplicantProfile applicant, Set<Long> receivedSubsidyIds,
 			LocalDate asOf, Integer limit) {
-		int effectiveLimit = normalizeLimit(limit);
-
-		List<MatchResult> ranked = subsidyReader.findCandidates(asOf)
-			.stream()
-			.filter(criteria -> !receivedSubsidyIds.contains(criteria.subsidyId()))
-			.filter(policy::inScope)
-			.map(criteria -> policy.evaluate(applicant, criteria))
-			.filter(MatchResult::matched)
-			.sorted(ranking.comparator())
-			.toList();
-		List<MatchResult> matched = reranker.rerank(ranked, effectiveLimit);
-
-		if (matched.isEmpty()) {
+		List<Selected> selected = select(applicant, receivedSubsidyIds, asOf, limit);
+		if (selected.isEmpty()) {
 			return List.of();
 		}
 
-		List<Long> matchedIds = matched.stream().map(MatchResult::subsidyId).toList();
+		List<Long> matchedIds = selected.stream().map(item -> item.result().subsidyId()).toList();
 		List<SubsidySummary> summaries = subsidyReader.findSummaries(matchedIds);
-		return matched.stream().map(result -> toItem(result, summaries)).toList();
+		return selected.stream().map(item -> toItem(item.result(), summaries)).toList();
+	}
+
+	// 매칭 통과 후보를 정렬·리랭크·상한 적용해 고르는 공유 선택 로직임(recommend와 estimateCandidates가 함께 씀).
+	// 반환은 criteria와 매칭 결과를 함께 담은 Selected라 표시(summary)와 분류(criteria) 어느 쪽으로도 매핑됨.
+	private List<Selected> select(ApplicantProfile applicant, Set<Long> receivedSubsidyIds, LocalDate asOf,
+			Integer limit) {
+		int effectiveLimit = normalizeLimit(limit);
+		List<Selected> ranked = subsidyReader.findCandidates(asOf)
+			.stream()
+			.filter(criteria -> !receivedSubsidyIds.contains(criteria.subsidyId()))
+			.filter(policy::inScope)
+			.map(criteria -> new Selected(criteria, policy.evaluate(applicant, criteria)))
+			.filter(item -> item.result().matched())
+			.sorted(Comparator.comparing(Selected::result, ranking.comparator()))
+			.toList();
+
+		// 되매핑은 MatchResult 인스턴스 동일성으로 함. rerank가 subList 더하기 교체라 동일 인스턴스를 반환하므로
+		// IdentityHashMap 키가 무가정으로 정확함(subsidyId toMap의 중복 시 실패 모드 전이를 피함).
+		Map<MatchResult, Selected> byResult = new IdentityHashMap<>();
+		for (Selected item : ranked) {
+			byResult.put(item.result(), item);
+		}
+		List<MatchResult> rerankedResults = reranker.rerank(ranked.stream().map(Selected::result).toList(),
+				effectiveLimit);
+		return rerankedResults.stream().map(byResult::get).toList();
+	}
+
+	private static EstimateCandidate toCandidate(Selected selected, List<SubsidySummary> summaries) {
+		SubsidyCriteria criteria = selected.criteria();
+		SubsidySummary summary = summaries.stream()
+			.filter(candidate -> candidate.subsidyId().equals(criteria.subsidyId()))
+			.findFirst()
+			.orElseThrow(() -> new IllegalStateException("지원금 표시 정보를 찾을 수 없어요: " + criteria.subsidyId()));
+		return new EstimateCandidate(criteria.subsidyId(), summary.name(), criteria.paymentType(),
+				criteria.targetAudience(), criteria.estimatedAmountMin(), criteria.estimatedAmountMax(),
+				criteria.monthlyAmount(), selected.result().regionDemoted());
 	}
 
 	private static RecommendationItem toItem(MatchResult result, List<SubsidySummary> summaries) {
@@ -119,6 +172,11 @@ public class RecommendationService {
 			return DEFAULT_LIMIT;
 		}
 		return Math.min(limit, MAX_LIMIT);
+	}
+
+	// 선택 단계에서 criteria(분류·표시 재료)와 매칭 결과를 함께 나르는 내부 값 객체임. 정렬은 result 기준으로 함.
+	private record Selected(SubsidyCriteria criteria, MatchResult result) {
+
 	}
 
 }

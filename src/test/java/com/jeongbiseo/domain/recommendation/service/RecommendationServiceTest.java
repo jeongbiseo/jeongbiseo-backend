@@ -17,6 +17,7 @@ import com.jeongbiseo.domain.common.enums.OccupationRestriction;
 import com.jeongbiseo.domain.common.enums.PaymentType;
 import com.jeongbiseo.domain.common.enums.RegionScope;
 import com.jeongbiseo.domain.common.enums.TargetAudience;
+import com.jeongbiseo.domain.estimate.EstimateCandidate;
 import com.jeongbiseo.domain.recommendation.ApplicantProfile;
 import com.jeongbiseo.domain.recommendation.RecommendationItem;
 import com.jeongbiseo.domain.subsidy.SubsidyReader;
@@ -137,6 +138,49 @@ class RecommendationServiceTest {
 			OccupationRestriction occupationRestriction) {
 		return new SubsidyCriteria(subsidyId, targetAudience, occupationRestriction, 19, 34, RegionScope.NATIONWIDE,
 				null, null, null, null, 100_000L, 300_000L, null, PaymentType.CASH);
+	}
+
+	@Test
+	void estimateCandidates_mapsMatchedInScope_withNamePaymentTypeAmountsAndRegionDemoted() {
+		// estimateCandidates는 recommend와 같은 선택 로직을 공유하되, 분류에 필요한
+		// 필드(name·paymentType·targetAudience
+		// ·금액·강등)를 EstimateCandidate로 옮겨 반환함. name은 findSummaries에서, 나머지는
+		// criteria/matchResult에서 옴
+		SubsidyReader reader = new StubSubsidyReader(matchingCriteriaList(3), false);
+		RecommendationService service = new RecommendationService(reader);
+
+		List<EstimateCandidate> candidates = service.estimateCandidates(APPLICANT, Set.of(), AS_OF, 10);
+
+		assertThat(candidates).hasSize(3);
+		assertThat(candidates).allSatisfy(candidate -> {
+			assertThat(candidate.name()).isEqualTo("지원금" + candidate.subsidyId());
+			assertThat(candidate.paymentType()).isEqualTo(PaymentType.CASH);
+			assertThat(candidate.targetAudience()).isEqualTo(TargetAudience.PERSONAL);
+			assertThat(candidate.estimatedAmountMin()).isEqualTo(100_000L);
+			assertThat(candidate.estimatedAmountMax()).isEqualTo(300_000L);
+			assertThat(candidate.regionDemoted()).isFalse();
+		});
+	}
+
+	@Test
+	void estimateCandidates_clampsToMaxLimit() {
+		// 예상 총액 모집단은 상한(여기선 100 요청)을 MAX_LIMIT(20)으로 클램프함(D-A·D5)
+		SubsidyReader reader = new StubSubsidyReader(matchingCriteriaList(25), false);
+		RecommendationService service = new RecommendationService(reader);
+
+		List<EstimateCandidate> candidates = service.estimateCandidates(APPLICANT, Set.of(), AS_OF, 100);
+
+		assertThat(candidates).hasSize(RecommendationService.MAX_LIMIT);
+	}
+
+	@Test
+	void estimateCandidates_emptyWhenNoMatchInScope() {
+		// 스코프 밖(BUSINESS)만 있으면 빈 목록(정상 0건)
+		SubsidyReader reader = new StubSubsidyReader(
+				List.of(matchingCriteria(1L, TargetAudience.BUSINESS, OccupationRestriction.NONE)), false);
+		RecommendationService service = new RecommendationService(reader);
+
+		assertThat(service.estimateCandidates(APPLICANT, Set.of(), AS_OF, 10)).isEmpty();
 	}
 
 	// 마감순 정렬과 소스 다양성 re-rank(DeadlineRanking · SourceDiversityReranker) 통합 시나리오임
