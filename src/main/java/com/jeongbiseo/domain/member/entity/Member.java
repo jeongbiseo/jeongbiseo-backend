@@ -73,4 +73,14 @@ public class Member extends BaseEntity {
 		return this.deletedAt != null;
 	}
 
+	/** 이름을 설정함(온보딩 제출·수정 시점의 사용자 입력이 정본, v1.4). */
+	public void updateName(String name) {
+		this.name = name;
+	}
+
+	/** 온보딩 완료로 표시함(submitOnboarding 성공 시). */
+	public void completeOnboarding() {
+		this.onboardingCompleted = true;
+	}
+
 }
