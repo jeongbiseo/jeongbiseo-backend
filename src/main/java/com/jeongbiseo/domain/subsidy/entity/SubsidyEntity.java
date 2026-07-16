@@ -133,6 +133,12 @@ public class SubsidyEntity extends BaseEntity {
 	@Column(name = "region_code")
 	private String regionCode;
 
+	// 다중 지역 전체를 보존하는 CSV임(regionScope·regionCode는 대표 단일 코드만 담음). 강등 랭킹은 후속 이슈.
+	// 온통청년 다중 지역코드 CSV를 원문 그대로 담음. 실측상 zipCd 나열이 255자를 넘는 공고가 16.7%(최대 1,535자)라
+	// VARCHAR(255)면 온통청년 배치가 통째로 롤백되므로 TEXT로 둠(강등 랭킹은 후속 이슈).
+	@Column(name = "region_codes", columnDefinition = "TEXT")
+	private String regionCodes;
+
 	@Column(name = "employment_tags")
 	private String employmentTags;
 
@@ -182,10 +188,10 @@ public class SubsidyEntity extends BaseEntity {
 			PaymentType paymentType, Integer monthlyMonths, Long monthlyAmount, String duplicationPolicy,
 			String exclusivityGroup, TargetAudience targetAudience, OccupationRestriction occupationRestriction,
 			Integer ageMin, Integer ageMax, EligibilitySignal ageSignal, RegionScope regionScope, String regionCode,
-			String employmentTags, EligibilitySignal employmentSignal, String employmentRawCode, Long incomeThreshold,
-			EligibilitySignal incomeSignal, String householdCondition, EligibilitySignal householdSignal,
-			boolean active, boolean recommendable, boolean loanProduct, LocalDateTime dataUpdatedAt,
-			LocalDateTime fetchedAt) {
+			String regionCodes, String employmentTags, EligibilitySignal employmentSignal, String employmentRawCode,
+			Long incomeThreshold, EligibilitySignal incomeSignal, String householdCondition,
+			EligibilitySignal householdSignal, boolean active, boolean recommendable, boolean loanProduct,
+			LocalDateTime dataUpdatedAt, LocalDateTime fetchedAt) {
 		this.id = id;
 		this.sourceId = sourceId;
 		this.externalId = externalId;
@@ -212,6 +218,7 @@ public class SubsidyEntity extends BaseEntity {
 		this.ageSignal = ageSignal;
 		this.regionScope = regionScope;
 		this.regionCode = regionCode;
+		this.regionCodes = regionCodes;
 		this.employmentTags = employmentTags;
 		this.employmentSignal = employmentSignal;
 		this.employmentRawCode = employmentRawCode;
