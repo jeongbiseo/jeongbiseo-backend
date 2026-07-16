@@ -9,8 +9,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * SourceDiversityReranker 단위 테스트임(순수 JUnit). 정렬된 상위 limit 창 안에 소스별 최소 1건을 보장하는 교체 규칙을
- * 검증함(05-sort-total-decisions IMPL-PLAN 3.4절 (가)~(사) 7종 시나리오). SourceDiversityReranker가
- * package-private이라 이 테스트도 같은 패키지(com.jeongbiseo.domain.recommendation)에 둠.
+ * 검증함(05-sort-total-decisions IMPL-PLAN 3.4절 (가)~(사) 7종 시나리오). 대상 클래스와 같은 패키지
+ * (com.jeongbiseo.domain.recommendation)에 둠.
  */
 class SourceDiversityRerankerTest {
 

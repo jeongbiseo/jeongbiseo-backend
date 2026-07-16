@@ -61,9 +61,10 @@ public class RecommendationService {
 	}
 
 	/**
-	 * 신청자 프로필로 추천 리스트를 계산함. 기수령 지원금은 후보에서 먼저 제외하고, 매칭 통과분만 점수 내림차순(동점은 subsidyId 오름차순)으로
-	 * 정렬해 최대 limit건 반환함. 매칭 0건이면 빈 리스트를 반환함(REC-321, 에러 아님). 계산 도중 예기치 못한 오류가 나면
-	 * REC500_1로 감싸 던짐(추천 0건과 서버 오류를 구분, BDD.md "추천 0건과 기수령 제외 필터").
+	 * 신청자 프로필로 추천 리스트를 계산함. 기수령 지원금은 후보에서 먼저 제외하고, 매칭 통과분을 RecommendationRanking(현행
+	 * DeadlineRanking, 마감 임박순 nullsLast + 동점 tieHash)으로 정렬한 뒤 소스 다양성 re-rank를 적용해 최대
+	 * limit건 반환함. 매칭 0건이면 빈 리스트를 반환함(REC-321, 에러 아님). 계산 도중 예기치 못한 오류가 나면 REC500_1로 감싸
+	 * 던짐(추천 0건과 서버 오류를 구분).
 	 * @param applicant 신청자 프로필
 	 * @param receivedSubsidyIds 기수령 지원금 id 목록(추천 후보에서 제외)
 	 * @param asOf 신청 가능 여부를 판정할 기준일

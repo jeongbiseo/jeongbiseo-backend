@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.jeongbiseo.domain.common.AgeCalculator;
 import com.jeongbiseo.domain.onboarding.entity.OnboardingProfile;
@@ -53,11 +54,14 @@ public class RecommendationQueryService {
 	 * 검증이 먼저 처리함
 	 * @return 추천 항목·기준일·최신 갱신 시각을 담은 뷰
 	 */
+	// 조회 전용 유즈케이스라 readOnly 트랜잭션으로 묶어, 온보딩·기수령·후보·표시정보 여러 조회가 한 스냅샷에서 일관되게 읽히게 함(트랜잭션
+	// 경계는 유즈케이스를 조립하는 이 애플리케이션 서비스가 소유함).
+	@Transactional(readOnly = true)
 	public RecommendationView getRecommendations(Long memberId, Integer limit) {
 		OnboardingProfile profile = onboardingService.getMyOnboarding(memberId);
-		ApplicantProfile applicant = toApplicantProfile(profile);
-		Set<Long> receivedIds = Set.copyOf(receivedSubsidyService.findReceivedSubsidyIds(memberId));
 		LocalDate asOf = LocalDate.now(clock);
+		ApplicantProfile applicant = toApplicantProfile(profile, asOf);
+		Set<Long> receivedIds = Set.copyOf(receivedSubsidyService.findReceivedSubsidyIds(memberId));
 
 		List<RecommendationItem> items = recommendationService.recommend(applicant, receivedIds, asOf, limit);
 		LocalDateTime dataUpdatedAt = subsidyReader.findLatestDataUpdatedAt();
@@ -65,9 +69,10 @@ public class RecommendationQueryService {
 	}
 
 	// ADAPTATION (F3): lab은 record 접근자(profile.birthDate())였으나 팀 OnboardingProfile은 JPA
-	// 엔티티라 getter로 접근함(getBirthDate 등).
-	private static ApplicantProfile toApplicantProfile(OnboardingProfile profile) {
-		int age = AgeCalculator.calculateAge(profile.getBirthDate());
+	// 엔티티라 getter로 접근함(getBirthDate 등). 나이도 asOf 기준으로 계산해 마감 판정과 기준일을 통일함 — 단일 arg
+	// calculateAge는 내부에서 wall-clock now를 써 자정·생일 경계에서 asOf와 어긋날 수 있음(Clock 주입 취지 정합).
+	private static ApplicantProfile toApplicantProfile(OnboardingProfile profile, LocalDate asOf) {
+		int age = AgeCalculator.calculateAge(profile.getBirthDate(), asOf);
 		return new ApplicantProfile(age, profile.getRegionCode(), profile.getEmploymentStatus(),
 				profile.getIncomeBracket(), profile.getHouseholdSize());
 	}
