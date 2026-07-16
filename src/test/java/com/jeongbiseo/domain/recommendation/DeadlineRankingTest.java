@@ -87,7 +87,7 @@ class DeadlineRankingTest {
 	}
 
 	private static MatchResult matchResult(long subsidyId, LocalDate deadline, String sourceId, String externalId) {
-		return new MatchResult(subsidyId, true, 5, List.of(), deadline, sourceId, externalId);
+		return new MatchResult(subsidyId, false, true, 5, List.of(), deadline, sourceId, externalId);
 	}
 
 	// 운영 DeadlineRanking.tieHash(private)의 독립 재현임. 하드코딩 hex 금지, 같은 알고리즘을 테스트에서

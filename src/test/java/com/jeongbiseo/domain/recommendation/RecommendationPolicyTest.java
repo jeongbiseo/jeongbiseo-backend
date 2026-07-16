@@ -95,25 +95,54 @@ class RecommendationPolicyTest {
 		assertThat(policy.matchAge(5, null, 34)).isTrue();
 	}
 
-	// ---- matchRegion ----
+	// ---- regionDemoted (D6) ----
 
 	@Test
-	void matchRegion_alwaysPasses_whenNationwide() {
-		// BDD "NATIONWIDE 지원금은 지역과 무관하게 통과": regionCode는 null, target은 임의 지역
-		assertThat(policy.matchRegion(null, RegionScope.NATIONWIDE, "11620")).isTrue();
+	void regionDemoted_alwaysFalse_whenNationwide() {
+		// NATIONWIDE는 regionCodes가 없으므로 유효 지역코드 집합이 비어 강등 자체가 불가함(D6 조건2 불충족)
+		SubsidyCriteria criteria = regionCriteria(RegionScope.NATIONWIDE, null, null);
+
+		assertThat(policy.regionDemoted(criteria, "11620")).isFalse();
 	}
 
 	@Test
-	void matchRegion_passesOnlyOnCodeMatch_whenRegional() {
-		assertThat(policy.matchRegion("11680", RegionScope.REGIONAL, "11680")).isTrue();
-		// BDD "REGIONAL 지원금은 지역코드가 일치할 때만 통과": 지원금 11680, 신청자 11620
-		assertThat(policy.matchRegion("11680", RegionScope.REGIONAL, "11620")).isFalse();
+	void regionDemoted_false_whenUserSidoPrefixMatchesCriteriaCode() {
+		// exact 일치가 아니어도 시도 prefix(앞 2자리)가 같으면 강등 안 함(D5)
+		SubsidyCriteria criteria = regionCriteria(RegionScope.REGIONAL, "11680", null);
+
+		assertThat(policy.regionDemoted(criteria, "11620")).isFalse();
 	}
 
 	@Test
-	void matchRegion_fails_whenRegionalCodeMissing() {
-		// REGIONAL인데 지원금 regionCode 자체가 null이면 코드 비교가 불가하므로 무조건 탈락함
-		assertThat(policy.matchRegion(null, RegionScope.REGIONAL, "11620")).isFalse();
+	void regionDemoted_true_whenUserSidoPrefixDiffers() {
+		// 강남(11680, 시도 11) 지원금에 세종(36110, 시도 36) 신청자는 시도 prefix가 달라 강등됨
+		SubsidyCriteria criteria = regionCriteria(RegionScope.REGIONAL, "11680", null);
+
+		assertThat(policy.regionDemoted(criteria, "36110")).isTrue();
+	}
+
+	@Test
+	void regionDemoted_fails_whenRegionalCodeMissing() {
+		// REGIONAL인데 regionCodes와 regionCode 둘 다 없으면 유효 지역코드 집합이 비어 강등 없이 노출됨(D6 조건2, 동작
+		// 반전
+		// 박제)
+		SubsidyCriteria criteria = regionCriteria(RegionScope.REGIONAL, null, null);
+
+		assertThat(policy.regionDemoted(criteria, "11620")).isFalse();
+	}
+
+	@Test
+	void regionDemoted_usesRegionCodesCsv_overSingleRegionCode() {
+		// regionCodes CSV가 있으면 그 집합을 우선 사용함(D4). 관악(11620)이 CSV 안에 있으므로 강등 안 함
+		SubsidyCriteria criteria = regionCriteria(RegionScope.REGIONAL, "11680", "11680,11620");
+
+		assertThat(policy.regionDemoted(criteria, "11620")).isFalse();
+	}
+
+	private static SubsidyCriteria regionCriteria(RegionScope regionScope, String regionCode, String regionCodes) {
+		return new SubsidyCriteria(1L, TargetAudience.PERSONAL, OccupationRestriction.NONE, null, 19, 34, regionScope,
+				regionCode, null, null, null, null, null, null, null, AMOUNT_MIN, AMOUNT_MAX, null, PaymentType.CASH,
+				null, null, null, regionCodes);
 	}
 
 	// ---- matchEmployment ----
@@ -266,7 +295,7 @@ class RecommendationPolicyTest {
 		return new SubsidyCriteria(100L, TargetAudience.PERSONAL, OccupationRestriction.NONE, ageSignal, ageMin, ageMax,
 				RegionScope.NATIONWIDE, null, employmentSignal, employmentTags, employmentRawCode, incomeSignal,
 				incomeThreshold, householdSignal, householdCondition, AMOUNT_MIN, AMOUNT_MAX, null, PaymentType.CASH,
-				null, null, null);
+				null, null, null, null);
 	}
 
 	private static ApplicantProfile applicant() {
@@ -313,19 +342,22 @@ class RecommendationPolicyTest {
 		assertThat(result.uncomputableReasons()).contains(EligibilityReason.AMOUNT_INFO_MISSING);
 	}
 
-	// ---- evaluate : 5조건 중 하나만 개별 탈락(나머지는 통과, matched AND 체인의 각 분기 짚기) ----
+	// ---- evaluate : 지역 강등 재확인 더하기 나머지 4조건 중 하나만 개별 탈락(matched AND 체인의 각 분기 짚기) ----
 
 	@Test
-	void matchResult_failsOnRegionMismatch_whenOtherConditionsPass() {
-		// TC-DEMO-012: REGIONAL 11680 지원금에 지역코드 11620 신청자, 나머지 4조건은 통과
-		SubsidyCriteria criteria = new SubsidyCriteria(23L, TargetAudience.PERSONAL, OccupationRestriction.NONE, 19, 34,
-				RegionScope.REGIONAL, "11680", null, null, null, AMOUNT_MIN, AMOUNT_MAX, null, PaymentType.CASH);
-		ApplicantProfile applicant = new ApplicantProfile(27, "11620", EmploymentStatus.JOB_SEEKING,
+	void matchResult_isRegionDemoted_whenSidoPrefixMismatch_butOtherConditionsPass() {
+		// 강등 반전(09-region-demotion D1, D2): 종전엔 REGIONAL 지역 불일치가 탈락이었으나 이제는 강등이며 노출은 유지됨.
+		// 강남(11680, 시도 11) 지원금에 세종(36110, 시도 36) 신청자, 나머지 4조건은 통과
+		SubsidyCriteria criteria = new SubsidyCriteria(23L, TargetAudience.PERSONAL, OccupationRestriction.NONE, null,
+				19, 34, RegionScope.REGIONAL, "11680", null, null, null, null, null, null, null, AMOUNT_MIN, AMOUNT_MAX,
+				null, PaymentType.CASH, null, null, null, "11680");
+		ApplicantProfile applicant = new ApplicantProfile(27, "36110", EmploymentStatus.JOB_SEEKING,
 				IncomeBracket.UNDER_200, 1);
 
 		MatchResult result = policy.evaluate(applicant, criteria);
 
-		assertThat(result.matched()).isFalse();
+		assertThat(result.matched()).isTrue();
+		assertThat(result.regionDemoted()).isTrue();
 	}
 
 	@Test
@@ -410,7 +442,7 @@ class RecommendationPolicyTest {
 	}
 
 	@Test
-	void matchResult_matchedOnlyWhenAllFiveConditionsPass() {
+	void matchResult_matchedOnlyWhenAllFourConditionsPass() {
 		SubsidyCriteria criteria = nationwideCriteria(2L, AMOUNT_MIN, AMOUNT_MAX, PaymentType.CASH);
 
 		ApplicantProfile matching = new ApplicantProfile(27, "11620", EmploymentStatus.JOB_SEEKING,
@@ -419,7 +451,7 @@ class RecommendationPolicyTest {
 		assertThat(matchingResult.matched()).isTrue();
 		assertThat(matchingResult.uncomputableReasons()).isEmpty();
 
-		// 연령 조건 하나만 탈락(18세, ageMin 19 미만). 5조건 중 하나라도 탈락하면 종합 탈락
+		// 연령 조건 하나만 탈락(18세, ageMin 19 미만). 4조건 중 하나라도 탈락하면 종합 탈락
 		ApplicantProfile tooYoung = new ApplicantProfile(18, "11620", EmploymentStatus.JOB_SEEKING,
 				IncomeBracket.UNDER_200, 1);
 		MatchResult failingResult = policy.evaluate(tooYoung, criteria);
@@ -432,7 +464,7 @@ class RecommendationPolicyTest {
 	void evaluate_carriesDeadlineAndSourceKeysToMatchResult() {
 		SubsidyCriteria criteria = new SubsidyCriteria(30L, TargetAudience.PERSONAL, OccupationRestriction.NONE, null,
 				19, 34, RegionScope.NATIONWIDE, null, null, null, null, null, null, null, null, AMOUNT_MIN, AMOUNT_MAX,
-				null, PaymentType.CASH, java.time.LocalDate.of(2026, 8, 31), "gov24", "EXT-30");
+				null, PaymentType.CASH, java.time.LocalDate.of(2026, 8, 31), "gov24", "EXT-30", null);
 
 		MatchResult result = policy.evaluate(applicant(), criteria);
 

@@ -35,13 +35,15 @@ import com.jeongbiseo.domain.common.enums.TargetAudience;
  * @param deadline 신청 마감일. null이면 상시접수 등 종료일 없음이며 정렬 시 뒤로 둠(nullsLast)
  * @param sourceId 원천 소스 식별자(정렬 타이브레이크 키 재료)
  * @param externalId 원천 내 외부 식별자(동일 목적)
+ * @param regionCodes 지원금이 유효한 지역코드 CSV(지역 강등 판정 재료, null이면 단일 regionCode로 폴백)
  */
 public record SubsidyCriteria(Long subsidyId, TargetAudience targetAudience,
 		OccupationRestriction occupationRestriction, EligibilitySignal ageSignal, Integer ageMin, Integer ageMax,
 		RegionScope regionScope, String regionCode, EligibilitySignal employmentSignal, String employmentTags,
 		String employmentRawCode, EligibilitySignal incomeSignal, Long incomeThreshold,
 		EligibilitySignal householdSignal, String householdCondition, Long estimatedAmountMin, Long estimatedAmountMax,
-		Long monthlyAmount, PaymentType paymentType, LocalDate deadline, String sourceId, String externalId) {
+		Long monthlyAmount, PaymentType paymentType, LocalDate deadline, String sourceId, String externalId,
+		String regionCodes) {
 
 	/**
 	 * 신호 컬럼 도입 전 시드·수기 데이터용 생성자임. 신호가 null이면 기존 비교값 기반 판정을 그대로 사용함.
@@ -52,7 +54,7 @@ public record SubsidyCriteria(Long subsidyId, TargetAudience targetAudience,
 			Long monthlyAmount, PaymentType paymentType) {
 		this(subsidyId, targetAudience, occupationRestriction, null, ageMin, ageMax, regionScope, regionCode, null,
 				employmentTags, null, null, incomeThreshold, null, householdCondition, estimatedAmountMin,
-				estimatedAmountMax, monthlyAmount, paymentType, null, null, null);
+				estimatedAmountMax, monthlyAmount, paymentType, null, null, null, null);
 	}
 
 }
