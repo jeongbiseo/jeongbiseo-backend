@@ -32,7 +32,7 @@ import com.jeongbiseo.domain.common.enums.TargetAudience;
  * @param estimatedAmountMax 예상 지원금액 상한
  * @param monthlyAmount 월 지급액(해당 시)
  * @param paymentType 지급 방식
- * @param deadline 신청 마감일. null이면 상시접수 등 종료일 없음, 정렬 시 nullsLast
+ * @param deadline 신청 마감일. null이면 상시접수 등 종료일 없음이며 정렬 시 뒤로 둠(nullsLast)
  * @param sourceId 원천 소스 식별자(정렬 타이브레이크 키 재료)
  * @param externalId 원천 내 외부 식별자(동일 목적)
  */
