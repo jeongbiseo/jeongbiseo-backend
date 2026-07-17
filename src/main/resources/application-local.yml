@@ -28,3 +28,18 @@ app:
       api-key: ${YOUTHCENTER_API_KEY:}
       page-size: 500
       max-pages: 50
+
+
+  kakao:
+    client:
+      id: ${KAKAO_CLIENT_ID}
+      secret: ${KAKAO_CLIENT_SECRET}
+    uri:
+      redirect: http://localhost:8080/api/v1/kakao/callback
+
+  google:
+    client:
+      id: ${GOOGLE_CLIENT_ID}
+      secret: ${GOOGLE_CLIENT_SECRET}
+    uri:
+      redirect: http://localhost:8080/api/v1/auth/google/callback
