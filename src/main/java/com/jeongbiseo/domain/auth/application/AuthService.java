@@ -2,6 +2,7 @@ package com.jeongbiseo.domain.auth.application;
 
 import java.time.Clock;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.jeongbiseo.domain.auth.dto.SocialCallbackResponse;

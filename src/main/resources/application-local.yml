@@ -35,7 +35,7 @@ app:
       id: ${KAKAO_CLIENT_ID}
       secret: ${KAKAO_CLIENT_SECRET}
     uri:
-      redirect: http://localhost:8080/api/v1/kakao/callback
+      redirect: http://localhost:8080/api/v1/auth/kakao/callback
 
   google:
     client:
