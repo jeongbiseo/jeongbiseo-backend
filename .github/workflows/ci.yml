@@ -1,4 +1,5 @@
 # 정본 출처: llm-setup-templates/spring-template examples/ci.yml — Boot 4.0.3 + MySQL + gitmoji 커밋에 맞게 각색함
+# 자동 pull_request 트리거 등록 여부 진단용 무해 변경 (2026-07-17)
 name: CI
 
 on:
