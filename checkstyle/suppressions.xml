@@ -44,4 +44,9 @@
          Path-based (not filename suffix) so fixtures/helpers under src/test are covered too. -->
     <suppress checks="MethodName" files="[\\/]src[\\/]test[\\/]"/>
 
+    <!-- 컨트롤러의 Swagger 애노테이션(@ExampleObject 응답 봉투 JSON 리터럴, @Operation 설명)은
+         문자열이라 spring-javaformat이 120자 이하로 쪼갤 수 없음(코드 줄은 format이 이미 래핑함).
+         위 ImportOrder 등과 같은 spring-javaformat 충돌 성격이라 컨트롤러 한정으로 LineLength를 완화함. -->
+    <suppress checks="LineLength" files=".*Controller\.java"/>
+
 </suppressions>
