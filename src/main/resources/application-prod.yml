@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # ponytail: 해커톤 데모 한정 예외. Flyway 미도입이라 첫 기동에 스키마 자동 생성이 필요함.
+      # application-local.yml 주석의 "운영 프로필엔 validate/none" 원칙에 대한 의도적 예외임.
+      # 스키마 공유나 데이터 보존이 필요해지면 그때 Flyway 도입 후 validate로 되돌림.
+      ddl-auto: ${DDL_AUTO:update}
+    properties:
+      hibernate:
+        format_sql: false
+
+app:
+  ingestion:
+    # 기본 꺼둠. 데모 실데이터는 INGESTION_ENABLED=true + 키 2종으로 켬(기동 시 1회 적재 러너가 돎).
+    enabled: ${INGESTION_ENABLED:false}
+    gov24:
+      service-key: ${ODCLOUD_SERVICE_KEY:}
+      page-size: 1000
+      max-pages: 50
+    youthcenter:
+      api-key: ${YOUTHCENTER_API_KEY:}
+      page-size: 500
+      max-pages: 50
