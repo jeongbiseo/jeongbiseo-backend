@@ -2,6 +2,13 @@ package com.jeongbiseo.domain.estimate.controller;
 
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,6 +32,7 @@ import com.jeongbiseo.global.security.FixedMemberResolver;
  * 컨트롤러는 회원 식별과 응답 변환만 맡고, 조립은 EstimatedAmountService에 위임함(추천 컨트롤러 관용). operationId는 어노테이션
  * 없이 메서드명으로 노출됨(다른 컨트롤러와 동일 관용).
  */
+@Tag(name = "EstimatedAmount", description = "예상 지원금 총액 카드와 내역 조회")
 @RestController
 @RequestMapping("/api/v1/estimated-total")
 public class EstimatedAmountController {
@@ -45,6 +53,25 @@ public class EstimatedAmountController {
 		this.memberResolver = memberResolver;
 	}
 
+	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
+	// Wave에서 실제 발생함(OnboardingController와 동일 관용).
+	@Operation(summary = "예상 총액 카드 조회",
+			description = "회원의 추천 상위 노출분 중 금액이 확정된 지원금만 합산한 예상 총액 카드를 조회함. 온보딩 미완료면 404로 거절함.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "예상 총액 카드 조회 성공", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", description = "탈퇴 계정(MEMBER400_1)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "MEMBER400_1",
+							value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}"))),
+			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
+							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
+			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1) 또는 온보딩 정보 없음(ONB404_1)",
+					content = @Content(mediaType = "application/json", examples = { @ExampleObject(name = "MEMBER404_1",
+							value = "{\"isSuccess\":false,\"code\":\"MEMBER404_1\",\"message\":\"회원이 존재하지 않습니다\",\"result\":null}"),
+							@ExampleObject(name = "ONB404_1",
+									value = "{\"isSuccess\":false,\"code\":\"ONB404_1\",\"message\":\"온보딩 정보가 없어요, 온보딩을 먼저 진행해주세요\",\"result\":null}") })),
+			@ApiResponse(responseCode = "500", description = "예상 금액 계산 서버 오류(AMT500_1)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "AMT500_1",
+							value = "{\"isSuccess\":false,\"code\":\"AMT500_1\",\"message\":\"예상 금액을 계산하지 못했어요\",\"result\":null}"))) })
 	@GetMapping
 	public CustomResponse<EstimatedTotalResponse> getEstimatedTotal() {
 		Long memberId = memberResolver.resolveMemberId();
@@ -52,6 +79,24 @@ public class EstimatedAmountController {
 		return CustomResponse.ok(toCard(result));
 	}
 
+	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
+	// Wave에서 실제 발생함(OnboardingController와 동일 관용).
+	@Operation(summary = "예상 총액 내역 조회", description = "회원의 추천 상위 노출분을 일시금·월 지급·별도 혜택으로 분류한 내역을 조회함. 온보딩 미완료면 404로 거절함.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "예상 총액 내역 조회 성공", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", description = "탈퇴 계정(MEMBER400_1)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "MEMBER400_1",
+							value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}"))),
+			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
+							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
+			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1) 또는 온보딩 정보 없음(ONB404_1)",
+					content = @Content(mediaType = "application/json", examples = { @ExampleObject(name = "MEMBER404_1",
+							value = "{\"isSuccess\":false,\"code\":\"MEMBER404_1\",\"message\":\"회원이 존재하지 않습니다\",\"result\":null}"),
+							@ExampleObject(name = "ONB404_1",
+									value = "{\"isSuccess\":false,\"code\":\"ONB404_1\",\"message\":\"온보딩 정보가 없어요, 온보딩을 먼저 진행해주세요\",\"result\":null}") })),
+			@ApiResponse(responseCode = "500", description = "예상 금액 계산 서버 오류(AMT500_1)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "AMT500_1",
+							value = "{\"isSuccess\":false,\"code\":\"AMT500_1\",\"message\":\"예상 금액을 계산하지 못했어요\",\"result\":null}"))) })
 	@GetMapping("/breakdown")
 	public CustomResponse<EstimatedBreakdownResponse> getEstimatedBreakdown() {
 		Long memberId = memberResolver.resolveMemberId();

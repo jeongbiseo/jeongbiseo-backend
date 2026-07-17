@@ -4,6 +4,13 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,6 +34,7 @@ import com.jeongbiseo.global.security.FixedMemberResolver;
  * 맡고, 프로필 조회·추천 계산 등 오케스트레이션은 RecommendationQueryService에 위임함(HANDOFF 2.B-14). 온보딩 미완료면
  * ONB404_1을 던짐(getMyOnboarding과 동일 예외 재사용, PLAN.md 3장 W3 절).
  */
+@Tag(name = "Recommendation", description = "개인 맞춤 추천 리스트 조회")
 @RestController
 @RequestMapping("/api/v1/recommendations")
 public class RecommendationController {
@@ -41,6 +49,26 @@ public class RecommendationController {
 		this.memberResolver = memberResolver;
 	}
 
+	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
+	// Wave에서 실제 발생함(OnboardingController와 동일 관용).
+	@Operation(summary = "추천 리스트 조회", description = "회원의 온보딩 프로필을 기준으로 개인 맞춤 추천 리스트를 조회함. 온보딩 미완료면 404로 거절함.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "추천 리스트 조회 성공", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", description = "잘못된 limit 파라미터(VALID400_0) 또는 탈퇴 계정(MEMBER400_1)",
+					content = @Content(mediaType = "application/json", examples = { @ExampleObject(name = "VALID400_0",
+							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"),
+							@ExampleObject(name = "MEMBER400_1",
+									value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}") })),
+			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
+							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
+			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1) 또는 온보딩 정보 없음(ONB404_1)",
+					content = @Content(mediaType = "application/json", examples = { @ExampleObject(name = "MEMBER404_1",
+							value = "{\"isSuccess\":false,\"code\":\"MEMBER404_1\",\"message\":\"회원이 존재하지 않습니다\",\"result\":null}"),
+							@ExampleObject(name = "ONB404_1",
+									value = "{\"isSuccess\":false,\"code\":\"ONB404_1\",\"message\":\"온보딩 정보가 없어요, 온보딩을 먼저 진행해주세요\",\"result\":null}") })),
+			@ApiResponse(responseCode = "500", description = "추천 계산 서버 오류(REC500_1)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "REC500_1",
+							value = "{\"isSuccess\":false,\"code\":\"REC500_1\",\"message\":\"추천을 불러오지 못했어요, 잠시 후 다시 시도해주세요\",\"result\":null}"))) })
 	@GetMapping
 	public CustomResponse<RecommendationResponse> getRecommendations(@RequestParam(required = false) Integer limit) {
 		validateLimit(limit);
