@@ -1,0 +1,46 @@
+language: ko-KR
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+      - dev
+  path_instructions:
+    - path: "src/main/java/**/*.java"
+      instructions: |
+        정비서 백엔드 공통 규칙(AGENTS.md):
+        - Java 17 계약. List.getFirst()·SequencedCollection 등 Java 21 API 금지, get(0)로.
+        - 들여쓰기는 탭(spring-javaformat 강제). 주석은 한국어 명사형 종결(~함·~반환·~임).
+        - ponytail(YAGNI): 추측성 추상화·1구현 인터페이스·불필요 의존성 금지. 의도된 단순화는 // ponytail: 주석.
+    - path: "src/main/java/**/entity/**"
+      instructions: |
+        Entity 규칙 확인:
+        - @Data, @Setter, @ToString 사용 금지. @Getter + @NoArgsConstructor(access = PROTECTED) + @Builder.
+        - @Enumerated(EnumType.STRING) 필수.
+        - 연관관계는 지연 로딩(FetchType.LAZY) 기본. 단 응답에 항상 필요한 연관(예 OnboardingProfile.member)은 EAGER 허용하되 주석으로 근거 명시(open-in-view=false).
+        - extends BaseEntity(감사 필드 created_at·updated_at).
+        - setter 대신 의도 드러내는 도메인 메서드(예 softDelete·completeOnboarding·replaceWith).
+    - path: "src/main/java/**/controller/**"
+      instructions: |
+        Controller 규칙 확인:
+        - 클래스 레벨 @RequestMapping에 /api/v1/ 접두사 필수(WebMvcConfigurer 일괄 주입 금지).
+        - 비즈니스 로직 금지(Service 위임). Entity 직접 반환 금지(DTO 변환 필수).
+        - 반환은 bare CustomResponse(ResponseEntity 아님). 201 등 비200은 @ResponseStatus로 지정.
+        - 회원 식별은 FixedMemberResolver(소셜 인증 도입 전 고정 회원).
+    - path: "src/main/java/**/service/**"
+      instructions: |
+        Service 규칙 확인:
+        - @Transactional(쓰기), @Transactional(readOnly = true)(읽기).
+        - 도메인 실패는 CustomException + 도메인 ErrorCode(BaseErrorCode)로. 시각은 주입 Clock(Asia/Seoul), 존 없는 now() 금지.
+    - path: "src/main/java/**/dto/**"
+      instructions: |
+        DTO 규칙: 요청·응답 모두 record. 요청은 jakarta.validation 애너테이션으로 검증.
+    - path: "src/main/resources/**"
+      instructions: |
+        시크릿·자격증명이 커밋에 포함됐는지 확인(application-local.yml의 DB 계정, API 키 등). 발견 시 즉시 지적.
+chat:
+  auto_reply: true

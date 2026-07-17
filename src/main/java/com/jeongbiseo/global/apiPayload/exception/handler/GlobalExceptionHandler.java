@@ -20,8 +20,8 @@ import com.jeongbiseo.global.apiPayload.exception.CustomException;
 
 /**
  * 전역 예외 처리기임. CustomException은 담긴 BaseErrorCode 그대로, `@Valid` 검증 실패는 VALID400_1 더하기 필드별
- * 안내 문구로 변환함(API명세서 "응답 envelope" 절 — VALID400_1은 result에 필드 오류맵을 담음). 위 핸들러가 못 잡는 나머지
- * 예외는 handleUnexpected가 COMMON500 봉투로 감싸 최종 안전망 역할을 함(예상 못한 예외도 Spring 기본 에러 바디가 아니라 반드시
+ * 안내 문구로 변환함(API명세서 "응답 envelope" 절, VALID400_1은 result에 필드 오류맵을 담음). 위 핸들러가 못 잡는 나머지 예외는
+ * handleUnexpected가 COMMON500 봉투로 감싸 최종 안전망 역할을 함(예상 못한 예외도 Spring 기본 에러 바디가 아니라 반드시
  * CustomResponse 봉투로 나가야 함).
  */
 @RestControllerAdvice

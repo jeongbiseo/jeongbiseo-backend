@@ -4,7 +4,7 @@ name: CI
 on:
   workflow_dispatch:
   push:
-    branches: [main, dev]
+    branches: [main, dev, 'feature/**', 'fix/**']
     paths-ignore: ['docs/**', '**.md']
   pull_request:
     branches: [main, dev]

@@ -1,0 +1,58 @@
+package com.jeongbiseo.domain.subsidy.controller;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.jeongbiseo.domain.common.enums.SubsidyCategory;
+import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
+import com.jeongbiseo.domain.subsidy.dto.SubsidyPageResponse;
+import com.jeongbiseo.domain.subsidy.service.SubsidyService;
+import com.jeongbiseo.global.apiPayload.CustomResponse;
+import com.jeongbiseo.global.apiPayload.code.ValidationErrorCode;
+import com.jeongbiseo.global.apiPayload.exception.CustomException;
+
+/**
+ * 지원금 검색·상세 조회를 다룸(API명세서 13번 searchSubsidies, 15번 getSubsidyDetail). 두 엔드포인트 모두 현재
+ * permitAll 상태임(소셜 인증 전, 상세는 isFavorite 항상 false로 선택 인증 기본값과 정합). 명세서상 searchSubsidies는
+ * 인증 필요라, 인증 Wave에서 SecurityConfig 작성 시 authenticated로 전환할 것.
+ */
+@RestController
+@RequestMapping("/api/v1/subsidies")
+public class SubsidyController {
+
+	// 검색 노출 개수 기본값·성능 상한임. size 미지정·0 이하는 기본값, 상한 초과는 클램프함(과대 페이지 조회로 인한 무거운 쿼리 방지).
+	private static final int DEFAULT_PAGE_SIZE = 20;
+
+	private static final int MAX_PAGE_SIZE = 100;
+
+	private final SubsidyService subsidyService;
+
+	public SubsidyController(SubsidyService subsidyService) {
+		this.subsidyService = subsidyService;
+	}
+
+	@GetMapping
+	public CustomResponse<SubsidyPageResponse> searchSubsidies(@RequestParam(required = false) String keyword,
+			@RequestParam(required = false) SubsidyCategory category, @RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size) {
+		if (page < 0) { // 음수 page는 PageRequest.of가 던져 500이 되므로 먼저 거절(추천 limit 검증과 같은 선례)
+			throw new CustomException(ValidationErrorCode.INVALID_QUERY_PARAMETER);
+		}
+		int effectiveSize = (size <= 0) ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
+		// id 오름차순 안정 정렬을 고정해 페이지 간 중복·누락을 막음(정렬 없으면 반환 순서 비결정)
+		Pageable pageable = PageRequest.of(page, effectiveSize, Sort.by(Sort.Direction.ASC, "id"));
+		return CustomResponse.ok(SubsidyPageResponse.from(subsidyService.search(keyword, category, pageable)));
+	}
+
+	@GetMapping("/{subsidyId}")
+	public CustomResponse<SubsidyDetailResponse> getSubsidyDetail(@PathVariable Long subsidyId) {
+		return CustomResponse.ok(subsidyService.getDetail(subsidyId));
+	}
+
+}

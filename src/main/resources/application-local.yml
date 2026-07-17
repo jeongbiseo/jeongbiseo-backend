@@ -8,9 +8,23 @@ spring:
   jpa:
     hibernate:
       # ponytail: 로컬 전용 스키마 자동 생성. 마이그레이션 도구(Flyway 등)를 두지 않음.
-      # 상한 — 운영 프로필에는 절대 쓰지 않음(validate 또는 none). 스키마를 팀이
+      # 상한. 운영 프로필에는 절대 쓰지 않음(validate 또는 none). 스키마를 팀이
       # 공유해야 하거나 데이터 보존이 필요해지면 그때 Flyway를 도입함
       ddl-auto: update
     properties:
       hibernate:
         format_sql: true
+
+app:
+  ingestion:
+    # 기본은 꺼둠. 키 없는 로컬 기동이 실 API를 치며 warn을 남기지 않게 함(CodeRabbit 반영).
+    # 데모나 실데이터 적재가 필요하면 INGESTION_ENABLED=true로 켜고 API 키를 넣음(적재 기능은 후속 점검).
+    enabled: ${INGESTION_ENABLED:false}
+    gov24:
+      service-key: ${ODCLOUD_SERVICE_KEY:}
+      page-size: 1000
+      max-pages: 50
+    youthcenter:
+      api-key: ${YOUTHCENTER_API_KEY:}
+      page-size: 500
+      max-pages: 50
