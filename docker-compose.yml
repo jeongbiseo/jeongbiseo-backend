@@ -6,6 +6,8 @@ services:
   mysql:
     image: mysql:8.0
     container_name: jeongbiseo-mysql
+    # 복제 없는 단일 데모라 binlog 불필요 — 대량 적재 시 binlog 부대용량(디스크)을 없앰
+    command: ["--skip-log-bin"]
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: jeongbiseo
@@ -18,6 +20,12 @@ services:
       timeout: 3s
       start_period: 40s
       retries: 12
+    # 컨테이너 로그 무제한 증가로 디스크가 차는 것을 방지
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - jeongbiseo-network
 
@@ -31,6 +39,11 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - jeongbiseo-network
 
