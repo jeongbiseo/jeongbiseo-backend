@@ -1,7 +1,7 @@
 package com.jeongbiseo.global.security.exception;
 
 import org.springframework.http.HttpStatus;
-import com.jeongbiseo.global.common.BaseErrorCode; // 프로젝트 공용 인터페이스
+import com.jeongbiseo.global.apiPayload.code.BaseErrorCode;
 
 /**
  * 도메인 통합 인증 에러코드 참조표 반영 enum

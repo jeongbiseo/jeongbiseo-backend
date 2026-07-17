@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.jeongbiseo.domain.auth.dto.SocialCallbackResponse;
 import com.jeongbiseo.global.security.exception.AuthErrorCode;
-import com.jeongbiseo.global.security.exception.CustomException; // 프로젝트 공용 예외
+import com.jeongbiseo.global.apiPayload.exception.CustomException;
 
 @Service
 @RequiredArgsConstructor

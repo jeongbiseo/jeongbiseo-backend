@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import com.jeongbiseo.domain.auth.application.AuthService;
 import com.jeongbiseo.domain.auth.dto.RefreshRequest;
 import com.jeongbiseo.domain.auth.dto.SocialCallbackResponse;
-import com.jeongbiseo.global.common.CustomResponse; // 공용 응답 래퍼
+import com.jeongbiseo.global.apiPayload.CustomResponse;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -41,7 +41,7 @@ public class AuthController {
             @RequestParam(name = "state", required = false) String state
     ) {
         SocialCallbackResponse result = authService.handleCallback(provider, code, state);
-        return ResponseEntity.ok(CustomResponse.success(result));
+        return ResponseEntity.ok(CustomResponse.ok(result));
     }
 
     /**
@@ -53,7 +53,7 @@ public class AuthController {
             @RequestAttribute("memberId") String memberId // FixedMemberResolver 또는 JWT 인터셉터 공급 가정
     ) {
         authService.processLogout(memberId);
-        return ResponseEntity.ok(CustomResponse.success("로그아웃 성공"));
+        return ResponseEntity.ok(CustomResponse.ok("로그아웃 성공"));
     }
 
     /**
@@ -65,6 +65,6 @@ public class AuthController {
             @Valid @RequestBody RefreshRequest request
     ) {
         SocialCallbackResponse result = authService.rotateToken(request.refreshToken());
-        return ResponseEntity.ok(CustomResponse.success(result));
+        return ResponseEntity.ok(CustomResponse.ok(result));
     }
 }
