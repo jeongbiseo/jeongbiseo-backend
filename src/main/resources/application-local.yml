@@ -28,3 +28,20 @@ app:
       api-key: ${YOUTHCENTER_API_KEY:}
       page-size: 500
       max-pages: 50
+
+
+  kakao:
+    client:
+      id: ${KAKAO_CLIENT_ID:}
+      secret: ${KAKAO_CLIENT_SECRET:}
+    uri:
+      # 설계 §7: redirect_uri는 백엔드가 아니라 프론트 콜백 페이지임. 프론트 로컬 주소 확정 후 교체할 것.
+      redirect: ${KAKAO_REDIRECT_URI:http://localhost:3000/auth/kakao/callback}
+
+  google:
+    client:
+      id: ${GOOGLE_CLIENT_ID:}
+      secret: ${GOOGLE_CLIENT_SECRET:}
+    uri:
+      # 설계 §7: redirect_uri는 백엔드가 아니라 프론트 콜백 페이지임. 프론트 로컬 주소 확정 후 교체할 것.
+      redirect: ${GOOGLE_REDIRECT_URI:http://localhost:3000/auth/google/callback}
