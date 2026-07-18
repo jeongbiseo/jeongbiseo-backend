@@ -1,8 +1,5 @@
 package com.jeongbiseo.domain.calendar.application;
 
-import java.time.Clock;
-import java.time.ZoneId;
-
 import org.junit.jupiter.api.Test;
 
 import com.jeongbiseo.domain.calendar.dto.CalendarResponse;
@@ -18,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 class CalendarServiceTest {
 
-	private final CalendarService calendarService = new CalendarService(Clock.system(ZoneId.of("Asia/Seoul")));
+	private final CalendarService calendarService = new CalendarService();
 
 	@Test
 	void month가_범위를_벗어나면_VALID400_0을_던진다() {
