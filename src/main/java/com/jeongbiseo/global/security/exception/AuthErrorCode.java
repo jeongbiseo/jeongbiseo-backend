@@ -8,33 +8,36 @@ import com.jeongbiseo.global.apiPayload.code.BaseErrorCode;
  */
 public enum AuthErrorCode implements BaseErrorCode {
 
-    VALID_PARAMETER_ERROR("VALID400_0", HttpStatus.BAD_REQUEST, "잘못된 파라미터 입니다."),
-    SOCIAL_LOGIN_FAILED("AUTH401_1", HttpStatus.UNAUTHORIZED, "소셜 로그인에 실패했어요, 다시 시도해주세요."),
-    REFRESH_TOKEN_FAILED("AUTH401_2", HttpStatus.UNAUTHORIZED, "다시 로그인해주세요."),
-    AUTHENTICATION_REQUIRED("COMMON401", HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
+	VALID_PARAMETER_ERROR("VALID400_0", HttpStatus.BAD_REQUEST, "잘못된 파라미터 입니다."),
+	SOCIAL_LOGIN_FAILED("AUTH401_1", HttpStatus.UNAUTHORIZED, "소셜 로그인에 실패했어요, 다시 시도해주세요."),
+	REFRESH_TOKEN_FAILED("AUTH401_2", HttpStatus.UNAUTHORIZED, "다시 로그인해주세요."),
+	AUTHENTICATION_REQUIRED("COMMON401", HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
 
-    private final String code;
-    private final HttpStatus httpStatus;
-    private final String message;
+	private final String code;
 
-    AuthErrorCode(String code, HttpStatus httpStatus, String message) {
-        this.code = code;
-        this.httpStatus = httpStatus;
-        this.message = message;
-    }
+	private final HttpStatus httpStatus;
 
-    @Override
-    public String getCode() {
-        return this.code;
-    }
+	private final String message;
 
-    @Override
-    public HttpStatus getHttpStatus() {
-        return this.httpStatus;
-    }
+	AuthErrorCode(String code, HttpStatus httpStatus, String message) {
+		this.code = code;
+		this.httpStatus = httpStatus;
+		this.message = message;
+	}
 
-    @Override
-    public String getMessage() {
-        return this.message;
-    }
+	@Override
+	public String getCode() {
+		return this.code;
+	}
+
+	@Override
+	public HttpStatus getHttpStatus() {
+		return this.httpStatus;
+	}
+
+	@Override
+	public String getMessage() {
+		return this.message;
+	}
+
 }
