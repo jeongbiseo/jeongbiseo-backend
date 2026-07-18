@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import com.jeongbiseo.domain.auth.dto.SocialCallbackResponse;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +45,35 @@ class AuthServiceTest {
 		assertThatThrownBy(() -> authService.rotateToken("  ")).isInstanceOf(CustomException.class)
 			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
 			.isEqualTo("AUTH401_2");
+	}
+
+	@Test
+	void getAuthorizeUrl은_provider별_인가_URL과_state를_담는다() {
+		assertThat(authService.getAuthorizeUrl("kakao")).contains("kauth.kakao.com").contains("state=");
+		assertThat(authService.getAuthorizeUrl("google")).contains("accounts.google.com").contains("state=");
+	}
+
+	@Test
+	void socialCallback은_유효한_요청에_Bearer_토큰_응답을_반환한다() {
+		SocialCallbackResponse result = authService.handleCallback("kakao", "code", "state");
+
+		assertThat(result.tokenType()).isEqualTo("Bearer");
+		assertThat(result.accessToken()).isNotBlank();
+		assertThat(result.refreshToken()).isNotBlank();
+	}
+
+	@Test
+	void refreshToken은_유효한_토큰에_회전된_쌍을_반환한다() {
+		SocialCallbackResponse result = authService.rotateToken("someRefresh");
+
+		assertThat(result.tokenType()).isEqualTo("Bearer");
+		assertThat(result.accessToken()).isNotBlank();
+		assertThat(result.refreshToken()).isNotBlank();
+	}
+
+	@Test
+	void processLogout은_예외없이_수행된다() {
+		authService.processLogout(1L);
 	}
 
 	@Disabled("팀원 구현 목표: 인가 URL의 client_id·redirect_uri를 설정(OAuth 프로퍼티)에서 읽어야 함. DUMMY 플레이스홀더 제거 후 활성화.")
