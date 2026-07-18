@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.jeongbiseo.domain.auth.dto.SocialCallbackResponse;
+import com.jeongbiseo.global.apiPayload.code.ValidationErrorCode;
 import com.jeongbiseo.global.security.exception.AuthErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
 
@@ -94,7 +95,7 @@ public class AuthService {
 
 	private void validateProvider(String provider) {
 		if (!"kakao".equals(provider) && !"google".equals(provider)) {
-			throw new CustomException(AuthErrorCode.VALID_PARAMETER_ERROR);
+			throw new CustomException(ValidationErrorCode.INVALID_QUERY_PARAMETER);
 		}
 	}
 
