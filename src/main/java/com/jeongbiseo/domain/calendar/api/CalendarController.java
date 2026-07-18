@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.jeongbiseo.domain.calendar.application.CalendarService;
 import com.jeongbiseo.domain.calendar.dto.CalendarResponse;
 import com.jeongbiseo.global.apiPayload.CustomResponse;
+import com.jeongbiseo.global.security.FixedMemberResolver;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -22,6 +23,8 @@ public class CalendarController {
 
 	private final Clock clock;
 
+	private final FixedMemberResolver memberResolver;
+
 	@GetMapping
 	public ResponseEntity<CustomResponse<CalendarResponse>> getDeadlineCalendar(
 			@RequestParam(name = "year", required = false) Integer year,
@@ -30,11 +33,10 @@ public class CalendarController {
 		int targetYear = (year != null) ? year : now.getYear();
 		int targetMonth = (month != null) ? month : now.getMonthValue();
 
-		Long memberId = 1L;
+		Long memberId = memberResolver.resolveMemberId();
 
 		CalendarResponse data = calendarService.getDeadlineCalendar(targetYear, targetMonth, memberId);
 
-		// [★수정] success 대신 규격에 맞는 ok 메서드 호출
 		return ResponseEntity.ok(CustomResponse.ok(data));
 	}
 

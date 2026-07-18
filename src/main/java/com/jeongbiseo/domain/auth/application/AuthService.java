@@ -89,8 +89,8 @@ public class AuthService {
 	 * logOut: 저장된 리프레시 토큰 영구 삭제
 	 */
 	@Transactional
-	public void processLogout(String memberId) {
-		// 해당 회원의 모든 기기 리프레시 토큰 데이터 무효화 처리 수행
+	public void processLogout(Long memberId) {
+		// 해당 회원의 리프레시 토큰 행을 삭제함(설계 D3, 회원당 1행). RefreshTokenRepository 구현 후 삭제 호출 연결.
 	}
 
 	private void validateProvider(String provider) {
