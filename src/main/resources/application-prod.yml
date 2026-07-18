@@ -27,3 +27,27 @@ app:
       api-key: ${YOUTHCENTER_API_KEY:}
       page-size: 500
       max-pages: 50
+
+  # 프로덕션은 base application.yml의 로컬 개발용 더미 기본값을 blank로 덮어써, JWT_SECRET을 실제로
+  # 넣지 않으면 JwtProvider가 부팅 시 즉시 실패하게 강제함(설계 D10, "부팅 시 발견").
+  jwt:
+    secret: ${JWT_SECRET:}
+
+  # 리프레시 토큰 쿠키 SameSite 속성임. 프론트와 백엔드 도메인이 갈리는 크로스 사이트 전송을 지원하려 기본 None으로 둠.
+  auth:
+    cookie:
+      same-site: ${COOKIE_SAME_SITE:None}
+
+  # CORS 허용 origin(콤마 구분)임. allowCredentials=true라 와일드카드를 못 써서 명시하며, 비면 아무 origin도 허용 안 함.
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+
+  kakao:
+    client:
+      id: ${KAKAO_CLIENT_ID:}
+      secret: ${KAKAO_CLIENT_SECRET:}
+
+  google:
+    client:
+      id: ${GOOGLE_CLIENT_ID:}
+      secret: ${GOOGLE_CLIENT_SECRET:}
