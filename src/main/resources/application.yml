@@ -8,3 +8,15 @@ spring:
 
   jpa:
     open-in-view: false
+
+# 소셜 인증(설계 소셜인증-전환설계.md 4장·10장). JWT_SECRET 미설정 시 로컬 개발용 더미로 부팅되게 하되(기존
+# ${X:} 관행), 프로덕션은 application-prod.yml이 이 기본값을 blank로 덮어써 반드시 ENV로 넣게 강제함(D10,
+# 32바이트 미만이면 JwtProvider가 부팅 시 즉시 실패함). state 서버검증은 방식 B 전환으로 제거해(프론트가 state·PKCE
+# 소유) app.oauth.state 설정을 두지 않음.
+app:
+  jwt:
+    secret: ${JWT_SECRET:local-dev-only-jwt-secret-please-set-real-JWT_SECRET-env-var}
+    access-token-expiration-minutes: 30
+  auth:
+    refresh:
+      expiration-days: 14
