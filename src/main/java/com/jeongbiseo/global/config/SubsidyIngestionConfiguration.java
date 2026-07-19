@@ -29,6 +29,14 @@ public class SubsidyIngestionConfiguration {
 	/**
 	 * 외부 HTTP 호출 공용 빌더임. 소셜 IdP 클라이언트와 지원금 수집 클라이언트가 이 하나를 복제해 씀. 테스트는 이 빈 대신 각자
 	 * {@code RestClient.builder()}에 MockRestServiceServer를 바인딩하므로 여기 설정은 실행 경로에만 적용됨.
+	 *
+	 * <b>이 빈을 지우지 말 것.</b> Boot 4는 모듈이 분리돼 {@code spring-boot-starter-webmvc}가 RestClient
+	 * 자동구성을 끌고 오지 않으며, 이 프로젝트 classpath에 {@code spring-boot-restclient}가 없음(2026-07-19
+	 * 실측). 따라서 자동구성 빌더가 존재하지 않고 이 빈이 유일한 공급원이라, 삭제하면 주입받는 4개 클라이언트가 기동 시
+	 * NoSuchBeanDefinitionException으로 죽음. 같은 이유로 {@code spring.http.clients.*} 프로퍼티와
+	 * RestClientCustomizer도 이 앱에는 적용되지 않음(쓰려면 의존성 추가가 선행 조건).
+	 *
+	 * 하나의 JDK HttpClient를 네 소비자가 공유하는 것은 의도된 것임 — 불변·스레드 안전이고 자체 커넥션 풀을 가져 공유가 권장 패턴임.
 	 */
 	@Bean
 	public RestClient.Builder ingestionRestClientBuilder() {
