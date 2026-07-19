@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.jeongbiseo.domain.common.AgeCalculator;
 import com.jeongbiseo.domain.member.dto.request.DeleteMemberRequest;
+import com.jeongbiseo.domain.member.dto.response.MemberProfileResponse;
+import com.jeongbiseo.domain.member.entity.Member;
 import com.jeongbiseo.domain.member.service.MemberService;
 import com.jeongbiseo.domain.onboarding.dto.request.OnboardingRequest;
 import com.jeongbiseo.domain.onboarding.dto.response.OnboardingProfileResponse;
@@ -26,10 +28,10 @@ import com.jeongbiseo.global.apiPayload.CustomResponse;
 import com.jeongbiseo.global.security.FixedMemberResolver;
 
 /**
- * 회원 자원(내 온보딩 조회·수정, 회원 탈퇴)을 다룸(API명세서 6번 getMyOnboarding·7번
- * updateMyOnboarding·deleteMember). 회원 식별은 FixedMemberResolver 고정 회원임(소셜 인증 전, 결정 7번).
+ * 회원 자원(내 회원 정보 조회, 내 온보딩 조회·수정, 회원 탈퇴)을 다룸(API명세서 21번 getMe·6번 getMyOnboarding·7번
+ * updateMyOnboarding·8번 deleteMember). 회원 식별은 FixedMemberResolver 고정 회원임(소셜 인증 전, 결정 7번).
  */
-@Tag(name = "Member", description = "회원 자원(내 온보딩 조회·수정, 회원 탈퇴)")
+@Tag(name = "Member", description = "회원 자원(내 회원 정보 조회, 내 온보딩 조회·수정, 회원 탈퇴)")
 @RestController
 @RequestMapping("/api/v1/members")
 public class MemberController {
@@ -45,6 +47,28 @@ public class MemberController {
 		this.onboardingService = onboardingService;
 		this.memberService = memberService;
 		this.memberResolver = memberResolver;
+	}
+
+	// 내 회원 정보 조회 처리함 (GET /api/v1/members/me, operationId getMe)
+	// 앱 시작·새로고침 직후 프론트가 로그인 상태와 표시용 회원 정보를 복구하는 용도임. onboardingCompleted는 Member 플래그를 그대로
+	// 실어 온보딩 전 회원도 200으로 반환함 — getMyOnboarding은 온보딩 프로필 레코드가 없으면 ONB404_1을 던져 이 용도로 쓸 수
+	// 없음(프론트 요청, 2026-07-19).
+	@Operation(summary = "내 회원 정보 조회",
+			description = "로그인한 회원의 id·이름·이메일·온보딩 완료 여부를 반환함. 온보딩 전 회원도 200으로 반환하며 이때 name은 null임.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "회원 정보 조회 성공", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", description = "탈퇴된 계정(MEMBER400_1)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "MEMBER400_1",
+							value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}"))),
+			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
+							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
+			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "MEMBER404_1",
+							value = "{\"isSuccess\":false,\"code\":\"MEMBER404_1\",\"message\":\"회원이 존재하지 않습니다\",\"result\":null}"))) })
+	@GetMapping("/me")
+	public CustomResponse<MemberProfileResponse> getMe() {
+		Member member = memberService.getMe(memberResolver.resolveMemberId());
+		return CustomResponse.ok(MemberProfileResponse.from(member));
 	}
 
 	// 내 온보딩 정보 조회 처리함 (GET /api/v1/members/me/onboarding, operationId getMyOnboarding)

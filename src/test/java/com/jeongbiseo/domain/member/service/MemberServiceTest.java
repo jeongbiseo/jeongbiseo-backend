@@ -11,15 +11,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.jeongbiseo.domain.auth.repository.AuthRepository;
+import com.jeongbiseo.domain.auth.repository.RefreshTokenRepository;
 import com.jeongbiseo.domain.member.entity.Member;
 import com.jeongbiseo.domain.member.entity.Role;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 /**
- * MemberService 단위 테스트임(Mockito, 고정 Clock). 활성 회원 소프트삭제와 reason null 허용을 고정함. 미존재·이미탈퇴
- * 판정은 MemberReaderTest가 담당하므로 여기서는 getActiveMember를 스텁으로 통과시킴.
+ * MemberService 단위 테스트임(Mockito, 고정 Clock). 활성 회원 소프트삭제와 reason null 허용, Model A 탈퇴
+ * 정책(auth·refresh 하드 삭제)을 고정함. 미존재·이미탈퇴 판정은 MemberReaderTest가 담당하므로 여기서는 getActiveMember를
+ * 스텁으로 통과시킴.
  */
 @ExtendWith(MockitoExtension.class)
 class MemberServiceTest {
@@ -32,12 +36,18 @@ class MemberServiceTest {
 	@Mock
 	private MemberReader memberReader;
 
+	@Mock
+	private AuthRepository authRepository;
+
+	@Mock
+	private RefreshTokenRepository refreshTokenRepository;
+
 	private MemberService memberService;
 
 	@BeforeEach
 	void setUp() {
 		Clock clock = Clock.fixed(Instant.parse("2026-07-16T00:00:00Z"), ZoneId.of("Asia/Seoul"));
-		this.memberService = new MemberService(memberReader, clock);
+		this.memberService = new MemberService(memberReader, authRepository, refreshTokenRepository, clock);
 	}
 
 	@Test
@@ -59,6 +69,17 @@ class MemberServiceTest {
 		memberService.delete(MEMBER_ID, null);
 
 		assertThat(member.isDeleted()).isTrue();
+	}
+
+	@Test
+	void delete_Model_A_정책대로_auth와_리프레시_행을_하드_삭제한다() {
+		Member member = activeMember();
+		given(memberReader.getActiveMember(MEMBER_ID)).willReturn(member);
+
+		memberService.delete(MEMBER_ID, null);
+
+		verify(refreshTokenRepository).deleteByMemberId(MEMBER_ID);
+		verify(authRepository).deleteByMemberId(MEMBER_ID);
 	}
 
 	private static Member activeMember() {
