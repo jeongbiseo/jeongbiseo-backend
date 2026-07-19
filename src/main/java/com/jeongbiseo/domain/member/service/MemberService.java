@@ -41,6 +41,17 @@ public class MemberService {
 	}
 
 	/**
+	 * 내 회원 정보를 조회함(getMe). 회원이 없으면 MEMBER404_1, 탈퇴면 MEMBER400_1을 던짐(MemberReader). 온보딩 완료
+	 * 여부는 Member 플래그를 그대로 쓰므로 온보딩 전 회원도 정상 반환함.
+	 * @param memberId 조회할 회원
+	 * @return 활성 회원
+	 */
+	@Transactional(readOnly = true)
+	public Member getMe(Long memberId) {
+		return this.memberReader.getActiveMember(memberId);
+	}
+
+	/**
 	 * 회원을 탈퇴 처리함(soft delete 더하기 Model A auth·refresh 하드 삭제). 회원이 없으면 MEMBER404_1, 이미 탈퇴면
 	 * MEMBER400_1을 던짐(MemberReader).
 	 * @param memberId 탈퇴할 회원
