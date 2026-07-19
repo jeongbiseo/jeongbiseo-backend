@@ -81,7 +81,13 @@ public class FixedMemberResolver {
 			return null;
 		}
 		String token = header.substring(BEARER_PREFIX.length()).trim();
-		return token.isEmpty() ? null : token;
+		if (token.isEmpty()) {
+			// Bearer 접두를 붙였다는 것은 토큰을 보내려던 것이므로, 빈 값은 무헤더가 아니라 손상된 자격 증명임. 폴백하면
+			// 프론트가 401을 못 받아 reissue가 트리거되지 않음(무효 토큰과 같은 취급).
+			throw new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED,
+					new IllegalArgumentException("Bearer 토큰이 비어 있음"));
+		}
+		return token;
 	}
 
 }

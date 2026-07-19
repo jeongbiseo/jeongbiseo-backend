@@ -82,6 +82,16 @@ class FixedMemberResolverTest {
 			.isEqualTo(AuthErrorCode.REFRESH_TOKEN_FAILED);
 	}
 
+	// Bearer 접두를 붙였는데 값이 비면 무헤더가 아니라 손상된 자격 증명임. 폴백하면 프론트가 401을 못 받아 reissue가 안 돔.
+	@Test
+	void Bearer_토큰이_비어있으면_AUTH401_2를_던진다() {
+		bindRequest("Bearer ");
+
+		assertThatThrownBy(() -> resolver(jwtProvider(NOW)).resolveMemberId()).isInstanceOf(CustomException.class)
+			.extracting(e -> ((CustomException) e).getErrorCode())
+			.isEqualTo(AuthErrorCode.REFRESH_TOKEN_FAILED);
+	}
+
 	// Bearer 접두가 아닌 헤더는 액세스 토큰이 아니라고 보고 폴백함(Basic 등).
 	@Test
 	void Bearer_접두가_아니면_고정회원_1로_폴백한다() {
