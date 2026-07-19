@@ -58,7 +58,7 @@ public class AuthController {
 			@ApiResponse(responseCode = "401",
 					description = "소셜 로그인 실패(AUTH401_1). 만료·위조 code, IdP 토큰 교환 실패, 자동가입 경합 패배 후 재조회 실패를 사유 비노출로 통합함",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "AUTH401_1",
-							value = "{\"isSuccess\":false,\"code\":\"AUTH401_1\",\"message\":\"소셜 로그인에 실패했어요, 다시 시도해주세요.\",\"result\":null}"))) })
+							value = "{\"isSuccess\":false,\"code\":\"AUTH401_1\",\"message\":\"소셜 로그인에 실패했어요, 다시 시도해주세요\",\"result\":null}"))) })
 	@PostMapping("/{provider}")
 	public CustomResponse<SocialCallbackResponse> login(@PathVariable("provider") String provider,
 			@Valid @RequestBody SocialLoginRequest request, HttpServletResponse response) {
@@ -83,7 +83,7 @@ public class AuthController {
 					description = "재로그인 필요(AUTH401_2). 쿠키 미제공·공백, 만료, 미존재, 재사용, 동시 재발급 경합 패배를 통합함. "
 							+ "재사용과 경합 패배는 회전 실패로 같은 401이 되며 이긴 토큰은 유효하게 유지됨(설계 D9 단순 거부)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "AUTH401_2",
-							value = "{\"isSuccess\":false,\"code\":\"AUTH401_2\",\"message\":\"다시 로그인해주세요.\",\"result\":null}"))) })
+							value = "{\"isSuccess\":false,\"code\":\"AUTH401_2\",\"message\":\"다시 로그인해주세요\",\"result\":null}"))) })
 	@PostMapping("/reissue")
 	public CustomResponse<ReissueResponse> reissue(
 			@CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse response) {

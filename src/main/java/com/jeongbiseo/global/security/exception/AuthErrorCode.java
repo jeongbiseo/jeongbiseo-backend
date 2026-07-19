@@ -11,8 +11,8 @@ import com.jeongbiseo.global.apiPayload.code.BaseErrorCode;
  */
 public enum AuthErrorCode implements BaseErrorCode {
 
-	SOCIAL_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH401_1", "소셜 로그인에 실패했어요, 다시 시도해주세요."),
-	REFRESH_TOKEN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH401_2", "다시 로그인해주세요.");
+	SOCIAL_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH401_1", "소셜 로그인에 실패했어요, 다시 시도해주세요"),
+	REFRESH_TOKEN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH401_2", "다시 로그인해주세요");
 
 	private final HttpStatus httpStatus;
 
