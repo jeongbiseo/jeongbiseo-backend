@@ -49,6 +49,39 @@ class MemberOnboardingControllerTest {
 	@MockitoBean
 	private MemberService memberService;
 
+	// 온보딩 전 회원도 200이어야 함을 고정함. getMyOnboarding은 이 경우 ONB404_1이라 인증 상태 복구에 쓸 수 없어 getMe를
+	// 신설한 것이므로, 이 단언이 깨지면 신설 이유 자체가 사라짐(프론트 요청, 2026-07-19).
+	@Test
+	void getMe_온보딩_전_회원도_200과_onboardingCompleted_false를_반환한다() throws Exception {
+		given(memberService.getMe(any())).willReturn(member(null, false));
+
+		mockMvc.perform(get("/api/v1/members/me"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.result.email").value("user@example.com"))
+			.andExpect(jsonPath("$.result.name").doesNotExist())
+			.andExpect(jsonPath("$.result.onboardingCompleted").value(false));
+	}
+
+	@Test
+	void getMe_온보딩_완료_회원은_이름과_true를_반환한다() throws Exception {
+		given(memberService.getMe(any())).willReturn(member("홍길동", true));
+
+		mockMvc.perform(get("/api/v1/members/me"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result.name").value("홍길동"))
+			.andExpect(jsonPath("$.result.onboardingCompleted").value(true));
+	}
+
+	private static Member member(String name, boolean onboardingCompleted) {
+		return Member.builder()
+			.email("user@example.com")
+			.name(name)
+			.role(Role.ROLE_USER)
+			.onboardingCompleted(onboardingCompleted)
+			.build();
+	}
+
 	@Test
 	void getMyOnboarding_이름과_만나이를_담아_200을_반환한다() throws Exception {
 		given(onboardingService.getMyOnboarding(any())).willReturn(profile("홍길동"));
