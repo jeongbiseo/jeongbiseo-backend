@@ -15,8 +15,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * 액세스 JWT 발급과 검증을 담당함(설계 D7). HS256, 클레임은 sub(memberId)·iat·exp 최소만 둠. 리프레시 토큰은 이 클래스가
- * 다루지 않음(불투명 랜덤 문자열이라 AuthService가 해시로 저장·대조, 설계 D7). 필터 도입(Bearer 강제)은 배포 N+1이라 지금은 소비자가
+ * 액세스 JWT 발급과 검증을 담당함(설계 D7). 클레임은 sub(memberId)·iat·exp 최소만 둠. 서명은 HS256으로 **명시 고정**함 —
+ * `signWith(key)`만 쓰면 jjwt가 키 길이로 알고리즘을 골라(32바이트 HS256, 48 HS384, 64 HS512) 런북 권장
+ * `openssl rand -base64 48`(64바이트)에서 HS512가 되고 문서의 HS256 서술이 거짓이 됨. 리프레시 토큰은 이 클래스가 다루지
+ * 않음(불투명 랜덤 문자열이라 AuthService가 해시로 저장·대조, 설계 D7). 필터 도입(Bearer 강제)은 배포 N+1이라 지금은 소비자가
  * AuthService와 테스트뿐임.
  */
 @Component
@@ -51,7 +53,7 @@ public final class JwtProvider {
 			.subject(String.valueOf(memberId))
 			.issuedAt(Date.from(now))
 			.expiration(Date.from(now.plus(this.accessTokenTtl)))
-			.signWith(this.signingKey)
+			.signWith(this.signingKey, Jwts.SIG.HS256)
 			.compact();
 	}
 
