@@ -85,7 +85,7 @@ public class SubsidyController {
 
 	@Operation(summary = "지원금 상세 조회",
 			description = "지원금 상세를 조회함. active=false와 중복(duplicateOfId) 행도 노출함(기수령 선택 유즈케이스). "
-					+ "비로그인 요청도 허용하며 선택 인증 기본값으로 isFavorite는 항상 false임.")
+					+ "비로그인 요청도 허용하며 로그인 회원이면 관심 등록 여부를 isFavorite에 반영함.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "지원금 상세 조회 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400", description = "경로 변수 타입 불일치(VALID400_0, subsidyId가 정수로 파싱되지 않음)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
@@ -95,7 +95,7 @@ public class SubsidyController {
 							value = "{\"isSuccess\":false,\"code\":\"SUBSIDY404_1\",\"message\":\"해당 지원금 정보를 찾을 수 없어요\",\"result\":null}"))) })
 	@GetMapping("/{subsidyId}")
 	public CustomResponse<SubsidyDetailResponse> getSubsidyDetail(@PathVariable Long subsidyId) {
-		return CustomResponse.ok(subsidyService.getDetail(subsidyId));
+		return CustomResponse.ok(subsidyService.getDetail(subsidyId, memberResolver.resolveMemberId()));
 	}
 
 	@Operation(summary = "관심 등록", description = "지원금을 현재 회원의 관심 목록에 등록함. 등록 결과는 캘린더에 바로 반영됨.")
