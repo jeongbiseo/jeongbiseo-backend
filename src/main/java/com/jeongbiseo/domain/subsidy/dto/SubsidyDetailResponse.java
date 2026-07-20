@@ -3,6 +3,8 @@ package com.jeongbiseo.domain.subsidy.dto;
 import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.jeongbiseo.domain.common.enums.PaymentType;
+import com.jeongbiseo.domain.common.enums.SubsidyCategory;
 
 /**
  * 지원금 상세 응답임(API명세서 15번 getSubsidyDetail, 신규로 lab에 대응 코드 없음). eligibilityText는 원문 null을
@@ -25,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @param isFavorite 즐겨찾기 여부(즐겨찾기 이연으로 항상 false)
  */
 public record SubsidyDetailResponse(Long subsidyId, String name, String agency, String eligibilityText,
-		LocalDate deadline, Integer dDay, Long estimatedAmountMin, Long estimatedAmountMax, String paymentType,
-		String category, String description, String externalUrl, @JsonProperty("isFavorite") boolean isFavorite) {
+		LocalDate deadline, Integer dDay, Long estimatedAmountMin, Long estimatedAmountMax, PaymentType paymentType,
+		SubsidyCategory category, String description, String externalUrl,
+		@JsonProperty("isFavorite") boolean isFavorite) {
 }
