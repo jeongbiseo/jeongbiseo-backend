@@ -54,7 +54,8 @@ public class MemberController {
 	// 실어 온보딩 전 회원도 200으로 반환함 — getMyOnboarding은 온보딩 프로필 레코드가 없으면 ONB404_1을 던져 이 용도로 쓸 수
 	// 없음(프론트 요청, 2026-07-19).
 	@Operation(summary = "내 회원 정보 조회",
-			description = "로그인한 회원의 id·이름·이메일·온보딩 완료 여부를 반환함. 온보딩 전 회원도 200으로 반환하며 이때 name은 null임.")
+			description = "로그인한 회원의 id·이름·이메일·온보딩 완료 여부를 반환함. 온보딩 전 회원도 200으로 반환함. "
+					+ "name은 소셜 첫 로그인 때 프로필에서 받아 저장한 표시용 이름이라 온보딩 전에도 채워져 있으며, 소셜이 동의항목을 주지 않은 경우에만 null임.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "회원 정보 조회 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400", description = "탈퇴된 계정(MEMBER400_1)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "MEMBER400_1",

@@ -1,5 +1,7 @@
 package com.jeongbiseo.domain.member.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import com.jeongbiseo.domain.member.entity.Member;
 
 /**
@@ -9,11 +11,16 @@ import com.jeongbiseo.domain.member.entity.Member;
  * 상태 복구에 쓸 수 없음).
  *
  * @param memberId 회원 id
- * @param name 이름(실명). 온보딩 전에는 null임
+ * @param name 표시용 이름. 소셜 프로필에서 받아 저장한 값이며 실명이 아님. 소셜이 미제공이면 null임
  * @param email IdP 제공 이메일. 미제공이면 null임
  * @param onboardingCompleted 온보딩 완료 여부
  */
-public record MemberProfileResponse(Long memberId, String name, String email, boolean onboardingCompleted) {
+public record MemberProfileResponse(Long memberId,
+		@Schema(description = "표시용 이름. 소셜 프로필에서 받아 저장한 값이며 실명이 아님(구글 name, 카카오 profile.nickname). "
+				+ "소셜이 동의항목을 주지 않으면 null임", nullable = true) String name,
+		@Schema(description = "IdP 제공 이메일. 구글은 프론트가 email 스코프를 요청해 채워지지만, 카카오는 이메일 동의항목이 비즈 앱 전환 대상이라 "
+				+ "null인 경우가 많음. 현재 프론트 화면에서는 쓰지 않음", nullable = true) String email,
+		boolean onboardingCompleted) {
 
 	/** 회원 엔티티를 응답으로 변환함. */
 	public static MemberProfileResponse from(Member member) {
