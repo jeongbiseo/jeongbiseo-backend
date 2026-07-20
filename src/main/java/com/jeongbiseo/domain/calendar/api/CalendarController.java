@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -36,8 +35,7 @@ public class CalendarController {
 	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
 	// Wave에서 실제 발생함(다른 컨트롤러와 동일 관용).
 	@Operation(summary = "마감 캘린더 조회",
-			description = "관심 등록한 지원금의 마감일을 월 단위로 모아 D-day와 함께 반환함. year·month를 생략하면 서버 기준 현재 연월을 씀. "
-					+ "주의: 현재 배포 버전은 관심 등록 기능을 제공하지 않아 days가 항상 빈 배열임.")
+			description = "관심 등록한 지원금의 마감일을 월 단위로 모아 D-day와 함께 반환함. year·month를 생략하면 서버 기준 현재 연월을 씀.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "마감 캘린더 조회 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400", description = "month가 1에서 12 범위 밖이거나 year·month 타입 불일치(VALID400_0)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
@@ -46,7 +44,7 @@ public class CalendarController {
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))) })
 	@GetMapping
-	public ResponseEntity<CustomResponse<CalendarResponse>> getDeadlineCalendar(
+	public CustomResponse<CalendarResponse> getDeadlineCalendar(
 			@Parameter(description = "조회할 연도(선택). 생략하면 서버 기준 현재 연도", example = "2026") @RequestParam(name = "year",
 					required = false) Integer year,
 			@Parameter(description = "조회할 월(선택, 1에서 12). 생략하면 서버 기준 현재 월", example = "7") @RequestParam(name = "month",
@@ -59,7 +57,7 @@ public class CalendarController {
 
 		CalendarResponse data = calendarService.getDeadlineCalendar(targetYear, targetMonth, memberId);
 
-		return ResponseEntity.ok(CustomResponse.ok(data));
+		return CustomResponse.ok(data);
 	}
 
 }

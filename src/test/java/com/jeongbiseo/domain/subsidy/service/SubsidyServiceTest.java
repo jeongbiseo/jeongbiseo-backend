@@ -15,6 +15,7 @@ import com.jeongbiseo.domain.common.enums.SubsidyCategory;
 import com.jeongbiseo.domain.common.enums.TargetAudience;
 import com.jeongbiseo.domain.common.enums.OccupationRestriction;
 import com.jeongbiseo.domain.common.enums.RegionScope;
+import com.jeongbiseo.domain.favorite.service.FavoriteService;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
 import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 import com.jeongbiseo.domain.subsidy.repository.SubsidyRepository;
@@ -38,6 +39,9 @@ class SubsidyServiceTest {
 	@Mock
 	private SubsidyRepository subsidyRepository;
 
+	@Mock
+	private FavoriteService favoriteService;
+
 	private final Clock clock = Clock.fixed(AS_OF.atStartOfDay(ZoneId.of("Asia/Seoul")).toInstant(),
 			ZoneId.of("Asia/Seoul"));
 
@@ -45,7 +49,7 @@ class SubsidyServiceTest {
 
 	@org.junit.jupiter.api.BeforeEach
 	void setUp() {
-		subsidyService = new SubsidyService(subsidyRepository, clock);
+		subsidyService = new SubsidyService(subsidyRepository, favoriteService, clock);
 	}
 
 	@Test
@@ -53,7 +57,7 @@ class SubsidyServiceTest {
 		SubsidyEntity entity = base().deadline(AS_OF.plusDays(10)).build();
 		given(subsidyRepository.findById(1L)).willReturn(java.util.Optional.of(entity));
 
-		SubsidyDetailResponse response = subsidyService.getDetail(1L);
+		SubsidyDetailResponse response = subsidyService.getDetail(1L, null);
 
 		assertThat(response.name()).isEqualTo("청년월세지원");
 		assertThat(response.dDay()).isEqualTo(10);
@@ -66,7 +70,7 @@ class SubsidyServiceTest {
 	void getDetail_존재하지않으면_SUBSIDY404_1을_던진다() {
 		given(subsidyRepository.findById(anyLong())).willReturn(java.util.Optional.empty());
 
-		assertThatThrownBy(() -> subsidyService.getDetail(999L)).isInstanceOf(CustomException.class)
+		assertThatThrownBy(() -> subsidyService.getDetail(999L, null)).isInstanceOf(CustomException.class)
 			.satisfies(e -> assertThat(((CustomException) e).getErrorCode())
 				.isEqualTo(SubsidyErrorCode.SUBSIDY_NOT_FOUND));
 	}
@@ -77,7 +81,7 @@ class SubsidyServiceTest {
 																			// 미지정 = null
 		given(subsidyRepository.findById(1L)).willReturn(java.util.Optional.of(entity));
 
-		SubsidyDetailResponse response = subsidyService.getDetail(1L);
+		SubsidyDetailResponse response = subsidyService.getDetail(1L, null);
 
 		assertThat(response.eligibilityText()).isNull();
 	}
@@ -87,7 +91,7 @@ class SubsidyServiceTest {
 		SubsidyEntity entity = base().deadline(null).build();
 		given(subsidyRepository.findById(1L)).willReturn(java.util.Optional.of(entity));
 
-		SubsidyDetailResponse response = subsidyService.getDetail(1L);
+		SubsidyDetailResponse response = subsidyService.getDetail(1L, null);
 
 		assertThat(response.dDay()).isNull();
 	}
@@ -97,10 +101,21 @@ class SubsidyServiceTest {
 		SubsidyEntity entity = base().paymentType(null).category(null).deadline(AS_OF.plusDays(1)).build();
 		given(subsidyRepository.findById(1L)).willReturn(java.util.Optional.of(entity));
 
-		SubsidyDetailResponse response = subsidyService.getDetail(1L);
+		SubsidyDetailResponse response = subsidyService.getDetail(1L, null);
 
 		assertThat(response.paymentType()).isNull();
 		assertThat(response.category()).isNull();
+	}
+
+	@Test
+	void getDetail_로그인회원이_관심등록했으면_isFavorite가_true다() {
+		SubsidyEntity entity = base().deadline(AS_OF.plusDays(1)).build();
+		given(subsidyRepository.findById(1L)).willReturn(java.util.Optional.of(entity));
+		given(favoriteService.isFavorite(7L, 1L)).willReturn(true);
+
+		SubsidyDetailResponse response = subsidyService.getDetail(1L, 7L);
+
+		assertThat(response.isFavorite()).isTrue();
 	}
 
 	private static SubsidyEntity.SubsidyEntityBuilder base() {

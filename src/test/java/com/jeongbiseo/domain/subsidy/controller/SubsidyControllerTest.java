@@ -17,18 +17,24 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.jeongbiseo.domain.common.enums.PaymentType;
 import com.jeongbiseo.domain.common.enums.SubsidyCategory;
+import com.jeongbiseo.domain.favorite.service.FavoriteService;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
 import com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult;
 import com.jeongbiseo.domain.subsidy.service.SubsidyService;
+import com.jeongbiseo.global.apiPayload.code.FavoriteErrorCode;
 import com.jeongbiseo.global.apiPayload.code.SubsidyErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
+import com.jeongbiseo.global.security.FixedMemberResolver;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -46,6 +52,12 @@ class SubsidyControllerTest {
 
 	@MockitoBean
 	private SubsidyService subsidyService;
+
+	@MockitoBean
+	private FavoriteService favoriteService;
+
+	@MockitoBean
+	private FixedMemberResolver memberResolver;
 
 	@Test
 	void searchSubsidies_기본파라미터로_200과_페이지응답을_반환한다() throws Exception {
@@ -130,7 +142,8 @@ class SubsidyControllerTest {
 		SubsidyDetailResponse response = new SubsidyDetailResponse(1L, "청년월세지원", "국토교통부", "만 19~34세 무주택 청년",
 				LocalDate.of(2026, 8, 1), 15, 100_000L, 200_000L, PaymentType.CASH, SubsidyCategory.YOUTH, "설명",
 				"https://example.com", false);
-		given(subsidyService.getDetail(1L)).willReturn(response);
+		given(memberResolver.resolveMemberId()).willReturn(1L);
+		given(subsidyService.getDetail(1L, 1L)).willReturn(response);
 
 		mockMvc.perform(get("/api/v1/subsidies/1"))
 			.andExpect(status().isOk())
@@ -148,11 +161,60 @@ class SubsidyControllerTest {
 
 	@Test
 	void getSubsidyDetail_없는id면_404_SUBSIDY404_1() throws Exception {
-		given(subsidyService.getDetail(anyLong())).willThrow(new CustomException(SubsidyErrorCode.SUBSIDY_NOT_FOUND));
+		given(subsidyService.getDetail(anyLong(), any()))
+			.willThrow(new CustomException(SubsidyErrorCode.SUBSIDY_NOT_FOUND));
 
 		mockMvc.perform(get("/api/v1/subsidies/999"))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("SUBSIDY404_1"));
+	}
+
+	@Test
+	void addFavorite_정상이면_subsidyId와_favorited_true를_반환한다() throws Exception {
+		given(memberResolver.resolveMemberId()).willReturn(1L);
+
+		mockMvc.perform(post("/api/v1/subsidies/10/favorite"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result.subsidyId").value(10))
+			.andExpect(jsonPath("$.result.favorited").value(true));
+
+		verify(favoriteService).add(1L, 10L);
+	}
+
+	@Test
+	void removeFavorite_정상이면_subsidyId와_favorited_false를_반환한다() throws Exception {
+		given(memberResolver.resolveMemberId()).willReturn(1L);
+
+		mockMvc.perform(delete("/api/v1/subsidies/10/favorite"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result.subsidyId").value(10))
+			.andExpect(jsonPath("$.result.favorited").value(false));
+
+		verify(favoriteService).remove(1L, 10L);
+	}
+
+	@Test
+	void addFavorite_중복이면_409_FAVORITE409_1() throws Exception {
+		given(memberResolver.resolveMemberId()).willReturn(1L);
+		org.mockito.Mockito.doThrow(new CustomException(FavoriteErrorCode.FAVORITE_ALREADY_EXISTS))
+			.when(favoriteService)
+			.add(1L, 10L);
+
+		mockMvc.perform(post("/api/v1/subsidies/10/favorite"))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("FAVORITE409_1"));
+	}
+
+	@Test
+	void removeFavorite_미등록이면_404_FAVORITE404_1() throws Exception {
+		given(memberResolver.resolveMemberId()).willReturn(1L);
+		org.mockito.Mockito.doThrow(new CustomException(FavoriteErrorCode.FAVORITE_NOT_FOUND))
+			.when(favoriteService)
+			.remove(1L, 10L);
+
+		mockMvc.perform(delete("/api/v1/subsidies/10/favorite"))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("FAVORITE404_1"));
 	}
 
 }

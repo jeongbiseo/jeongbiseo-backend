@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.jeongbiseo.domain.common.enums.SubsidyCategory;
+import com.jeongbiseo.domain.favorite.service.FavoriteService;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
 import com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult;
 import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
@@ -27,10 +28,13 @@ public class SubsidyService {
 
 	private final SubsidyRepository subsidyRepository;
 
+	private final FavoriteService favoriteService;
+
 	private final Clock clock;
 
-	public SubsidyService(SubsidyRepository subsidyRepository, Clock clock) {
+	public SubsidyService(SubsidyRepository subsidyRepository, FavoriteService favoriteService, Clock clock) {
 		this.subsidyRepository = subsidyRepository;
+		this.favoriteService = favoriteService;
 		this.clock = clock;
 	}
 
@@ -49,21 +53,23 @@ public class SubsidyService {
 	/**
 	 * 지원금 상세를 조회함. active=false와 중복(duplicateOfId) 행도 노출함(기수령 선택 유즈케이스라 과거와 중복 공고가 필요함).
 	 * @param subsidyId 조회할 지원금 id
+	 * @param memberId 현재 회원 id(비로그인이면 null)
 	 * @return 지원금 상세 응답
 	 * @throws CustomException 지원금이 존재하지 않으면 SUBSIDY404_1
 	 */
 	@Transactional(readOnly = true)
-	public SubsidyDetailResponse getDetail(Long subsidyId) {
+	public SubsidyDetailResponse getDetail(Long subsidyId, Long memberId) {
 		LocalDate asOf = LocalDate.now(clock);
 		SubsidyEntity s = subsidyRepository.findById(subsidyId)
 			.orElseThrow(() -> new CustomException(SubsidyErrorCode.SUBSIDY_NOT_FOUND));
 		Integer dDay = (s.getDeadline() == null) ? null : (int) ChronoUnit.DAYS.between(asOf, s.getDeadline());
+		boolean isFavorite = memberId != null && favoriteService.isFavorite(memberId, subsidyId);
 		// paymentType·category는 enum 그대로 실음. Jackson이 상수명으로 직렬화해 JSON은 동일하고, springdoc이
 		// 허용값과
 		// 라벨 설명을 스키마에 실어 줌(String으로 평탄화하면 그 정보가 문서에서 사라짐).
 		return new SubsidyDetailResponse(s.getId(), s.getName(), s.getAgency(), s.getEligibilityText(), s.getDeadline(),
 				dDay, s.getEstimatedAmountMin(), s.getEstimatedAmountMax(), s.getPaymentType(), s.getCategory(),
-				s.getDescription(), s.getExternalUrl(), false);
+				s.getDescription(), s.getExternalUrl(), isFavorite);
 	}
 
 }
