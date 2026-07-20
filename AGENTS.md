@@ -26,4 +26,6 @@ Claude `Co-Authored-By` 라인 추가 금지 — `KWONSEOK02` 단독.
 
 ## 계획 산출물 위치
 
-세션 핸드오프 정본은 `.plans/HANDOFF.md` 고정명 1개, 대체 시 이전 본은 `.plans/_archive/HANDOFF-YYYYMMDD.md`. 작업 폴더는 `.plans/{NN}-{기능명}` 관례를 따름.
+**`.plans/`는 이 저장소 안이 아니라 상위 작업공간 `campus-hackathon-2026/`에 있음**(저장소 루트 기준 `../.plans/`). 그 상위 폴더는 git 저장소가 아니라서 `.plans/`·`docs/`·상위 `AGENTS.md`는 어느 저장소에도 커밋되지 않음. 저장소 안에서 `.plans/`를 찾으면 없는 것이 정상임.
+
+세션 핸드오프 정본은 `../.plans/HANDOFF.md` 고정명 1개, 대체 시 이전 본은 `../.plans/_archive/HANDOFF-YYYYMMDD.md`. 작업 폴더는 `../.plans/{NN}-{기능명}` 관례를 따름.
