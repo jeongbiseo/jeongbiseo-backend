@@ -1,3 +1,9 @@
+server:
+  # Nginx가 TLS를 종료하고 앱에는 http로 넘기므로, X-Forwarded-* 헤더를 반영해야 자기 주소를 https로 인식함.
+  # 없으면 springdoc이 /v3/api-docs의 servers를 http로 적고, https로 열린 Swagger UI에서 Try it out이
+  # mixed content로 브라우저에 차단됨. 로컬은 프록시가 없어 헤더 위조 여지가 생기므로 prod 프로필에만 둠.
+  forward-headers-strategy: framework
+
 spring:
   datasource:
     url: ${DB_URL}
