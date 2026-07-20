@@ -20,3 +20,13 @@ app:
   auth:
     refresh:
       expiration-days: 14
+
+  # LLM 보강(배치 설계 docs/md/LLM-공식출처-검증-보강-배치-설계-2026-07-20.md). 값이 아니라 참조만 둠 --
+  # 키를 레포 안 파일에 적지 않음. enabled 기본값이 false인 것이 안전장치임: 켜기 전까지 NIM 호출이 0건이라
+  # 크레딧 소모와 429를 프로덕션에서 처음 만나는 일이 없음. 배포 첫 회차도 false로 넣음.
+  llm:
+    enrichment:
+      enabled: ${LLM_ENRICHMENT_ENABLED:false}
+    nim:
+      api-key: ${NVIDIA_API_KEY:}
+      model-id: ${NIM_MODEL_ID:meta/llama-3.1-70b-instruct}
