@@ -15,6 +15,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.exc.InvalidFormatException;
@@ -116,11 +117,19 @@ public class GlobalExceptionHandler {
 	}
 
 	/**
-	 * 위 핸들러가 담당하지 않는 예기치 못한 예외의 최종 안전망임. DB 제약 위반(DataIntegrityViolationException), 매핑되지
-	 * 않은 경로(NoResourceFoundException) 등 어떤 예외든 COMMON500 봉투로 감싸 응답 envelope 계약을 예외 종류와
-	 * 무관하게 보장함. 매핑되지 않은 경로도 500으로 뭉뚱그려지는 것은 알려진 단순화임(ponytail: 계약에 있는 경로만 다루므로 404 대 405
-	 * 대 500을 세분화하는 핸들러를 두지 않음. 세분화가 필요해지면 이 핸들러 앞에 전용 핸들러를 추가하는 것이 대안임). 응답에는 스택트레이스를 담지
-	 * 않되(정보 노출 방지) 서버 로그에는 남겨 원인 추적이 가능하게 함.
+	 * 매핑되지 않은 경로 요청을 404로 변환함. 최종 안전망(handleUnexpected)보다 앞에 두어 500이 아니라 404 계약으로 나가게 함.
+	 * 심사·데모에서 주소창으로 루트에 접근하면 "서버 내부 오류"가 보이던 문제를 없앰.
+	 */
+	@ExceptionHandler(NoResourceFoundException.class)
+	public ResponseEntity<CustomResponse<Void>> handleNoResource(NoResourceFoundException e) {
+		return ResponseEntity.status(CommonErrorCode.RESOURCE_NOT_FOUND.getHttpStatus())
+			.body(CustomResponse.fail(CommonErrorCode.RESOURCE_NOT_FOUND));
+	}
+
+	/**
+	 * 위 핸들러가 담당하지 않는 예기치 못한 예외의 최종 안전망임. DB 제약 위반(DataIntegrityViolationException) 등 어떤
+	 * 예외든 COMMON500 봉투로 감싸 응답 envelope 계약을 예외 종류와 무관하게 보장함(매핑되지 않은 경로는 handleNoResource가
+	 * 먼저 404로 변환함). 응답에는 스택트레이스를 담지 않되(정보 노출 방지) 서버 로그에는 남겨 원인 추적이 가능하게 함.
 	 */
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<CustomResponse<Void>> handleUnexpected(Exception e) {
