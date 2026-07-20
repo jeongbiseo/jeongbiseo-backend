@@ -26,8 +26,13 @@ public final class EnrichmentPrompt {
 	 * 검색했는데 실제로는 평생교육강좌였음) <b>이 경로는 실측으로 검증되지 않았음.</b> 프롬프트가 안 먹어도 검증기가 같은 규칙으로 막으므로 위험은
 	 * 없으나, 종신 사례를 구하면 다시 측정할 것.
 	 * </p>
+	 *
+	 * <p>
+	 * v4(2026-07-20): 본문·지원금명에서 구역 표시 태그를 지우게 함({@link #userPrompt}). 문구 변경은 없으나 <b>모델에
+	 * 가는 입력이 달라지므로</b> 버전을 올림 — 같은 원문이라도 v3 결과와 v4 결과는 다른 입력에서 나온 것이라 섞이면 안 됨.
+	 * </p>
 	 */
-	public static final String VERSION = "amount-v3";
+	public static final String VERSION = "amount-v4";
 
 	/** response_format에 실리는 스키마 이름임. */
 	public static final String SCHEMA_NAME = "amount_enrichment";
@@ -94,10 +99,32 @@ public final class EnrichmentPrompt {
 	 * @return 사용자 프롬프트
 	 */
 	public static String userPrompt(String subsidyName, String noticeBody) {
-		return NOTICE_OPEN + "\n" + subsidyName + "\n" + noticeBody + "\n" + NOTICE_CLOSE + """
+		return NOTICE_OPEN + "\n" + stripDelimiters(subsidyName) + "\n" + stripDelimiters(noticeBody) + "\n"
+				+ NOTICE_CLOSE + """
 
 
-				위 공고에서 금액 정보를 구조화하라. evidence는 위 본문에 그대로 있는 문장이어야 한다.""";
+						위 공고에서 금액 정보를 구조화하라. evidence는 위 본문에 그대로 있는 문장이어야 한다.""";
+	}
+
+	/**
+	 * 본문에 섞인 구역 표시 태그를 지움.
+	 *
+	 * <p>
+	 * <b>이것이 없으면 데이터 구역을 탈출할 수 있음</b>: 공고 본문에 {@code </notice>}를 심으면 그 뒤 내용이 데이터가 아니라 지시로
+	 * 읽힘. 태그로 감싸는 것만으로는 방어가 성립하지 않고 <b>구분자가 본문에 나타날 수 없어야</b> 완성됨(2026-07-20 CodeRabbit
+	 * 지적, PR #48).
+	 * </p>
+	 *
+	 * <p>
+	 * 지우기만 하고 실패로 처리하지 않는 이유는 누락 때문임 — 공고 원문에 우연히 꺾쇠가 들어 있다고 그 건을 통째로 버리면 받을 수 있는 지원금이
+	 * 화면에서 사라짐(판정원칙 1번). <b>근거 부분문자열 검증은 원본 본문으로 하므로</b> 여기서 지운 것이 근거 대조를 방해하지 않음.
+	 * </p>
+	 */
+	private static String stripDelimiters(String text) {
+		if (text == null) {
+			return "";
+		}
+		return text.replace(NOTICE_OPEN, " ").replace(NOTICE_CLOSE, " ");
 	}
 
 	/**

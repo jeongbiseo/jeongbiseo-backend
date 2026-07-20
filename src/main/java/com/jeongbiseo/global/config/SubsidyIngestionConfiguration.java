@@ -54,15 +54,20 @@ public class SubsidyIngestionConfiguration {
 	 * @param coordinator 적재 조정자
 	 * @return 기동 러너
 	 */
+	// 보강 러너보다 먼저 돌아야 하므로 순서를 명시함. 이 값이 없으면 두 러너가 모두 기본 순서(LOWEST_PRECEDENCE)를 가져
+	// 동률이 되고, 실행 순서가 빈 생성 순서 같은 부수 사정에 좌우됨 -- 보강이 수집보다 먼저 돌면 낡은 데이터를 대상으로 삼음
+	// (2026-07-20 CodeRabbit 지적, PR #48).
 	@Bean
+	@Order(0)
 	@ConditionalOnProperty(name = "app.ingestion.enabled", havingValue = "true")
 	public ApplicationRunner subsidyIngestionRunner(SubsidyIngestionCoordinator coordinator) {
 		return arguments -> coordinator.ingestAll();
 	}
 
 	/**
-	 * LLM 금액 보강 배치의 기동 트리거임. 수집 러너보다 뒤에 돌도록 Order를 낮게(숫자를 크게) 둠 — 보강은 원천 수집이 끝난 데이터를 대상으로
-	 * 하기 때문임(배치 설계 3장 "수집 성공 뒤 이어지는 후속 작업").
+	 * LLM 금액 보강 배치의 기동 트리거임. 수집 러너보다 뒤에 돌도록 순서를 낮게(숫자를 크게) 둠 — 보강은 원천 수집이 끝난 데이터를 대상으로 하기
+	 * 때문임(배치 설계 3장 "수집 성공 뒤 이어지는 후속 작업"). <b>수집 러너 쪽에도 {@code @Order(0)}이 명시돼 있어야 이 순서가
+	 * 성립함</b> — 양쪽 다 순서를 안 주면 동률이 되어 실행 순서가 부수 사정에 좌우됨.
 	 *
 	 * <p>
 	 * <b>{@code app.llm.enrichment.enabled}가 true가 아니면 이 빈 자체가 만들어지지 않음.</b> 플래그를 코드 안에서

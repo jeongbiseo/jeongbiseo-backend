@@ -206,12 +206,19 @@ class EnrichmentBatchTest {
 				{"amountKind":"SINGLE","paymentPeriod":"LUMP_SUM","amountValue":500000,"monthlyAmount":null,\
 				"durationMonths":null,"conditionExpression":null,"evidence":"원문에 없는 문장",\
 				"abstained":false,"abstainReason":null}""");
+		EnrichmentBatch batch = batchWithMaxCalls(10);
 
-		EnrichmentBatchResult result = batchWithMaxCalls(10).run();
+		EnrichmentBatchResult first = batch.run();
+		// 같은 배치를 한 번 더 돌림. 거부된 건은 저장되지 않아 건너뛰기 판정(저장 행 존재)에 걸리지 않으므로 다시 호출됨.
+		EnrichmentBatchResult second = batch.run();
 
 		verify(this.enrichmentRepository, never()).save(any(AiEnrichment.class));
-		assertThat(result.calls()).isEqualTo(1);
-		assertThat(result.saved()).isZero();
+		// 두 회차 합쳐 2회 호출된 것이 이 한계의 실증임 -- 낭비지만 호출 상한이 폭주를 막음
+		verify(this.nimClient, times(2)).completeAsJson(anyString(), anyString(), anyString(), any());
+		assertThat(first.calls()).isEqualTo(1);
+		assertThat(second.calls()).isEqualTo(1);
+		assertThat(first.saved()).isZero();
+		assertThat(second.saved()).isZero();
 	}
 
 	@Test
