@@ -39,6 +39,7 @@ public record SubsidyDetailResponse(@Schema(description = "지원금 ID", exampl
 		PaymentType paymentType, @Schema(nullable = true) SubsidyCategory category,
 		@Schema(description = "상세 설명. 원천에 설명이 없으면 null임", nullable = true) String description,
 		@Schema(description = "외부 원문 링크. 원천에 링크가 없으면 null임", nullable = true) String externalUrl,
-		@Schema(description = "관심 등록 여부. 로그인 회원의 등록 여부를 반영하며 비로그인이면 false임",
+		@Schema(description = "관심 등록 여부. 계약상 로그인 회원의 등록 여부를 반영하고 비로그인이면 false임. "
+				+ "다만 배포 N에서는 무헤더 요청이 고정 회원으로 해석되므로 그 회원의 등록 여부가 내려감",
 				example = "false") @JsonProperty("isFavorite") boolean isFavorite) {
 }
