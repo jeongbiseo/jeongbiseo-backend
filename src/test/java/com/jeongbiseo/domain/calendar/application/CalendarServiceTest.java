@@ -2,6 +2,7 @@ package com.jeongbiseo.domain.calendar.application;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Year;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -55,6 +56,32 @@ class CalendarServiceTest {
 			.isInstanceOf(CustomException.class)
 			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
 			.isEqualTo("VALID400_0");
+	}
+
+	@Test
+	void year가_범위를_벗어나면_VALID400_0을_던진다() {
+		// 검증이 없으면 YearMonth.of가 DateTimeException을 던져 COMMON500으로 샘.
+		assertThatThrownBy(() -> calendarService.getDeadlineCalendar(Year.MAX_VALUE + 1, 7, MEMBER_ID))
+			.isInstanceOf(CustomException.class)
+			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
+			.isEqualTo("VALID400_0");
+
+		assertThatThrownBy(() -> calendarService.getDeadlineCalendar(Year.MIN_VALUE - 1, 7, MEMBER_ID))
+			.isInstanceOf(CustomException.class)
+			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
+			.isEqualTo("VALID400_0");
+	}
+
+	@Test
+	void year_경계값은_정상처리한다() {
+		given(favoriteRepository.findCalendarTargets(MEMBER_ID, LocalDate.of(Year.MAX_VALUE, 7, 1),
+				LocalDate.of(Year.MAX_VALUE, 7, 31)))
+			.willReturn(List.of());
+
+		CalendarResponse response = calendarService.getDeadlineCalendar(Year.MAX_VALUE, 7, MEMBER_ID);
+
+		assertThat(response.year()).isEqualTo(Year.MAX_VALUE);
+		assertThat(response.days()).isEmpty();
 	}
 
 	@Test

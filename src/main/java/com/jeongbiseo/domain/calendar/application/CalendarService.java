@@ -2,6 +2,7 @@ package com.jeongbiseo.domain.calendar.application;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Year;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -35,10 +36,12 @@ public class CalendarService {
 	}
 
 	/**
-	 * 마감 캘린더를 조회함. month 범위(1~12)를 벗어나면 VALID400_0을 던짐.
+	 * 마감 캘린더를 조회함. year·month 범위를 벗어나면 VALID400_0을 던짐.
 	 */
 	public CalendarResponse getDeadlineCalendar(int year, int month, Long memberId) {
-		if (month < 1 || month > 12) {
+		// year 검사가 없으면 YearMonth.of의 DateTimeException이 COMMON500으로 샘. month와 같은 400 계약으로
+		// 통일함.
+		if (year < Year.MIN_VALUE || year > Year.MAX_VALUE || month < 1 || month > 12) {
 			throw new CustomException(ValidationErrorCode.INVALID_QUERY_PARAMETER);
 		}
 		LocalDate today = LocalDate.now(clock);
