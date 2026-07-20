@@ -30,11 +30,13 @@ import com.jeongbiseo.global.apiPayload.exception.CustomException;
 import com.jeongbiseo.global.security.FixedMemberResolver;
 
 /**
- * 지원금 검색·상세 조회를 다룸(API명세서 13번 searchSubsidies, 15번 getSubsidyDetail). 두 엔드포인트 모두 현재
- * permitAll 상태임(소셜 인증 전, 상세는 isFavorite 항상 false로 선택 인증 기본값과 정합). 명세서상 searchSubsidies는
- * 인증 필요라, 인증 Wave에서 SecurityConfig 작성 시 authenticated로 전환할 것.
+ * 지원금 검색·상세 조회와 관심 등록·해제를 다룸(API명세서 13번 searchSubsidies, 15번 getSubsidyDetail, 16번
+ * addFavorite, 17번 removeFavorite). 네 엔드포인트 모두 현재 permitAll 상태임(소셜 인증 전). 상세의 isFavorite은
+ * 계약상 비로그인이면 false이나, 배포 N에서는 FixedMemberResolver가 무헤더 요청을 고정 회원 1로 해석하므로 그 회원의 등록 여부가
+ * 반영됨. 명세서상 searchSubsidies와 관심 등록·해제는 인증 필요라, 인증 Wave에서 SecurityConfig 작성 시
+ * authenticated로 전환할 것.
  */
-@Tag(name = "Subsidy", description = "지원금 검색과 상세 조회")
+@Tag(name = "Subsidy", description = "지원금 검색·상세 조회와 관심 등록·해제")
 @RestController
 @RequestMapping("/api/v1/subsidies")
 public class SubsidyController {
