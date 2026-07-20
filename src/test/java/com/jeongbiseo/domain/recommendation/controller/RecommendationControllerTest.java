@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.jeongbiseo.domain.common.enums.PaymentType;
 import com.jeongbiseo.domain.recommendation.EligibilityReason;
 import com.jeongbiseo.domain.recommendation.MatchResult;
 import com.jeongbiseo.domain.recommendation.RecommendationItem;
@@ -70,7 +71,7 @@ class RecommendationControllerTest {
 	void getRecommendations_정상이면_200과_항목_매핑을_반환한다() throws Exception {
 		LocalDate asOf = LocalDate.of(2026, 7, 16);
 		SubsidySummary summary = new SubsidySummary(1L, "청년월세지원", "국토교통부", asOf.plusDays(10), "만 19~34세 청년", 100_000L,
-				200_000L);
+				200_000L, PaymentType.CASH);
 		MatchResult matchResult = new MatchResult(1L, false, true, 5, List.of(EligibilityReason.INCOME_MISSING),
 				asOf.plusDays(10), "gov24", "EXT-1");
 		RecommendationItem item = new RecommendationItem(summary, matchResult);
@@ -84,6 +85,7 @@ class RecommendationControllerTest {
 			.andExpect(jsonPath("$.result.items[0].subsidyId").value(1))
 			.andExpect(jsonPath("$.result.items[0].name").value("청년월세지원"))
 			.andExpect(jsonPath("$.result.items[0].dDay").value(10))
+			.andExpect(jsonPath("$.result.items[0].paymentType").value("CASH"))
 			.andExpect(jsonPath("$.result.items[0].matchScore").value(5))
 			.andExpect(jsonPath("$.result.items[0].uncomputable").value(true))
 			.andExpect(jsonPath("$.result.items[0].uncomputableReasons[0]")
@@ -93,7 +95,8 @@ class RecommendationControllerTest {
 	@Test
 	void getRecommendations_dDay는_deadline이_null이면_null이다() throws Exception {
 		LocalDate asOf = LocalDate.of(2026, 7, 16);
-		SubsidySummary summary = new SubsidySummary(2L, "상시접수 지원금", "고용노동부", null, "제한 없음", null, null);
+		SubsidySummary summary = new SubsidySummary(2L, "상시접수 지원금", "고용노동부", null, "제한 없음", null, null,
+				PaymentType.VOUCHER);
 		MatchResult matchResult = new MatchResult(2L, false, true, 3, List.of(), null, "gov24", "EXT-2");
 		RecommendationItem item = new RecommendationItem(summary, matchResult);
 		RecommendationView view = new RecommendationView(List.of(item), asOf, null);
@@ -101,7 +104,9 @@ class RecommendationControllerTest {
 
 		mockMvc.perform(get("/api/v1/recommendations"))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.result.items[0].dDay").doesNotExist());
+			.andExpect(jsonPath("$.result.items[0].dDay").doesNotExist())
+			// 비현금 유형도 추천에 노출되므로 배지 분기용 값이 그대로 실려야 함
+			.andExpect(jsonPath("$.result.items[0].paymentType").value("VOUCHER"));
 	}
 
 }

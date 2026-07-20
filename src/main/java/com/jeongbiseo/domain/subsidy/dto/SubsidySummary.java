@@ -2,6 +2,8 @@ package com.jeongbiseo.domain.subsidy.dto;
 
 import java.time.LocalDate;
 
+import com.jeongbiseo.domain.common.enums.PaymentType;
+
 /**
  * 추천 응답 조립에 쓰는 지원금 표시 정보임(값 객체). SubsidyCriteria(매칭 조건 스냅샷)와 분리해 표시용 필드만 담음(storage 타입이
  * domain 밖으로 새지 않게 함).
@@ -13,8 +15,9 @@ import java.time.LocalDate;
  * @param eligibilitySummary 자격요건 요약(원문 eligibilityText)
  * @param estimatedAmountMin 예상 수령액 하한(원, 미제공 시 null)
  * @param estimatedAmountMax 예상 수령액 상한(원, 미제공 시 null)
+ * @param paymentType 지급 유형(현금·바우처·감면 등). 프론트가 비현금 배지와 금액 표기 분기에 씀
  */
 public record SubsidySummary(Long subsidyId, String name, String agency, LocalDate deadline, String eligibilitySummary,
-		Long estimatedAmountMin, Long estimatedAmountMax) {
+		Long estimatedAmountMin, Long estimatedAmountMax, PaymentType paymentType) {
 
 }

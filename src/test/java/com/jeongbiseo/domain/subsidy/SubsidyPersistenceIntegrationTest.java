@@ -118,6 +118,8 @@ class SubsidyPersistenceIntegrationTest {
 			assertThat(s.eligibilitySummary()).isEqualTo("만 19~34세 무주택 청년");
 			assertThat(s.estimatedAmountMin()).isEqualTo(100_000L);
 			assertThat(s.estimatedAmountMax()).isEqualTo(200_000L);
+			// 엔티티에서 표시용 값 객체까지 지급 유형이 이어지는지 고정함(추천 응답 배지 분기의 원천)
+			assertThat(s.paymentType()).isEqualTo(PaymentType.CASH);
 		});
 	}
 

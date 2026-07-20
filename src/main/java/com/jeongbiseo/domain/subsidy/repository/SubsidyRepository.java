@@ -102,7 +102,8 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 	 */
 	static SubsidySummary toSummary(SubsidyEntity entity) {
 		return new SubsidySummary(entity.getId(), entity.getName(), entity.getAgency(), entity.getDeadline(),
-				entity.getEligibilityText(), entity.getEstimatedAmountMin(), entity.getEstimatedAmountMax());
+				entity.getEligibilityText(), entity.getEstimatedAmountMin(), entity.getEstimatedAmountMax(),
+				entity.getPaymentType());
 	}
 
 	// API명세서의 응답 전체 dataUpdatedAt 대표값임. 소스 갱신 시각만 집계하고 fetchedAt은 섞지 않음

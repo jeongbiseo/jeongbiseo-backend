@@ -244,7 +244,8 @@ class RecommendationServiceTest {
 		@Override
 		public List<SubsidySummary> findSummaries(List<Long> subsidyIds) {
 			return subsidyIds.stream()
-				.map(id -> new SubsidySummary(id, "지원금" + id, "테스트기관", null, "요약", 100_000L, 300_000L))
+				.map(id -> new SubsidySummary(id, "지원금" + id, "테스트기관", null, "요약", 100_000L, 300_000L,
+						PaymentType.CASH))
 				.toList();
 		}
 
