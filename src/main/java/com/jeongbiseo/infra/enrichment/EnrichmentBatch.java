@@ -93,6 +93,13 @@ public class EnrichmentBatch {
 					skipped++;
 					continue;
 				}
+				// 원문에 구역 경계 토큰이 들어 있으면 조작된 공고임. 보강하지 않고 기존 산정불가 상태를 유지함.
+				if (EnrichmentPrompt.containsBoundaryToken(subsidy.getDescription())
+						|| EnrichmentPrompt.containsBoundaryToken(subsidy.getName())) {
+					log.warn("공고에 구역 경계 토큰이 있어 보강을 건너뜀: subsidyId={}", subsidy.getId());
+					skipped++;
+					continue;
+				}
 				String contentHash = ContentHasher.hash(subsidy.getDescription());
 				if (this.enrichmentRepository.existsBySubsidyIdAndContentHashAndModelIdAndPromptVersion(subsidy.getId(),
 						contentHash, this.modelId, EnrichmentPrompt.VERSION)) {

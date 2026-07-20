@@ -97,6 +97,16 @@ public final class EnrichmentPrompt {
 	}
 
 	/**
+	 * 텍스트에 구역 경계 토큰이 들어 있는지 봄. 있으면 조작된 공고이므로 <b>보강 대상에서 빼야 함</b> — 본문을 가공해 제거하면 원문이 훼손돼
+	 * 근거 대조가 어긋나므로, 고치는 대신 건너뛰는 쪽을 택함. 그 건은 기존 산정불가 상태를 유지함.
+	 * @param text 검사할 텍스트(null 허용)
+	 * @return 경계 토큰이 있으면 true
+	 */
+	public static boolean containsBoundaryToken(String text) {
+		return text != null && (text.contains(NOTICE_OPEN) || text.contains(NOTICE_CLOSE));
+	}
+
+	/**
 	 * 출력 스키마임. {@code AmountEnrichment} record의 필드와 1:1로 맞춤 — 어느 한쪽만 고치면 역직렬화가 조용히 null을
 	 * 채우므로 반드시 함께 고칠 것.
 	 * @return JSON 스키마
