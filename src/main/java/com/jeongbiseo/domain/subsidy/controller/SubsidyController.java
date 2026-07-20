@@ -48,8 +48,9 @@ public class SubsidyController {
 	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
 	// Wave에서 실제 발생함(명세서 각주 COMMON401 정합).
 	@Operation(summary = "지원금 검색",
-			description = "키워드·분류로 지원금을 검색함(융자 상품은 항상 제외). keyword·category는 nullable, "
-					+ "page·size는 음수·과대값이면 400 또는 클램프로 처리함.")
+			description = "키워드·분류로 지원금을 검색함(융자 상품은 항상 제외). keyword는 지원금명 또는 소관기관 부분 일치이고 "
+					+ "keyword·category 모두 생략 가능함. page가 음수면 400으로 거절하고, size는 0 이하면 기본값 20으로 "
+					+ "대체하며 100을 넘으면 100으로 줄임(page는 줄이지 않고 거절함).")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "지원금 검색 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400", description = "쿼리 파라미터 검증 실패(VALID400_0, page 음수 또는 page·size 타입 불일치)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",

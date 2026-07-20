@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.jeongbiseo.domain.common.enums.PaymentType;
 import com.jeongbiseo.domain.common.enums.SubsidyCategory;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
 import com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult;
@@ -127,7 +128,8 @@ class SubsidyControllerTest {
 	@Test
 	void getSubsidyDetail_정상이면_200과_상세매핑을_반환한다() throws Exception {
 		SubsidyDetailResponse response = new SubsidyDetailResponse(1L, "청년월세지원", "국토교통부", "만 19~34세 무주택 청년",
-				LocalDate.of(2026, 8, 1), 15, 100_000L, 200_000L, "CASH", "YOUTH", "설명", "https://example.com", false);
+				LocalDate.of(2026, 8, 1), 15, 100_000L, 200_000L, PaymentType.CASH, SubsidyCategory.YOUTH, "설명",
+				"https://example.com", false);
 		given(subsidyService.getDetail(1L)).willReturn(response);
 
 		mockMvc.perform(get("/api/v1/subsidies/1"))

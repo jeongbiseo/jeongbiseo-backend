@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -51,7 +52,10 @@ public class RecommendationController {
 
 	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
 	// Wave에서 실제 발생함(OnboardingController와 동일 관용).
-	@Operation(summary = "추천 리스트 조회", description = "회원의 온보딩 프로필을 기준으로 개인 맞춤 추천 리스트를 조회함. 온보딩 미완료면 404로 거절함.")
+	@Operation(summary = "추천 리스트 조회",
+			description = "회원의 온보딩 프로필을 기준으로 개인 맞춤 추천 리스트를 조회함. 온보딩 미완료면 404, 탈퇴 계정이면 400으로 거절함. "
+					+ "대출·융자 상품과 마감된 공고는 추천 모집단에서 제외함. 거주 지역이 다른 공고는 탈락시키지 않고 정렬 후순위로 내림. "
+					+ "각 항목의 matchScore는 0에서 5 사이 정수이며 통과한 매칭 축의 개수임(백분율이 아님).")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "추천 리스트 조회 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400", description = "잘못된 limit 파라미터(VALID400_0) 또는 탈퇴 계정(MEMBER400_1)",
 					content = @Content(mediaType = "application/json", examples = { @ExampleObject(name = "VALID400_0",
@@ -70,7 +74,9 @@ public class RecommendationController {
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "REC500_1",
 							value = "{\"isSuccess\":false,\"code\":\"REC500_1\",\"message\":\"추천을 불러오지 못했어요, 잠시 후 다시 시도해주세요\",\"result\":null}"))) })
 	@GetMapping
-	public CustomResponse<RecommendationResponse> getRecommendations(@RequestParam(required = false) Integer limit) {
+	public CustomResponse<RecommendationResponse> getRecommendations(
+			@Parameter(description = "노출 개수(선택). 생략하면 3이고, 20을 넘기면 20으로 줄임. 0 이하는 400으로 거절함",
+					example = "3") @RequestParam(required = false) Integer limit) {
 		validateLimit(limit);
 		Long memberId = memberResolver.resolveMemberId();
 		RecommendationView view = recommendationQueryService.getRecommendations(memberId, limit);
