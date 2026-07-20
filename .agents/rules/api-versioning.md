@@ -1,4 +1,4 @@
-> 출처: campus-hackathon-2026/.agents/rules/api-versioning.md — 정본 갱신 시 동기화함(최근 동기화 2026-07-21)
+> 출처: campus-hackathon-2026/.agents/rules/api-versioning.md — 정본 갱신 시 동기화함(최근 동기화 2026-07-20)
 
 # API 버전화 규칙 (정비서, campus-hackathon-2026)
 
