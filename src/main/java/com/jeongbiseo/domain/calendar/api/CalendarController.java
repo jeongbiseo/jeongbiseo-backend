@@ -37,7 +37,8 @@ public class CalendarController {
 	@Operation(summary = "마감 캘린더 조회",
 			description = "관심 등록한 지원금의 마감일을 월 단위로 모아 D-day와 함께 반환함. year·month를 생략하면 서버 기준 현재 연월을 씀.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "마감 캘린더 조회 성공", useReturnTypeSchema = true),
-			@ApiResponse(responseCode = "400", description = "month가 1에서 12 범위 밖이거나 year·month 타입 불일치(VALID400_0)",
+			@ApiResponse(responseCode = "400",
+					description = "month가 1에서 12 범위 밖이거나, year가 표현 가능 범위 밖이거나, year·month 타입 불일치(VALID400_0)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"))),
 			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",

@@ -28,7 +28,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param externalUrl 외부 원문 링크(null 허용)
  * @param isFavorite 관심 등록 여부(비로그인이면 false)
  */
-public record SubsidyDetailResponse(Long subsidyId, String name,
+public record SubsidyDetailResponse(@Schema(description = "지원금 ID", example = "101") Long subsidyId,
+		@Schema(description = "지원금명", example = "청년월세지원") String name,
 		@Schema(description = "소관기관. 원천 데이터에 기관명이 없으면 null임", nullable = true) String agency,
 		@Schema(description = "자격조건 원문. 원천에 없으면 null이며 백엔드가 임의 문구로 치환하지 않음", nullable = true) String eligibilityText,
 		@Schema(description = "마감일. 상시 모집이거나 마감일이 없는 유형이면 null임", nullable = true) LocalDate deadline,
@@ -38,5 +39,6 @@ public record SubsidyDetailResponse(Long subsidyId, String name,
 		PaymentType paymentType, @Schema(nullable = true) SubsidyCategory category,
 		@Schema(description = "상세 설명. 원천에 설명이 없으면 null임", nullable = true) String description,
 		@Schema(description = "외부 원문 링크. 원천에 링크가 없으면 null임", nullable = true) String externalUrl,
-		@JsonProperty("isFavorite") boolean isFavorite) {
+		@Schema(description = "관심 등록 여부. 로그인 회원의 등록 여부를 반영하며 비로그인이면 false임",
+				example = "false") @JsonProperty("isFavorite") boolean isFavorite) {
 }
