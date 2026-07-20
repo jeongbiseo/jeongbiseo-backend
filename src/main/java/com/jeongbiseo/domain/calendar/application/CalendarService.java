@@ -1,16 +1,38 @@
 package com.jeongbiseo.domain.calendar.application;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.jeongbiseo.domain.calendar.dto.CalendarDay;
+import com.jeongbiseo.domain.calendar.dto.CalendarDayElement;
 import com.jeongbiseo.domain.calendar.dto.CalendarResponse;
+import com.jeongbiseo.domain.favorite.entity.Favorite;
+import com.jeongbiseo.domain.favorite.repository.FavoriteRepository;
+import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 import com.jeongbiseo.global.apiPayload.code.ValidationErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
-
-import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
 public class CalendarService {
+
+	private final FavoriteRepository favoriteRepository;
+
+	private final Clock clock;
+
+	public CalendarService(FavoriteRepository favoriteRepository, Clock clock) {
+		this.favoriteRepository = favoriteRepository;
+		this.clock = clock;
+	}
 
 	/**
 	 * 마감 캘린더를 조회함. month 범위(1~12)를 벗어나면 VALID400_0을 던짐.
@@ -19,11 +41,29 @@ public class CalendarService {
 		if (month < 1 || month > 12) {
 			throw new CustomException(ValidationErrorCode.INVALID_QUERY_PARAMETER);
 		}
-		// ponytail: 즐겨찾기 도메인이 아직 이식되지 않아 항상 빈 캘린더를 반환함(CAL-빈상태).
-		// FavoriteSubsidyRepository 이식 후
-		// 마감일 필터·d-day 계산·날짜별 그룹핑을 실제 조회로 교체함. 그전까지 더미 엔티티로 흉내 내면 SpotBugs UWF에 걸리고 죽은
-		// 코드가 남으므로 두지 않음. 응답 DTO는 완성 상태라 이식 시 이 반환만 실제 조회로 바꾸면 됨.
-		return new CalendarResponse(year, month, List.of());
+		LocalDate today = LocalDate.now(clock);
+		YearMonth target = YearMonth.of(year, month);
+		LocalDate firstDay = target.atDay(1);
+		// 지난 마감 제외와 월 범위 제한을 조회 한 번으로 끝냄(CAL-510).
+		LocalDate from = firstDay.isBefore(today) ? today : firstDay;
+		LocalDate to = target.atEndOfMonth();
+		if (from.isAfter(to)) {
+			return new CalendarResponse(year, month, List.of());
+		}
+
+		Map<LocalDate, List<CalendarDayElement>> itemsByDeadline = new LinkedHashMap<>();
+		for (Favorite favorite : favoriteRepository.findCalendarTargets(memberId, from, to)) {
+			SubsidyEntity subsidy = favorite.getSubsidy();
+			LocalDate deadline = subsidy.getDeadline();
+			long dDay = ChronoUnit.DAYS.between(today, deadline);
+			itemsByDeadline.computeIfAbsent(deadline, ignored -> new ArrayList<>())
+				.add(new CalendarDayElement(subsidy.getId(), subsidy.getName(), deadline, dDay));
+		}
+		List<CalendarDay> days = itemsByDeadline.entrySet()
+			.stream()
+			.map(entry -> new CalendarDay(entry.getKey(), List.copyOf(entry.getValue())))
+			.toList();
+		return new CalendarResponse(year, month, days);
 	}
 
 }
