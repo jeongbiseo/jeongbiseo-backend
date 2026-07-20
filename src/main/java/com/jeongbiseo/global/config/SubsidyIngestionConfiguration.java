@@ -54,9 +54,8 @@ public class SubsidyIngestionConfiguration {
 	 * @param coordinator 적재 조정자
 	 * @return 기동 러너
 	 */
-	// 보강 러너보다 먼저 돌아야 하므로 순서를 명시함. 이 값이 없으면 두 러너가 모두 기본 순서(LOWEST_PRECEDENCE)를 가져
-	// 동률이 되고, 실행 순서가 빈 생성 순서 같은 부수 사정에 좌우됨 -- 보강이 수집보다 먼저 돌면 낡은 데이터를 대상으로 삼음
-	// (2026-07-20 CodeRabbit 지적, PR #48).
+	// 보강 러너보다 먼저 돌아야 하므로 순서를 명시함. 이 값이 없으면 두 러너가 기본 순서로 동률이 되어 실행 순서가 보장되지
+	// 않고, 보강이 먼저 돌면 낡은 데이터를 대상으로 삼음.
 	@Bean
 	@Order(0)
 	@ConditionalOnProperty(name = "app.ingestion.enabled", havingValue = "true")
