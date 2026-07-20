@@ -16,10 +16,8 @@ import com.jeongbiseo.domain.member.entity.Member;
  * @param onboardingCompleted 온보딩 완료 여부
  */
 public record MemberProfileResponse(Long memberId,
-		@Schema(description = "표시용 이름. 소셜 프로필에서 받아 저장한 값이며 실명이 아님(구글 name, 카카오 profile.nickname). "
-				+ "소셜이 동의항목을 주지 않으면 null임", nullable = true) String name,
-		@Schema(description = "IdP 제공 이메일. 구글은 프론트가 email 스코프를 요청해 채워지지만, 카카오는 이메일 동의항목이 비즈 앱 전환 대상이라 "
-				+ "null인 경우가 많음. 현재 프론트 화면에서는 쓰지 않음", nullable = true) String email,
+		@Schema(description = "표시용 이름. 소셜 프로필에서 받아 저장한 값이며 실명이 아님(구글 name, 카카오 닉네임)", nullable = true) String name,
+		@Schema(description = "IdP 제공 이메일. 현재 프론트 화면에서는 쓰지 않음", nullable = true) String email,
 		boolean onboardingCompleted) {
 
 	/** 회원 엔티티를 응답으로 변환함. */
