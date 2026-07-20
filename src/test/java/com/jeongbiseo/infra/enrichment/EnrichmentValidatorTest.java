@@ -186,6 +186,35 @@ class EnrichmentValidatorTest {
 		assertThat(result.reason()).isEqualTo(RejectionReason.FIELD_RULE_VIOLATION);
 	}
 
+	/**
+	 * 종신·평생 지급은 총액 개념 자체가 없음(판정원칙 7번). 주기를 모르는데 개월 수를 채우면 없는 총액이 만들어지므로 막음. 판정원칙 3번이 "종신
+	 * 수당을 임의 지급 기간으로 환산"을 LLM 금지 행위로 명시한 것의 기계적 구현임.
+	 *
+	 * <p>
+	 * 스모크 표본에 종신 사례가 없어 이 경로는 실제 모델 응답으로 검증되지 않았음. 프롬프트가 안 먹어도 여기서 막히는지를 단위로 고정해 둠.
+	 * </p>
+	 */
+	@Test
+	void 주기를_모르는데_기간이_채워지면_거부한다() {
+		String body = json("SINGLE", "UNKNOWN", "300000", "null", "12", "null", "월 20만원을 최대 12개월간 지원합니다.", false,
+				"null");
+
+		ValidationResult result = validate(body);
+
+		assertThat(result.accepted()).isFalse();
+		assertThat(result.reason()).isEqualTo(RejectionReason.FIELD_RULE_VIOLATION);
+		assertThat(result.detail()).contains("기간");
+	}
+
+	/** 종신 지급을 기간 없이 답하는 것은 정상이므로 통과해야 함(위 규칙이 과잉 거부로 번지지 않는지 확인). */
+	@Test
+	void 주기를_모르고_기간도_비면_통과한다() {
+		String body = json("SINGLE", "UNKNOWN", "300000", "null", "null", "null", "월 20만원을 최대 12개월간 지원합니다.", false,
+				"null");
+
+		assertThat(validate(body).accepted()).isTrue();
+	}
+
 	@Test
 	void 파싱되지_않는_JSON은_스키마_위반으로_거부한다() {
 		ValidationResult result = validate("{\"amountKind\": \"SINGLE\", 깨진");

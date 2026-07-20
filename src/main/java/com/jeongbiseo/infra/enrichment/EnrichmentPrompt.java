@@ -20,8 +20,14 @@ public final class EnrichmentPrompt {
 	 * 60만원"까지 SINGLE로 만들었고, (나) conditionExpression의 정의를 주지 않아 모델이 "6개월간"(기간), "국비 50%,
 	 * 지방비 30%"(재원 분담)까지 조건으로 넣었음.
 	 * </p>
+	 *
+	 * <p>
+	 * v3(2026-07-20): 종신·평생 지급일 때 durationMonths를 비우라고 명시함. 스모크 표본에 종신 사례가 없어(뽑을 때 "평생"으로
+	 * 검색했는데 실제로는 평생교육강좌였음) <b>이 경로는 실측으로 검증되지 않았음.</b> 프롬프트가 안 먹어도 검증기가 같은 규칙으로 막으므로 위험은
+	 * 없으나, 종신 사례를 구하면 다시 측정할 것.
+	 * </p>
 	 */
-	public static final String VERSION = "amount-v2";
+	public static final String VERSION = "amount-v3";
 
 	/** response_format에 실리는 스키마 이름임. */
 	public static final String SCHEMA_NAME = "amount_enrichment";
@@ -74,7 +80,9 @@ public final class EnrichmentPrompt {
 				- LUMP_SUM: 한 번에 지급.
 				- ANNUAL: 매년 지급. "연간 35만원"처럼 연 단위로 적혔으면 LUMP_SUM이 아니라 ANNUAL이다.
 				- PER_UNIT: 단위마다 지급(자녀 1명당 등).
-				- UNKNOWN: 주기를 알 수 없거나 종신·평생 지급이다. 종신은 총액 개념이 없으므로 임의 기간으로 환산하지 않는다.
+				- UNKNOWN: 주기를 알 수 없거나 종신·평생 지급이다.
+				  **이때 durationMonths는 반드시 null이다.** 종신 지급은 총액 개념 자체가 없어서 개월 수를 붙이면
+				  없는 총액이 만들어진다. 원문에 기간이 안 적혔는데 짐작해서 채우지 않는다.
 
 				금액은 원 단위 정수로 적는다. "20만원"은 200000, "1억원"은 100000000이다.""";
 	}

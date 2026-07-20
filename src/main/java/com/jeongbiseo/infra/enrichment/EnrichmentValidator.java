@@ -125,6 +125,12 @@ public class EnrichmentValidator {
 		if (value.durationMonths() != null && value.durationMonths() <= 0) {
 			return ValidationResult.reject(RejectionReason.FIELD_RULE_VIOLATION, "지급 개월 수가 0 이하임");
 		}
+		// 주기를 모르는데 기간이 채워지면 종신·평생 지급을 임의 개월 수로 환산한 것임. 참전유공자수당 같은 종신 지급은 총액 개념 자체가
+		// 없어(판정원칙 7번) 기간을 붙이는 순간 없는 총액이 만들어짐. 판정원칙 3번이 "종신 수당을 임의 지급 기간으로 환산"을
+		// LLM 금지 행위로 명시하므로 검증기가 막음.
+		if (value.paymentPeriod() == PaymentPeriod.UNKNOWN && value.durationMonths() != null) {
+			return ValidationResult.reject(RejectionReason.FIELD_RULE_VIOLATION, "지급 주기를 모르는데 기간이 채워짐");
+		}
 		return null;
 	}
 

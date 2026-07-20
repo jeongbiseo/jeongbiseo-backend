@@ -182,6 +182,38 @@ class EnrichmentBatchTest {
 		assertThat(EnrichmentBatch.hasAmountMention(null)).isFalse();
 	}
 
+	/**
+	 * 기업·사업자 대상 지원사업은 추천과 총액 양쪽에서 제외되므로 보강할 이유가 없음. 조회 조건이 조용히 바뀌면 기업 공고에 AI 해석이 붙어 화면에
+	 * 나가므로 인자를 고정함.
+	 */
+	@Test
+	void 기업_대상은_조회에서_제외한다() {
+		givenCandidates();
+
+		batchWithMaxCalls(10).run();
+
+		verify(this.targetRepository).findEnrichmentCandidates(Mockito.eq(TargetAudience.BUSINESS), any());
+	}
+
+	/**
+	 * 검증에 걸린 건은 저장되지 않으므로 다음 회차에 다시 대상이 됨. 그때 또 부르지 않으려면 건너뛰기 판정이 저장 여부가 아니라 호출 이력에 근거해야
+	 * 하는데, 현재 구현은 저장된 행으로만 판단함. <b>즉 거부된 건은 매 회차 재호출됨</b> — 알려진 한계이며 호출 상한이 폭주를 막음.
+	 */
+	@Test
+	void 거부된_건은_저장되지_않아_다음_회차에_다시_대상이_된다() {
+		givenCandidates(subsidy(1L, BODY));
+		when(this.nimClient.completeAsJson(anyString(), anyString(), anyString(), any())).thenReturn("""
+				{"amountKind":"SINGLE","paymentPeriod":"LUMP_SUM","amountValue":500000,"monthlyAmount":null,\
+				"durationMonths":null,"conditionExpression":null,"evidence":"원문에 없는 문장",\
+				"abstained":false,"abstainReason":null}""");
+
+		EnrichmentBatchResult result = batchWithMaxCalls(10).run();
+
+		verify(this.enrichmentRepository, never()).save(any(AiEnrichment.class));
+		assertThat(result.calls()).isEqualTo(1);
+		assertThat(result.saved()).isZero();
+	}
+
 	@Test
 	void 대상이_없으면_아무것도_하지_않는다() {
 		givenCandidates();
