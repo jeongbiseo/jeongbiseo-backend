@@ -10,19 +10,24 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jeongbiseo.domain.common.enums.SubsidyCategory;
+import com.jeongbiseo.domain.favorite.dto.FavoriteResponse;
+import com.jeongbiseo.domain.favorite.service.FavoriteService;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyPageResponse;
 import com.jeongbiseo.domain.subsidy.service.SubsidyService;
 import com.jeongbiseo.global.apiPayload.CustomResponse;
 import com.jeongbiseo.global.apiPayload.code.ValidationErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
+import com.jeongbiseo.global.security.FixedMemberResolver;
 
 /**
  * 지원금 검색·상세 조회를 다룸(API명세서 13번 searchSubsidies, 15번 getSubsidyDetail). 두 엔드포인트 모두 현재
@@ -41,8 +46,15 @@ public class SubsidyController {
 
 	private final SubsidyService subsidyService;
 
-	public SubsidyController(SubsidyService subsidyService) {
+	private final FavoriteService favoriteService;
+
+	private final FixedMemberResolver memberResolver;
+
+	public SubsidyController(SubsidyService subsidyService, FavoriteService favoriteService,
+			FixedMemberResolver memberResolver) {
 		this.subsidyService = subsidyService;
+		this.favoriteService = favoriteService;
+		this.memberResolver = memberResolver;
 	}
 
 	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
@@ -84,6 +96,43 @@ public class SubsidyController {
 	@GetMapping("/{subsidyId}")
 	public CustomResponse<SubsidyDetailResponse> getSubsidyDetail(@PathVariable Long subsidyId) {
 		return CustomResponse.ok(subsidyService.getDetail(subsidyId));
+	}
+
+	@Operation(summary = "관심 등록", description = "지원금을 현재 회원의 관심 목록에 등록함. 등록 결과는 캘린더에 바로 반영됨.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "관심 등록 성공", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", description = "경로 변수 타입 불일치(VALID400_0)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
+							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"))),
+			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
+							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
+			@ApiResponse(responseCode = "404", description = "지원금 미존재(SUBSIDY404_1)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "SUBSIDY404_1",
+							value = "{\"isSuccess\":false,\"code\":\"SUBSIDY404_1\",\"message\":\"해당 지원금 정보를 찾을 수 없어요\",\"result\":null}"))),
+			@ApiResponse(responseCode = "409", description = "이미 관심 등록됨(FAVORITE409_1)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "FAVORITE409_1",
+							value = "{\"isSuccess\":false,\"code\":\"FAVORITE409_1\",\"message\":\"이미 관심 등록한 지원금이에요\",\"result\":null}"))) })
+	@PostMapping("/{subsidyId}/favorite")
+	public CustomResponse<FavoriteResponse> addFavorite(@PathVariable Long subsidyId) {
+		favoriteService.add(memberResolver.resolveMemberId(), subsidyId);
+		return CustomResponse.ok(new FavoriteResponse(subsidyId, true));
+	}
+
+	@Operation(summary = "관심 해제", description = "지원금을 현재 회원의 관심 목록에서 해제함. 해제 결과는 캘린더에 바로 반영됨.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "관심 해제 성공", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", description = "경로 변수 타입 불일치(VALID400_0)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
+							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"))),
+			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
+							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
+			@ApiResponse(responseCode = "404", description = "관심 등록되지 않음(FAVORITE404_1)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "FAVORITE404_1",
+							value = "{\"isSuccess\":false,\"code\":\"FAVORITE404_1\",\"message\":\"관심 등록되지 않은 지원금이에요\",\"result\":null}"))) })
+	@DeleteMapping("/{subsidyId}/favorite")
+	public CustomResponse<FavoriteResponse> removeFavorite(@PathVariable Long subsidyId) {
+		favoriteService.remove(memberResolver.resolveMemberId(), subsidyId);
+		return CustomResponse.ok(new FavoriteResponse(subsidyId, false));
 	}
 
 }
