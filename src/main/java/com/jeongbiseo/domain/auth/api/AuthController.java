@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -59,6 +60,8 @@ public class AuthController {
 					description = "소셜 로그인 실패(AUTH401_1). 만료·위조 code, IdP 토큰 교환 실패, 자동가입 경합 패배 후 재조회 실패를 사유 비노출로 통합함",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "AUTH401_1",
 							value = "{\"isSuccess\":false,\"code\":\"AUTH401_1\",\"message\":\"소셜 로그인에 실패했어요, 다시 시도해주세요\",\"result\":null}"))) })
+	// 토큰을 발급받기 전에 부르는 경로라 글로벌 Bearer 요구를 해제함(문서에 자물쇠가 붙으면 계약을 오독하게 됨).
+	@SecurityRequirements
 	@PostMapping("/{provider}")
 	public CustomResponse<SocialCallbackResponse> login(@PathVariable("provider") String provider,
 			@Valid @RequestBody SocialLoginRequest request, HttpServletResponse response) {
@@ -84,6 +87,8 @@ public class AuthController {
 							+ "재사용과 경합 패배는 회전 실패로 같은 401이 되며 이긴 토큰은 유효하게 유지됨(설계 D9 단순 거부)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "AUTH401_2",
 							value = "{\"isSuccess\":false,\"code\":\"AUTH401_2\",\"message\":\"다시 로그인해주세요\",\"result\":null}"))) })
+	// 리프레시 토큰 쿠키 자체가 자격 증명이라 Authorization 헤더를 쓰지 않음.
+	@SecurityRequirements
 	@PostMapping("/reissue")
 	public CustomResponse<ReissueResponse> reissue(
 			@CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse response) {

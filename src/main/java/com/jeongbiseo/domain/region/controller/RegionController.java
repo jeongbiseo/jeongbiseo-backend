@@ -5,6 +5,7 @@ import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +31,8 @@ public class RegionController {
 	// 없고(RegionCatalog가 미등록 조합은 빈 목록으로 처리), 코드가 실제로 던지는 예외가 없어 에러 응답이 없음.
 	@Operation(summary = "거주지 목록 조회", description = "sido 미지정 시 시 또는 도 목록, 지정 시 해당 시군구 목록을 반환함.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "거주지 목록 조회 성공", useReturnTypeSchema = true) })
+	// 온보딩 전 비로그인 화면이 지역 목록을 먼저 부르므로 글로벌 Bearer 요구를 해제함.
+	@SecurityRequirements
 	@GetMapping
 	public CustomResponse<RegionListResponse> getRegions(@RequestParam(required = false) String sido) {
 		RegionListResponse result = (sido == null) ? sidoListResponse() : sigunguListResponse(sido);
