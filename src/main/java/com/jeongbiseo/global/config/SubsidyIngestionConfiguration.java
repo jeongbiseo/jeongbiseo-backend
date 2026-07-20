@@ -7,10 +7,13 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import com.jeongbiseo.domain.subsidy.ingestion.SubsidyIngestionCoordinator;
+import com.jeongbiseo.infra.enrichment.EnrichmentBatch;
 
 /**
  * 지원금 운영 적재의 기동 트리거를 구성함. 시간 기준은 {@link ClockConfig}의 Asia/Seoul Clock 빈을 그대로 공유함(수집·추천
@@ -51,10 +54,37 @@ public class SubsidyIngestionConfiguration {
 	 * @param coordinator 적재 조정자
 	 * @return 기동 러너
 	 */
+	// 보강 러너보다 먼저 돌아야 하므로 순서를 명시함. 이 값이 없으면 두 러너가 기본 순서로 동률이 되어 실행 순서가 보장되지
+	// 않고, 보강이 먼저 돌면 낡은 데이터를 대상으로 삼음.
 	@Bean
+	@Order(0)
 	@ConditionalOnProperty(name = "app.ingestion.enabled", havingValue = "true")
 	public ApplicationRunner subsidyIngestionRunner(SubsidyIngestionCoordinator coordinator) {
 		return arguments -> coordinator.ingestAll();
+	}
+
+	/**
+	 * LLM 금액 보강 배치의 기동 트리거임. 수집 러너보다 뒤에 돌도록 순서를 낮게(숫자를 크게) 둠 — 보강은 원천 수집이 끝난 데이터를 대상으로 하기
+	 * 때문임(배치 설계 3장 "수집 성공 뒤 이어지는 후속 작업"). <b>수집 러너 쪽에도 {@code @Order(0)}이 명시돼 있어야 이 순서가
+	 * 성립함</b> — 양쪽 다 순서를 안 주면 동률이 되어 실행 순서가 부수 사정에 좌우됨.
+	 *
+	 * <p>
+	 * <b>{@code app.llm.enrichment.enabled}가 true가 아니면 이 빈 자체가 만들어지지 않음.</b> 플래그를 코드 안에서
+	 * 검사하지 않고 빈 조건으로 둔 것은, 꺼진 상태에서 NIM 호출 경로가 아예 존재하지 않게 하려는 것임. 배포 첫 회차는 false로 넣음.
+	 * </p>
+	 *
+	 * <p>
+	 * 보강 실패는 위로 던지지 않음({@code EnrichmentBatch.run}이 예외 대신 요약을 반환함). 보강이 앱 기동을 막거나 원천 스냅샷
+	 * 게시를 되돌리면 안 되기 때문임(판정원칙 5번).
+	 * </p>
+	 * @param batch 보강 배치
+	 * @return 기동 러너
+	 */
+	@Bean
+	@Order(Ordered.LOWEST_PRECEDENCE)
+	@ConditionalOnProperty(name = "app.llm.enrichment.enabled", havingValue = "true")
+	public ApplicationRunner enrichmentBatchRunner(EnrichmentBatch batch) {
+		return arguments -> batch.run();
 	}
 
 }

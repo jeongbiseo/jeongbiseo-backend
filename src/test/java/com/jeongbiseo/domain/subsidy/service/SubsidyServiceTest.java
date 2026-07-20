@@ -16,6 +16,8 @@ import com.jeongbiseo.domain.common.enums.TargetAudience;
 import com.jeongbiseo.domain.common.enums.OccupationRestriction;
 import com.jeongbiseo.domain.common.enums.RegionScope;
 import com.jeongbiseo.domain.favorite.service.FavoriteService;
+import com.jeongbiseo.domain.subsidy.AiExplanationReader;
+import com.jeongbiseo.domain.subsidy.dto.AiExplanation;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
 import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 import com.jeongbiseo.domain.subsidy.repository.SubsidyRepository;
@@ -42,6 +44,11 @@ class SubsidyServiceTest {
 	@Mock
 	private FavoriteService favoriteService;
 
+	// 포트 목임. 구현(infra.enrichment)을 끌어오지 않아도 되므로 이 테스트는 LLM 쪽을 전혀 모름 -- 포트를 둔 이유가
+	// 그대로 드러나는 지점임.
+	@Mock
+	private AiExplanationReader aiExplanationReader;
+
 	private final Clock clock = Clock.fixed(AS_OF.atStartOfDay(ZoneId.of("Asia/Seoul")).toInstant(),
 			ZoneId.of("Asia/Seoul"));
 
@@ -49,7 +56,7 @@ class SubsidyServiceTest {
 
 	@org.junit.jupiter.api.BeforeEach
 	void setUp() {
-		subsidyService = new SubsidyService(subsidyRepository, favoriteService, clock);
+		subsidyService = new SubsidyService(subsidyRepository, favoriteService, aiExplanationReader, clock);
 	}
 
 	@Test
@@ -116,6 +123,42 @@ class SubsidyServiceTest {
 		SubsidyDetailResponse response = subsidyService.getDetail(1L, 7L);
 
 		assertThat(response.isFavorite()).isTrue();
+	}
+
+	/**
+	 * 검증을 통과해 저장된 해석이 있으면 상세에 실림(등급 1). 값과 함께 근거 문장이 오는 것이 핵심임 — 조건 오분류 같은 의미 오류는 검증기가 못
+	 * 잡으므로 사용자가 원문과 대조할 수 있어야 함.
+	 */
+	@Test
+	void getDetail_저장된_AI해석이_있으면_상세에_싣는다() {
+		SubsidyEntity entity = base().description("월 20만원을 최대 12개월간 지원합니다.").deadline(AS_OF.plusDays(1)).build();
+		given(subsidyRepository.findById(1L)).willReturn(java.util.Optional.of(entity));
+		given(aiExplanationReader.findFor(1L, "월 20만원을 최대 12개월간 지원합니다."))
+			.willReturn(java.util.Optional.of(new AiExplanation(null, 200000L, 12, null, "월 20만원을 최대 12개월간 지원합니다.")));
+
+		SubsidyDetailResponse response = subsidyService.getDetail(1L, null);
+
+		assertThat(response.aiExplanation()).isNotNull();
+		assertThat(response.aiExplanation().monthlyAmount()).isEqualTo(200000L);
+		assertThat(response.aiExplanation().durationMonths()).isEqualTo(12);
+		assertThat(response.aiExplanation().evidence()).isEqualTo("월 20만원을 최대 12개월간 지원합니다.");
+	}
+
+	/**
+	 * 보강 결과가 없는 것이 정상 상태임(검증 통과분에만 실림). 이때 나머지 응답이 멀쩡해야 함 — 보강이 없다고 원래 보이던 정보까지 감추면 정보
+	 * 격차가 오히려 커짐(판정원칙 5번).
+	 */
+	@Test
+	void getDetail_AI해석이_없으면_null이고_나머지는_그대로다() {
+		SubsidyEntity entity = base().description("설명").deadline(AS_OF.plusDays(10)).build();
+		given(subsidyRepository.findById(1L)).willReturn(java.util.Optional.of(entity));
+		given(aiExplanationReader.findFor(1L, "설명")).willReturn(java.util.Optional.empty());
+
+		SubsidyDetailResponse response = subsidyService.getDetail(1L, null);
+
+		assertThat(response.aiExplanation()).isNull();
+		assertThat(response.name()).isEqualTo("청년월세지원");
+		assertThat(response.dDay()).isEqualTo(10);
 	}
 
 	private static SubsidyEntity.SubsidyEntityBuilder base() {
