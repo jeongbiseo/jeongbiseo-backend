@@ -12,12 +12,12 @@
 
 ## 2. 컨트롤러 경로 매핑
 
-각 컨트롤러 클래스에 `@RequestMapping("/api/v1/...")`을 두고, 메소드 매핑(`@GetMapping` 등)은 상대 경로만 씀. 엔드포인트 19개는 아래 8개 컨트롤러로 나뉨(operationId 정본은 API명세서). 명세서 한눈에 보기 표의 번호는 20까지 가지만 **3번은 결번**임 — 실명 수집 확정(명세서 v1.4)으로 checkNickname이 제거되고 이후 번호를 보존하려 결번 처리함.
+각 컨트롤러 클래스에 `@RequestMapping("/api/v1/...")`을 두고, 메소드 매핑(`@GetMapping` 등)은 상대 경로만 씀. 엔드포인트는 계약 기준 19개이며 아래 8개 컨트롤러로 나뉨(operationId 정본은 API명세서). 명세서 한눈에 보기 표의 번호는 21까지 가지만 **결번이 2개**임 — 3번은 실명 수집 확정(명세서 v1.4)으로 checkNickname이, 2번은 방식 B 전환(명세서 v1.11)으로 socialCallback이 폐기되고 이후 번호를 보존하려 결번 처리함. 21번 getMe(`GET /api/v1/members/me`)는 2026-07-19 신설됨(명세서 v1.12).
 
 | 컨트롤러 | 클래스 레벨 매핑 | 담당 operationId |
 |---|---|---|
-| AuthController | `/api/v1/auth` | socialAuthorize, socialCallback, logOut, refreshToken |
-| MemberController | `/api/v1/members` | getMyOnboarding, updateMyOnboarding, deleteMember |
+| AuthController | `/api/v1/auth` | login, reissue, logOut |
+| MemberController | `/api/v1/members` | getMe, getMyOnboarding, updateMyOnboarding, deleteMember |
 | OnboardingController | `/api/v1/onboarding` | submitOnboarding, setReceivedSubsidies |
 | RegionController | `/api/v1/regions` | getRegions |
 | SubsidyController | `/api/v1/subsidies` | getSubsidyCategories, searchSubsidies, getSubsidyDetail, addFavorite, removeFavorite |
@@ -33,14 +33,23 @@
 @RequiredArgsConstructor
 public class AuthController {
 
-    // GET /api/v1/auth/{provider}  (operationId: socialAuthorize)
-    @GetMapping("/{provider}")
-    public void socialAuthorize(@PathVariable String provider, HttpServletResponse response) { ... }
+    // POST /api/v1/auth/{provider}  (operationId: login)
+    // 프론트 콜백 페이지가 code·codeVerifier·redirectUri를 바디로 전달함(셋 다 @NotBlank).
+    // 200 result는 accessToken·isNewMember·onboardingCompleted이고, 리프레시 토큰은 Set-Cookie로 나감.
+    @PostMapping("/{provider}")
+    public CustomResponse<SocialCallbackResponse> login(@PathVariable("provider") String provider,
+            @Valid @RequestBody SocialLoginRequest request, HttpServletResponse response) { ... }
 
-    // GET /api/v1/auth/{provider}/callback  (operationId: socialCallback)
-    // IdP는 브라우저를 프론트 콜백 페이지로 되돌리고, 프론트가 code·state를 이 API로 전달함
-    @GetMapping("/{provider}/callback")
-    public CustomResponse<SocialCallbackResDTO> socialCallback(@PathVariable String provider, @RequestParam String code, @RequestParam String state) { ... }
+    // POST /api/v1/auth/reissue  (operationId: reissue)
+    // 바디 없음. 리프레시 토큰은 쿠키로만 받음. 200 result는 accessToken이고 새 리프레시 쿠키로 회전함.
+    @PostMapping("/reissue")
+    public CustomResponse<ReissueResponse> reissue(
+            @CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse response) { ... }
+
+    // POST /api/v1/auth/logout  (operationId: logOut)
+    // 200 result는 문자열이고 리프레시 쿠키를 Max-Age 0으로 삭제함.
+    @PostMapping("/logout")
+    public CustomResponse<String> logOut(HttpServletResponse response) { ... }
 }
 
 @RestController
@@ -70,8 +79,13 @@ public class MemberController {
   - `GET /api/v1/subsidies/{subsidyId}`(getSubsidyDetail): 선택 인증(로그인 시 isFavorite 반영, 비로그인 시 false). 시큐리티는 permitAll로 두고 서비스가 토큰이 있으면 읽음.
   - `POST`·`DELETE /api/v1/subsidies/{subsidyId}/favorite`(addFavorite, removeFavorite): 둘 다 인증 필요.
   - 따라서 `/api/v1/subsidies/**`에 blanket permitAll을 걸면 안 됨. `requestMatchers(HttpMethod.GET, "/api/v1/subsidies/categories").permitAll()`처럼 메소드와 경로를 좁혀 지정함.
-- 인증 불필요 엔드포인트: socialAuthorize, socialCallback, getRegions, getSubsidyCategories, refreshToken(리프레시 토큰 자체가 자격 증명이라 Authorization 헤더 불필요). 그 외는 Bearer 토큰 필요이며 getSubsidyDetail만 선택 인증임.
-- socialCallback 흐름(명세서 v1.5 확정, 프론트 전달본과 동일): IdP에 등록하는 `redirect_uri`는 **백엔드가 아니라 프론트 콜백 페이지**임. IdP가 브라우저를 프론트로 되돌리면 프론트가 쿼리의 `code`·`state`를 그대로 socialCallback에 전달하고, 백엔드는 서명 state를 무상태 검증한 뒤 JWT를 JSON으로 반환함. 따라서 socialCallback은 프론트에서 호출되므로 인증 불필요이되 CORS 허용 대상임.
+- **auth 도메인 3종의 인증 요구**(계약 기준):
+  - `POST /api/v1/auth/{provider}`(login): 인증 불필요. 아직 토큰이 없는 상태에서 부르는 발급 엔드포인트임. `{provider}`가 KAKAO·GOOGLE 밖이면 400 `VALID400_0`이고, code 누락이나 IdP 토큰 교환 실패는 사유를 노출하지 않고 401 `AUTH401_1`로 통합함.
+  - `POST /api/v1/auth/reissue`(reissue): Authorization 헤더 불필요. 리프레시 토큰 쿠키 자체가 자격 증명임. 쿠키가 없거나 무효·만료·재사용이면 401 `AUTH401_2`임.
+  - `POST /api/v1/auth/logout`(logOut): 인증 필요(Bearer).
+- 그 밖에 인증 불필요인 것은 getRegions, getSubsidyCategories임. 나머지는 Bearer 토큰 필요이며 getSubsidyDetail만 선택 인증임. **getMe(`GET /api/v1/members/me`)도 Bearer 필요**이고, 온보딩 전 회원도 200으로 반환함(`Member.onboardingCompleted` 플래그를 그대로 실음).
+- **현재 `SecurityConfig`는 `anyRequest().permitAll()` 전면 허용임(배포 N)**. 위 인증 요구는 아직 시큐리티로 강제되지 않는 계약상의 값이며, JWT 필터 enforcement와 경로별 좁힘은 배포 N+1 별건임. 그전까지는 고정 회원 주입으로 개발함. 따라서 소스만 보고 "인증이 없다"고 계약을 고쳐 쓰지 말 것 — 반대로 enforcement를 붙일 때 본 절이 그 목표 상태임.
+- 소셜 로그인 흐름(방식 B): 인가 URL 생성과 PKCE `code_verifier`·`state` 소유는 **프론트**임. 백엔드에는 인가 URL을 만들어 주는 엔드포인트가 없고, IdP에 등록하는 `redirect_uri`도 **백엔드가 아니라 프론트 콜백 페이지**라 백엔드 env로 두지 않음. IdP가 브라우저를 프론트 콜백으로 되돌리면 프론트가 `code`와 자신이 보관한 `codeVerifier`, 인가 때 쓴 `redirectUri`를 `POST /api/v1/auth/{provider}` 바디로 보내고, 백엔드가 IdP와 토큰을 교환해 액세스 토큰은 JSON으로, 리프레시 토큰은 쿠키로 반환함. login은 프론트에서 호출되므로 CORS 허용 대상임.
 
 ## 4. 버전 증가 기준
 

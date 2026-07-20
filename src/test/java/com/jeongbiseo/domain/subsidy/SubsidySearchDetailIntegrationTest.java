@@ -114,7 +114,7 @@ class SubsidySearchDetailIntegrationTest {
 	void getDetail_존재하면_상세를_반환한다() {
 		SubsidyEntity saved = subsidyRepository.save(base("d1").deadline(AS_OF.plusDays(5)).build());
 
-		SubsidyDetailResponse response = subsidyService.getDetail(saved.getId());
+		SubsidyDetailResponse response = subsidyService.getDetail(saved.getId(), null);
 
 		assertThat(response.subsidyId()).isEqualTo(saved.getId());
 		assertThat(response.isFavorite()).isFalse();
@@ -122,7 +122,7 @@ class SubsidySearchDetailIntegrationTest {
 
 	@Test
 	void getDetail_없는id면_SUBSIDY404_1을_던진다() {
-		assertThatThrownBy(() -> subsidyService.getDetail(999_999L)).isInstanceOf(CustomException.class)
+		assertThatThrownBy(() -> subsidyService.getDetail(999_999L, null)).isInstanceOf(CustomException.class)
 			.satisfies(e -> assertThat(((CustomException) e).getErrorCode())
 				.isEqualTo(SubsidyErrorCode.SUBSIDY_NOT_FOUND));
 	}
