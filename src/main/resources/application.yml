@@ -27,6 +27,10 @@ app:
   llm:
     enrichment:
       enabled: ${LLM_ENRICHMENT_ENABLED:false}
+      # 한 회차 호출 상한임. 무제한이면 계정 한도(분당 40회) 아래에서 몇 시간씩 붙잡히고 실패가 반복될 때 빠져나오지 못함.
+      max-calls: ${LLM_MAX_CALLS:200}
+      # 호출 간격(밀리초). 분당 40회 한도에 여유를 둬 분당 30회 이하로 잡음.
+      interval-millis: ${LLM_INTERVAL_MILLIS:2100}
     nim:
       api-key: ${NVIDIA_API_KEY:}
       model-id: ${NIM_MODEL_ID:meta/llama-3.1-70b-instruct}
