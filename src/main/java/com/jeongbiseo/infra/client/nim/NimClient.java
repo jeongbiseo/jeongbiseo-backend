@@ -39,7 +39,8 @@ public class NimClient {
 
 	private static final Duration READ_TIMEOUT = Duration.ofSeconds(120);
 
-	// 계정 단위 rate limit이 분당 40회로 알려져 있으나 공식 확인이 안 된 값이라(가이드 3장) 보수적으로 잡음. 429를 만나면
+	// 계정 단위 rate limit은 분당 40회임(2026-07-20 NVIDIA 계정 화면 실측으로 확정). 이것이 유일한 실질 제약이며
+	// 무료 크레딧 제도는 존재하지 않음 — 호출 횟수 자체를 아끼려 배치를 줄일 이유는 없고 간격만 지키면 됨. 429를 만나면
 	// 2초·4초·8초로 물러섬. 병렬 호출은 두지 않음 — 계정 단위 한도라 스레드를 늘려도 총량은 같고 429만 늘어남.
 	private static final int MAX_RETRIES = 3;
 
@@ -107,7 +108,8 @@ public class NimClient {
 				log.warn("NIM 429 수신, 재시도함: attempt={}/{}", attempt + 1, MAX_RETRIES + 1);
 			}
 			catch (HttpClientErrorException.Unauthorized exception) {
-				// 401은 키·권한 문제라 재시도해도 같은 결과임. 즉시 중단해 크레딧과 시간을 낭비하지 않음(배치 설계 7장).
+				// 401은 키·권한 문제라 재시도해도 같은 결과임. 즉시 중단해 rate limit 예산과 시간을 낭비하지 않음(배치 설계
+				// 7장).
 				throw new IllegalStateException("NIM 인증 실패(키 또는 권한 확인 필요)");
 			}
 			catch (RestClientException exception) {

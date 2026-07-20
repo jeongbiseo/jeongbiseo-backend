@@ -11,8 +11,17 @@ import java.util.Map;
  */
 public final class EnrichmentPrompt {
 
-	/** 프롬프트·스키마 변경 시 반드시 올릴 것. 저장 레코드의 버전 필드에 그대로 들어감. */
-	public static final String VERSION = "amount-v1";
+	/**
+	 * 프롬프트·스키마 변경 시 반드시 올릴 것. 저장 레코드의 버전 필드에 그대로 들어감.
+	 *
+	 * <p>
+	 * v2(2026-07-20): 스모크 20건 1회차 결과로 고침. 거부 20건 중 11건이 <b>전부</b> "조건부가 아닌데 조건 표현이 채워짐" 한
+	 * 사유였고, 원인은 모델 능력이 아니라 v1 프롬프트의 두 결함이었음 — (가) "금액이 하나면 SINGLE"이라는 과잉 일반화가 "1인당 월
+	 * 60만원"까지 SINGLE로 만들었고, (나) conditionExpression의 정의를 주지 않아 모델이 "6개월간"(기간), "국비 50%,
+	 * 지방비 30%"(재원 분담)까지 조건으로 넣었음.
+	 * </p>
+	 */
+	public static final String VERSION = "amount-v2";
 
 	/** response_format에 실리는 스키마 이름임. */
 	public static final String SCHEMA_NAME = "amount_enrichment";
@@ -46,16 +55,26 @@ public final class EnrichmentPrompt {
 
 				amountKind 판정 기준:
 				- NONE: 금액 표현이 아예 없다.
-				- SINGLE: 금액이 하나이고 조건 표현이 붙어 있지 않다. "월 20만원을 12개월간"처럼 한 금액이 기간과 함께 적힌 것도 SINGLE이다. 금액이 하나이기 때문이다.
-				- MULTIPLE: 금액이 둘 이상 나열됐으나 조건 표현이 없다.
-				- CONDITIONAL: "자녀 1명당", "ha 당", "소득 기준별"처럼 조건에 따라 금액이 달라진다. 단순 합산이 위험한 경우다.
+				- SINGLE: 금액이 하나이고 단위당·조건별 표현이 붙어 있지 않다. 기간만 함께 적힌 것("월 20만원을 12개월간")은 SINGLE이다. 기간은 조건이 아니다.
+				- MULTIPLE: 금액이 둘 이상 나열됐으나 단위당·조건별 표현이 없다.
+				- CONDITIONAL: 받는 사람이나 단위에 따라 금액이 달라진다.
+				  **"1인당", "가구당", "1명당", "개소당", "ha당" 같은 단위당 표현이 붙으면
+				  금액이 하나여도 반드시 CONDITIONAL이다.** 단위가 몇인지 모르면 총액이 정해지지 않기 때문이다.
+				  "소득 기준별", "등급별", "최대 N명"도 CONDITIONAL이다.
+
+				conditionExpression 규칙:
+				- amountKind가 CONDITIONAL일 때만 채운다. **CONDITIONAL이 아니면 반드시 null이다.**
+				- 금액을 달라지게 하는 조건만 적는다. 아래는 조건이 아니므로 절대 넣지 않는다.
+				  - 지급 기간("6개월간", "12개월") — 이건 durationMonths에 넣는다
+				  - 재원 분담 비율("국비 50%, 지방비 30%, 자부담 20%")
+				  - 지급 방법, 사용처, 신청 자격
 
 				paymentPeriod 판정 기준:
 				- MONTHLY: 매월 지급. 이때만 monthlyAmount를 채우고, 지급 개월 수를 알면 durationMonths에 넣는다.
 				- LUMP_SUM: 한 번에 지급.
-				- ANNUAL: 매년 지급.
+				- ANNUAL: 매년 지급. "연간 35만원"처럼 연 단위로 적혔으면 LUMP_SUM이 아니라 ANNUAL이다.
 				- PER_UNIT: 단위마다 지급(자녀 1명당 등).
-				- UNKNOWN: 주기를 알 수 없거나 종신 지급이다. 종신은 총액 개념이 없으므로 임의 기간으로 환산하지 않는다.
+				- UNKNOWN: 주기를 알 수 없거나 종신·평생 지급이다. 종신은 총액 개념이 없으므로 임의 기간으로 환산하지 않는다.
 
 				금액은 원 단위 정수로 적는다. "20만원"은 200000, "1억원"은 100000000이다.""";
 	}
