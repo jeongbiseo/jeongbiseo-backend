@@ -132,17 +132,16 @@ public class EstimatedAmountController {
 	}
 
 	private static CashItem toCashItem(IncludedItem item) {
-		return new CashItem(item.subsidyId(), item.name(), item.amountMin(), item.amountMax(), PaymentType.CASH.name(),
-				true);
+		return new CashItem(item.subsidyId(), item.name(), item.amountMin(), item.amountMax(), PaymentType.CASH, true);
 	}
 
 	private static MonthlyItem toMonthlyItem(IncludedItem item) {
-		return new MonthlyItem(item.subsidyId(), item.name(), item.amountMin(), item.amountMax(),
-				PaymentType.MONTHLY.name());
+		return new MonthlyItem(item.subsidyId(), item.name(), item.amountMin(), item.amountMax(), PaymentType.MONTHLY);
 	}
 
 	private static SeparateBenefit toSeparateBenefit(SeparateItem item) {
-		String paymentType = item.paymentType() == null ? PaymentType.UNKNOWN.name() : item.paymentType().name();
+		// null 대체는 유지함. 지급유형 미상 항목도 응답에서는 UNKNOWN으로 나가는 것이 계약임(null 아님).
+		PaymentType paymentType = item.paymentType() == null ? PaymentType.UNKNOWN : item.paymentType();
 		return new SeparateBenefit(item.subsidyId(), item.name(), paymentType, item.note());
 	}
 

@@ -96,6 +96,41 @@ class OnboardingControllerTest {
 			.andExpect(jsonPath("$.code").value("VALID400_1"));
 	}
 
+	// 아래 3건은 본문 역직렬화 실패(HttpMessageNotReadableException) 경로를 고정함. 이 경로는 `@Valid`에 도달하지 못해
+	// 예전에는 COMMON500으로 나갔고, 프론트가 enum 매핑을 틀렸을 때 원인을 못 찾던 지점임.
+	@Test
+	void submitOnboarding_소득구간이_계약밖_문자열이면_400_VALID400_1과_허용값을_반환한다() throws Exception {
+		String body = """
+				{"name":"홍길동","birthDate":"1999-03-15","sido":"서울특별시","sigungu":"강남구",\
+				"employmentStatus":"EMPLOYED","incomeBracket":"200~300만원"}""";
+
+		mockMvc.perform(post("/api/v1/onboarding").contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.isSuccess").value(false))
+			.andExpect(jsonPath("$.code").value("VALID400_1"))
+			.andExpect(jsonPath("$.result.incomeBracket").value(org.hamcrest.Matchers.containsString("UNDER_200")));
+	}
+
+	@Test
+	void submitOnboarding_생년월일_형식이_깨졌으면_400_VALID400_1과_필드명을_반환한다() throws Exception {
+		String body = """
+				{"name":"홍길동","birthDate":"1999-13-45","sido":"서울특별시","sigungu":"강남구",\
+				"employmentStatus":"EMPLOYED"}""";
+
+		mockMvc.perform(post("/api/v1/onboarding").contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALID400_1"))
+			.andExpect(jsonPath("$.result.birthDate").exists());
+	}
+
+	@Test
+	void submitOnboarding_JSON_문법이_깨졌으면_400_VALID400_1을_반환한다() throws Exception {
+		mockMvc.perform(post("/api/v1/onboarding").contentType(MediaType.APPLICATION_JSON).content("{\"name\":"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALID400_1"))
+			.andExpect(jsonPath("$.result.body").exists());
+	}
+
 	@Test
 	void setReceivedSubsidies_유효요청이면_200과_교체된목록을_반환한다() throws Exception {
 		given(receivedSubsidyService.replaceAll(anyLong(), any())).willReturn(List.of(1L, 2L));

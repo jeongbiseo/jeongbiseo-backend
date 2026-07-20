@@ -52,7 +52,10 @@ public class OnboardingController {
 	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
 	// Wave에서
 	// 실제 발생하며, 프론트가 이 계약으로 구현 중이라 명세대로 문서화함(명세서 각주 COMMON401 정합).
-	@Operation(summary = "온보딩 최초 제출", description = "이름·생년월일·거주지·고용상태 등을 받아 온보딩을 최초 제출함. 이미 완료한 회원이면 409로 거절함.")
+	@Operation(summary = "온보딩 최초 제출",
+			description = "이름·생년월일·거주지·고용상태 등을 받아 온보딩을 최초 제출함. 이미 완료한 회원이면 409로 거절함. "
+					+ "온보딩 화면의 기수령 지원금 선택은 이 요청에 포함되지 않고 PUT /api/v1/onboarding/received-subsidies로 따로 보냄. "
+					+ "온보딩 수정은 PUT /api/v1/members/me/onboarding이며 이 경로는 최초 제출 전용임.")
 	@ApiResponses({ @ApiResponse(responseCode = "201", description = "온보딩 제출 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400", description = "요청 검증 실패(VALID400_1) 또는 탈퇴 계정(MEMBER400_1)",
 					content = @Content(mediaType = "application/json", examples = { @ExampleObject(name = "VALID400_1",

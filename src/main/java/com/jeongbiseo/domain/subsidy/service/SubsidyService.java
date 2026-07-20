@@ -58,11 +58,12 @@ public class SubsidyService {
 		SubsidyEntity s = subsidyRepository.findById(subsidyId)
 			.orElseThrow(() -> new CustomException(SubsidyErrorCode.SUBSIDY_NOT_FOUND));
 		Integer dDay = (s.getDeadline() == null) ? null : (int) ChronoUnit.DAYS.between(asOf, s.getDeadline());
-		String paymentType = (s.getPaymentType() == null) ? null : s.getPaymentType().name();
-		String category = (s.getCategory() == null) ? null : s.getCategory().name();
+		// paymentType·category는 enum 그대로 실음. Jackson이 상수명으로 직렬화해 JSON은 동일하고, springdoc이
+		// 허용값과
+		// 라벨 설명을 스키마에 실어 줌(String으로 평탄화하면 그 정보가 문서에서 사라짐).
 		return new SubsidyDetailResponse(s.getId(), s.getName(), s.getAgency(), s.getEligibilityText(), s.getDeadline(),
-				dDay, s.getEstimatedAmountMin(), s.getEstimatedAmountMax(), paymentType, category, s.getDescription(),
-				s.getExternalUrl(), false);
+				dDay, s.getEstimatedAmountMin(), s.getEstimatedAmountMax(), s.getPaymentType(), s.getCategory(),
+				s.getDescription(), s.getExternalUrl(), false);
 	}
 
 }

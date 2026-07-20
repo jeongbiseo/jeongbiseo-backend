@@ -2,6 +2,8 @@ package com.jeongbiseo.domain.estimate.dto.response;
 
 import java.util.List;
 
+import com.jeongbiseo.domain.common.enums.PaymentType;
+
 /**
  * 예상 총액 내역 응답임(API명세서 20번). 일시금 현금 합산 대상(items)과 월 지급 현금(monthlyItems), 총액에 못 넣은 별도
  * 혜택(separateBenefits)을 각각 분리해 냄(D-C). 항목 클릭 시 지원금 상세(15번)로 이동함.
@@ -30,7 +32,7 @@ public record EstimatedBreakdownResponse(Long cashTotalMin, Long cashTotalMax, L
 	 * @param paymentType 지급 방식(CASH)
 	 * @param includedInTotal 총액 합산 포함 여부(true)
 	 */
-	public record CashItem(Long subsidyId, String name, Long amountMin, Long amountMax, String paymentType,
+	public record CashItem(Long subsidyId, String name, Long amountMin, Long amountMax, PaymentType paymentType,
 			boolean includedInTotal) {
 
 	}
@@ -45,7 +47,7 @@ public record EstimatedBreakdownResponse(Long cashTotalMin, Long cashTotalMax, L
 	 * @param paymentType 지급 방식(MONTHLY)
 	 */
 	public record MonthlyItem(Long subsidyId, String name, Long monthlyAmountMin, Long monthlyAmountMax,
-			String paymentType) {
+			PaymentType paymentType) {
 
 	}
 
@@ -57,7 +59,7 @@ public record EstimatedBreakdownResponse(Long cashTotalMin, Long cashTotalMax, L
 	 * @param paymentType 지급 방식(미확인이면 UNKNOWN)
 	 * @param note 총액 미포함 사유
 	 */
-	public record SeparateBenefit(Long subsidyId, String name, String paymentType, String note) {
+	public record SeparateBenefit(Long subsidyId, String name, PaymentType paymentType, String note) {
 
 	}
 

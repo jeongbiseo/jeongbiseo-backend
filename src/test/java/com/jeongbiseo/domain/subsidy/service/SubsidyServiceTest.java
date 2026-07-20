@@ -58,8 +58,8 @@ class SubsidyServiceTest {
 		assertThat(response.name()).isEqualTo("청년월세지원");
 		assertThat(response.dDay()).isEqualTo(10);
 		assertThat(response.isFavorite()).isFalse();
-		assertThat(response.paymentType()).isEqualTo("CASH");
-		assertThat(response.category()).isEqualTo("YOUTH");
+		assertThat(response.paymentType()).isEqualTo(PaymentType.CASH);
+		assertThat(response.category()).isEqualTo(SubsidyCategory.YOUTH);
 	}
 
 	@Test
