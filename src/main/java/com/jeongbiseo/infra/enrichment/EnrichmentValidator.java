@@ -1,7 +1,11 @@
 package com.jeongbiseo.infra.enrichment;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
@@ -29,6 +33,15 @@ import com.jeongbiseo.infra.enrichment.dto.ValidationResult;
  */
 @Component
 public class EnrichmentValidator {
+
+	// 문장 속 금액 표기를 뽑는 패턴임. 한글 수사(5백만원)를 받는 것이 핵심 — 공고 원문이 실제로 그렇게 적혀 있고(2026-07-20
+	// 실측: "대출한도: 최대 5백만원") 이를 못 읽으면 정상 결과가 금액 불일치로 대량 거부됨. 순서가 중요해 긴 단위를 앞에 둠
+	// ("천만"이 "천"보다 먼저 와야 1천만원을 1천원으로 읽지 않음).
+	private static final Pattern AMOUNT_LITERAL = Pattern.compile("([0-9][0-9,]*)\\s*(억|천만|백만|만|천)?\\s*원");
+
+	// 정책 어휘를 볼 때 근거 문장 앞으로 함께 살필 글자 수임. 좁게 잡은 것은 의도이며 근거는
+	// evidenceWithLeadingContext Javadoc 참조.
+	private static final int POLICY_CONTEXT_CHARS = 40;
 
 	// 지급액이 아닌 금액을 지급액으로 판정했는지 보는 어휘임. 좁게 잡은 것은 의도임 -- 넓히면 "대출이자 지원 최대 100만원"처럼
 	// 진짜 지급액인 건까지 거부해 누락(거짓 음성)이 생기고, 누락은 이 프로젝트에서 최대 위험임(판정원칙 1번). 한도·총액을
@@ -86,13 +99,79 @@ public class EnrichmentValidator {
 			return ValidationResult.reject(RejectionReason.EVIDENCE_NOT_IN_SOURCE, "근거 문장이 원문에 없음");
 		}
 
-		String violatedPhrase = findForbiddenPhrase(value.evidence());
+		String violatedPhrase = findForbiddenPhrase(evidenceWithLeadingContext(value.evidence(), noticeBody));
 		if (violatedPhrase != null) {
 			return ValidationResult.reject(RejectionReason.POLICY_VIOLATION,
 					"지급액이 아닌 금액을 지급액으로 판정함: " + violatedPhrase);
 		}
 
+		String amountMismatch = findAmountMismatch(value);
+		if (amountMismatch != null) {
+			return ValidationResult.reject(RejectionReason.AMOUNT_NOT_IN_EVIDENCE, amountMismatch);
+		}
+
 		return ValidationResult.accept(value);
+	}
+
+	/**
+	 * 모델이 답한 금액이 근거 문장에 실제로 적힌 금액과 맞는지 봄.
+	 *
+	 * <p>
+	 * <b>이 검사가 필요한 이유</b>: 근거 부분문자열 검사는 "이 문장이 원문에 있는가"만 보므로, 근거는 진짜인데 값만 틀린 경우를 잡지 못함.
+	 * 예를 들어 근거가 "월 2만원 지원"인데 monthlyAmount를 200000으로 답하면 자릿수 오독이 그대로 화면에 나감. 검증기가 잡을 수 있는
+	 * 의미 오류 중 가장 위험한 축이라 결정론적으로 막음.
+	 * </p>
+	 *
+	 * <p>
+	 * <b>근거에서 금액을 하나도 못 찾으면 통과시킴.</b> 표기가 특이해 파싱에 실패했을 뿐 결과는 정상일 수 있는데, 여기서 거부하면 누락이 생김 —
+	 * 누락은 사용자가 놓친 사실조차 모르는 최대 위험임(판정원칙 1번). 반대로 금액을 찾았는데 어느 것과도 안 맞으면 오독이 확실하므로 거부함.
+	 * </p>
+	 * @return 불일치 사유. 문제 없으면 null
+	 */
+	private static String findAmountMismatch(AmountEnrichment value) {
+		Long claimed = (value.monthlyAmount() != null) ? value.monthlyAmount() : value.amountValue();
+		if (claimed == null) {
+			return null;
+		}
+		Set<Long> inEvidence = parseAmounts(value.evidence());
+		if (inEvidence.isEmpty()) {
+			return null;
+		}
+		if (inEvidence.contains(claimed)) {
+			return null;
+		}
+		return "금액 " + claimed + "이 근거 문장의 금액 " + inEvidence + "와 다름";
+	}
+
+	/**
+	 * 문장에서 원 단위 금액을 모두 뽑음. "5백만원"처럼 한글 수사가 섞인 표기를 받아야 함 — 실측에서 공고 원문이 그렇게 적혀 있었고, 이를 못
+	 * 읽으면 정상 결과가 대량 거부됨.
+	 */
+	private static Set<Long> parseAmounts(String text) {
+		Set<Long> amounts = new LinkedHashSet<>();
+		if (text == null) {
+			return amounts;
+		}
+		Matcher matcher = AMOUNT_LITERAL.matcher(normalize(text));
+		while (matcher.find()) {
+			long base = Long.parseLong(matcher.group(1).replace(",", ""));
+			amounts.add(base * unitMultiplier(matcher.group(2)));
+		}
+		return amounts;
+	}
+
+	private static long unitMultiplier(String unit) {
+		if (unit == null || unit.isBlank()) {
+			return 1L;
+		}
+		return switch (unit.strip()) {
+			case "억" -> 100_000_000L;
+			case "천만" -> 10_000_000L;
+			case "백만" -> 1_000_000L;
+			case "만" -> 10_000L;
+			case "천" -> 1_000L;
+			default -> 1L;
+		};
 	}
 
 	/**
@@ -160,8 +239,34 @@ public class EnrichmentValidator {
 	}
 
 	/**
-	 * 근거에 지급액이 아닌 금액을 가리키는 표현이 있는지 봄. 근거 문장만 보는 것은 의도임 — 본문 전체를 보면 "대출한도" 문장이 어딘가 있다는 이유로
-	 * 무관한 지급액 판정까지 거부되어 누락이 생김.
+	 * 근거 문장 앞의 원문 문맥을 조금 붙여 돌려줌.
+	 *
+	 * <p>
+	 * <b>근거 문장만 보면 구멍이 있음</b>: 모델이 "대출한도: 최대 5백만원" 대신 <b>"최대 5백만원"만 인용하면</b> 어휘 검사를 그대로
+	 * 빠져나감. 근거를 짧게 자르는 것만으로 정책 가드가 무력화되는 셈이라, 원문에서 근거가 있던 자리 앞쪽을 함께 봄.
+	 * </p>
+	 *
+	 * <p>
+	 * <b>앞쪽만, 그것도 좁게 보는 이유</b>: 본문 전체를 검사하면 "대출한도" 문장이 문서 어딘가 있다는 이유로 무관한 지급액 판정까지 거부되어
+	 * 누락이 생김(판정원칙 1번). 한국어에서 "대출한도:", "자부담금:"처럼 성격을 규정하는 말이 금액 <b>앞</b>에 오므로 앞쪽 40자면 충분함.
+	 * </p>
+	 */
+	private static String evidenceWithLeadingContext(String evidence, String noticeBody) {
+		if (evidence == null || noticeBody == null) {
+			return evidence;
+		}
+		String normalizedEvidence = normalize(evidence);
+		String normalizedBody = normalize(noticeBody);
+		int at = normalizedBody.indexOf(normalizedEvidence);
+		if (at < 0) {
+			return normalizedEvidence;
+		}
+		int from = Math.max(0, at - POLICY_CONTEXT_CHARS);
+		return normalizedBody.substring(from, at + normalizedEvidence.length());
+	}
+
+	/**
+	 * 지급액이 아닌 금액을 가리키는 표현이 있는지 봄.
 	 */
 	private static String findForbiddenPhrase(String evidence) {
 		String normalized = normalize(evidence);

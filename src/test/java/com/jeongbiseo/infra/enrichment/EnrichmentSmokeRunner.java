@@ -42,7 +42,7 @@ import com.jeongbiseo.infra.enrichment.dto.ValidationResult;
  */
 class EnrichmentSmokeRunner {
 
-	private static final String FIXTURE = "/smoke/subsidy-smoke-20.tsv";
+	private static final String FIXTURE = "/smoke/subsidy-smoke.tsv";
 
 	private static final Path OUTPUT_DIR = Path.of("build", "smoke");
 

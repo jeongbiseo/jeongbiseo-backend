@@ -206,13 +206,81 @@ class EnrichmentValidatorTest {
 		assertThat(result.detail()).contains("기간");
 	}
 
-	/** 종신 지급을 기간 없이 답하는 것은 정상이므로 통과해야 함(위 규칙이 과잉 거부로 번지지 않는지 확인). */
+	/**
+	 * 종신 지급을 기간 없이 답하는 것은 정상이므로 통과해야 함(위 규칙이 과잉 거부로 번지지 않는지 확인).
+	 *
+	 * <p>
+	 * 금액을 200000으로 둔 것은 근거 문장의 "20만원"과 맞추기 위함임. 처음에는 300000으로 적었는데 금액 일치 검사가 이를 잡아냈고, 실제로
+	 * 근거와 값이 어긋난 비현실적 조합이었으므로 테스트 데이터 쪽을 고쳤음.
+	 * </p>
+	 */
 	@Test
 	void 주기를_모르고_기간도_비면_통과한다() {
-		String body = json("SINGLE", "UNKNOWN", "300000", "null", "null", "null", "월 20만원을 최대 12개월간 지원합니다.", false,
+		String body = json("SINGLE", "UNKNOWN", "200000", "null", "null", "null", "월 20만원을 최대 12개월간 지원합니다.", false,
 				"null");
 
 		assertThat(validate(body).accepted()).isTrue();
+	}
+
+	/**
+	 * 근거 검사만으로는 못 잡는 의미 오류임. 근거 문장은 진짜인데 값만 틀린 경우로, 자릿수 오독이 그대로 화면에 나가는 최악의 경로라 결정론적으로
+	 * 막음.
+	 */
+	@Test
+	void 근거의_금액과_다른_값을_답하면_거부한다() {
+		// 근거는 "월 20만원"인데 200만원이라고 답함(자릿수 오독)
+		String body = json("SINGLE", "MONTHLY", "null", "2000000", "12", "null", "월 20만원을 최대 12개월간 지원합니다.", false,
+				"null");
+
+		ValidationResult result = validate(body);
+
+		assertThat(result.accepted()).isFalse();
+		assertThat(result.reason()).isEqualTo(RejectionReason.AMOUNT_NOT_IN_EVIDENCE);
+	}
+
+	/** 한글 수사 표기를 못 읽으면 정상 결과가 대량 거부됨. 공고 원문이 실제로 이렇게 적혀 있음(2026-07-20 실측). */
+	@Test
+	void 한글_수사_금액_표기를_읽는다() {
+		String loanBody = "청년 사회진입 지원 지원금: 최대 5백만원 지급";
+		String body = json("SINGLE", "LUMP_SUM", "5000000", "null", "null", "null", "지원금: 최대 5백만원 지급", false, "null");
+
+		assertThat(this.validator.validate(body, loanBody, HASH, HASH).accepted()).isTrue();
+	}
+
+	/** 근거에서 금액을 못 찾으면 통과시킴. 파싱 실패로 정상 결과를 버리면 누락이 생김(판정원칙 1번). */
+	@Test
+	void 근거에_금액이_없으면_금액_검사를_건너뛴다() {
+		String noAmountBody = "청년 지원 사업 지원내용: 소득 수준에 따라 차등 지급합니다.";
+		String body = json("CONDITIONAL", "PER_UNIT", "300000", "null", "null", "\"소득 수준별\"", "소득 수준에 따라 차등 지급합니다.",
+				false, "null");
+
+		assertThat(this.validator.validate(body, noAmountBody, HASH, HASH).accepted()).isTrue();
+	}
+
+	/**
+	 * 근거를 짧게 잘라 정책 가드를 빠져나가는 경로를 막음. 모델이 "대출한도: 최대 5백만원" 대신 "최대 5백만원"만 인용해도 원문 앞 문맥에서 잡혀야
+	 * 함.
+	 */
+	@Test
+	void 근거를_짧게_잘라도_원문_문맥에서_대출한도를_잡는다() {
+		String loanBody = "청년 사회진입 자금 [지원내용] 1. 대출한도: 최대 5백만원 2. 대출금리: 연 4.5%";
+		String body = json("SINGLE", "LUMP_SUM", "5000000", "null", "null", "null", "최대 5백만원", false, "null");
+
+		ValidationResult result = this.validator.validate(body, loanBody, HASH, HASH);
+
+		assertThat(result.accepted()).isFalse();
+		assertThat(result.reason()).isEqualTo(RejectionReason.POLICY_VIOLATION);
+	}
+
+	/** 문맥 검사가 과잉 거부로 번지지 않는지 확인함. 본문 멀리에 대출 문장이 있어도 무관한 지급액은 통과해야 함. */
+	@Test
+	void 본문_먼_곳의_대출한도는_무관한_지급액을_막지_않는다() {
+		String mixedBody = "청년 지원 종합 안내 1. 대출한도: 최대 1억원 (별도 사업) "
+				+ "그리고 아주 긴 설명이 이어지는 구간으로 두 항목 사이를 충분히 벌려 둡니다 여기는 무관한 안내 문장입니다 계속 이어집니다 "
+				+ "2. 청년 월세 지원: 월 20만원을 12개월간 지급합니다.";
+		String body = json("SINGLE", "MONTHLY", "null", "200000", "12", "null", "월 20만원을 12개월간 지급합니다.", false, "null");
+
+		assertThat(this.validator.validate(body, mixedBody, HASH, HASH).accepted()).isTrue();
 	}
 
 	@Test
