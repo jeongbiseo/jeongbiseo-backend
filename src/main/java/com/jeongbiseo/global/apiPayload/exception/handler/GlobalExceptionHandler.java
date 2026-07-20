@@ -122,7 +122,7 @@ public class GlobalExceptionHandler {
 	 */
 	@ExceptionHandler(NoResourceFoundException.class)
 	public ResponseEntity<CustomResponse<Void>> handleNoResource(NoResourceFoundException e) {
-		return ResponseEntity.status(HttpStatus.NOT_FOUND)
+		return ResponseEntity.status(CommonErrorCode.RESOURCE_NOT_FOUND.getHttpStatus())
 			.body(CustomResponse.fail(CommonErrorCode.RESOURCE_NOT_FOUND));
 	}
 
