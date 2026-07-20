@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.jeongbiseo.domain.common.enums.PaymentType;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 예상 총액 내역 응답임(API명세서 20번). 일시금 현금 합산 대상(items)과 월 지급 현금(monthlyItems), 총액에 못 넣은 별도
  * 혜택(separateBenefits)을 각각 분리해 냄(D-C). 항목 클릭 시 지원금 상세(15번)로 이동함.
@@ -18,8 +20,12 @@ import com.jeongbiseo.domain.common.enums.PaymentType;
  * @param monthlyItems 월 지급 현금 목록
  * @param separateBenefits 총액 미포함 별도 혜택 목록
  */
-public record EstimatedBreakdownResponse(Long cashTotalMin, Long cashTotalMax, Long monthlyTotalMin,
-		Long monthlyTotalMax, String currency, boolean isEstimate, List<CashItem> items, List<MonthlyItem> monthlyItems,
+public record EstimatedBreakdownResponse(
+		@Schema(description = "일시금 현금 총액 하한(원). 합산 대상이 없으면 null이 아니라 0임(카드 19번은 같은 경우 null을 냄)") Long cashTotalMin,
+		@Schema(description = "일시금 현금 총액 상한(원). 합산 대상이 없으면 null이 아니라 0임(카드 19번은 같은 경우 null을 냄)") Long cashTotalMax,
+		@Schema(description = "월 지급 현금 총액 하한(원). 합산 대상이 없으면 null이 아니라 0임(카드 19번은 같은 경우 null을 냄)") Long monthlyTotalMin,
+		@Schema(description = "월 지급 현금 총액 상한(원). 합산 대상이 없으면 null이 아니라 0임(카드 19번은 같은 경우 null을 냄)") Long monthlyTotalMax,
+		String currency, boolean isEstimate, List<CashItem> items, List<MonthlyItem> monthlyItems,
 		List<SeparateBenefit> separateBenefits) {
 
 	/**

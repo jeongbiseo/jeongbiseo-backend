@@ -3,6 +3,8 @@ package com.jeongbiseo.domain.recommendation.dto.response;
 import java.time.LocalDate;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 추천 리스트 항목 응답임(API명세서 14번). estimatedAmountMin과 estimatedAmountMax는 미제공 시 null임
  * (REC-312). uncomputable과 uncomputableReasons는 화면 231913의 "산정불가" 배지를 위해 demo가 계약에 추가한 확장
@@ -20,8 +22,12 @@ import java.util.List;
  * @param uncomputable 산정불가 여부(확장 필드)
  * @param uncomputableReasons 산정불가 사유 안내 문구 목록(확장 필드, 비어있으면 산정 가능)
  */
-public record RecommendationItemResponse(Long subsidyId, String name, String agency, LocalDate deadline, Integer dDay,
-		String eligibilitySummary, Long estimatedAmountMin, Long estimatedAmountMax, Integer matchScore,
-		boolean uncomputable, List<String> uncomputableReasons) {
+public record RecommendationItemResponse(Long subsidyId, String name, String agency,
+		@Schema(description = "신청 마감일. 상시 모집이거나 마감일이 없는 유형이면 null임", nullable = true) LocalDate deadline,
+		@Schema(description = "마감까지 남은 일수. deadline이 null이면 계산하지 않고 null임", nullable = true) Integer dDay,
+		String eligibilitySummary,
+		@Schema(description = "예상 수령액 하한(원). 원천에 금액 정보가 없으면 null임", nullable = true) Long estimatedAmountMin,
+		@Schema(description = "예상 수령액 상한(원). 원천에 금액 정보가 없으면 null임", nullable = true) Long estimatedAmountMax,
+		Integer matchScore, boolean uncomputable, List<String> uncomputableReasons) {
 
 }

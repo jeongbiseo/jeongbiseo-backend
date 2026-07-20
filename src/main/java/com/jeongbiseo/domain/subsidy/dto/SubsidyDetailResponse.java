@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jeongbiseo.domain.common.enums.PaymentType;
 import com.jeongbiseo.domain.common.enums.SubsidyCategory;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 지원금 상세 응답임(API명세서 15번 getSubsidyDetail, 신규로 lab에 대응 코드 없음). eligibilityText는 원문 null을
  * 그대로 반환함(프론트가 "정보 없음" 등으로 치환, 백엔드가 임의 문구로 치환하지 않음). isFavorite은 즐겨찾기 도메인이 아직 없어 항상
@@ -26,8 +28,15 @@ import com.jeongbiseo.domain.common.enums.SubsidyCategory;
  * @param externalUrl 외부 원문 링크(null 허용)
  * @param isFavorite 즐겨찾기 여부(즐겨찾기 이연으로 항상 false)
  */
-public record SubsidyDetailResponse(Long subsidyId, String name, String agency, String eligibilityText,
-		LocalDate deadline, Integer dDay, Long estimatedAmountMin, Long estimatedAmountMax, PaymentType paymentType,
-		SubsidyCategory category, String description, String externalUrl,
+public record SubsidyDetailResponse(Long subsidyId, String name,
+		@Schema(description = "소관기관. 원천 데이터에 기관명이 없으면 null임", nullable = true) String agency,
+		@Schema(description = "자격조건 원문. 원천에 없으면 null이며 백엔드가 임의 문구로 치환하지 않음", nullable = true) String eligibilityText,
+		@Schema(description = "마감일. 상시 모집이거나 마감일이 없는 유형이면 null임", nullable = true) LocalDate deadline,
+		@Schema(description = "마감까지 남은 일수. deadline이 null이면 계산하지 않고 null임", nullable = true) Integer dDay,
+		@Schema(description = "예상 최소 금액(원). 원천에 금액 정보가 없으면 null임", nullable = true) Long estimatedAmountMin,
+		@Schema(description = "예상 최대 금액(원). 원천에 금액 정보가 없으면 null임", nullable = true) Long estimatedAmountMax,
+		PaymentType paymentType, @Schema(nullable = true) SubsidyCategory category,
+		@Schema(description = "상세 설명. 원천에 설명이 없으면 null임", nullable = true) String description,
+		@Schema(description = "외부 원문 링크. 원천에 링크가 없으면 null임", nullable = true) String externalUrl,
 		@JsonProperty("isFavorite") boolean isFavorite) {
 }
