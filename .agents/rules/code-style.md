@@ -14,10 +14,10 @@
 
 ## 네이밍
 
-- 클래스/인터페이스/Enum/레코드: PascalCase (`SocialLoginService`, `CustomResponse`).
+- 클래스/인터페이스/Enum/레코드: PascalCase (`AuthService`, `CustomResponse`).
 - 메서드/변수/필드: camelCase.
 - 상수: SCREAMING_SNAKE_CASE.
-- **Java 파일명은 클래스명과 일치함**(`SocialLoginService.java`). 개명 대상이 아님.
+- **Java 파일명은 클래스명과 일치함**(`AuthService.java`). 개명 대상이 아님.
 - 패키지·폴더: 소문자 단어 연결(`recommendation`, `apiPayload`는 기존 계약 유지). 하이픈·언더스코어를 넣지 않음(Java 패키지 규칙).
 - 프레임워크·도구가 이름을 고정하는 파일은 그 이름을 그대로 씀: `application-local.yml`, `build.gradle`, `settings.gradle`, `commitlint.config.mjs`, `AGENTS.md`, `README.md`.
 
