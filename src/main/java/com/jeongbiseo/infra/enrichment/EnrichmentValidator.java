@@ -1,9 +1,7 @@
 package com.jeongbiseo.infra.enrichment;
 
-import java.text.Normalizer;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
@@ -31,10 +29,6 @@ import com.jeongbiseo.infra.enrichment.dto.ValidationResult;
  */
 @Component
 public class EnrichmentValidator {
-
-	// 연속 공백을 하나로 접기 위한 패턴임. 원문은 공공 API에서 와 줄바꿈·탭·전각 공백이 뒤섞여 있고, 모델은 그것을 정리해 인용하는
-	// 경향이 있어 이 압축 없이 대조하면 정상 근거가 대량 폐기됨(기권율이 허위로 치솟는 원인).
-	private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
 	// 지급액이 아닌 금액을 지급액으로 판정했는지 보는 어휘임. 좁게 잡은 것은 의도임 -- 넓히면 "대출이자 지원 최대 100만원"처럼
 	// 진짜 지급액인 건까지 거부해 누락(거짓 음성)이 생기고, 누락은 이 프로젝트에서 최대 위험임(판정원칙 1번). 한도·총액을
@@ -153,8 +147,10 @@ public class EnrichmentValidator {
 		return normalize(noticeBody).contains(normalizedEvidence);
 	}
 
+	// 정규화 규칙은 ContentHasher가 정본임. 해시 계산과 근거 대조가 같은 규칙을 써야 본문이 그대로인데 해시만 달라지거나 정상 근거가
+	// 폐기되는 일이 없음.
 	private static String normalize(String text) {
-		return WHITESPACE.matcher(Normalizer.normalize(text, Normalizer.Form.NFC)).replaceAll(" ").trim();
+		return ContentHasher.normalize(text);
 	}
 
 	/**
