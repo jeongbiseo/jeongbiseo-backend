@@ -55,6 +55,8 @@ class GoogleOAuthClientTest {
 
 		assertThat(result.providerId()).isEqualTo("google-sub-1");
 		assertThat(result.email()).isEqualTo("user@example.com");
+		// 구글은 id_token payload의 name을 표시용 이름으로 씀
+		assertThat(result.name()).isEqualTo("홍길동");
 	}
 
 	@Test
@@ -135,11 +137,12 @@ class GoogleOAuthClientTest {
 	}
 
 	// 서명은 검증하지 않으므로(설계 §13) header·signature는 더미로 채우고 payload만 실제 JSON을 담음.
+	// name은 구글 계정 표시명임(profile 스코프 기본 제공). 표시용 이름 추출 경로를 함께 고정하려고 payload에 넣음.
 	private String fakeIdToken(String iss, String aud, String sub, String email, long exp) {
 		String header = encode("{\"alg\":\"RS256\",\"typ\":\"JWT\"}");
-		String payload = encode(
-				String.format("{\"iss\":\"%s\",\"aud\":\"%s\",\"sub\":\"%s\",\"email\":\"%s\",\"exp\":%d}", iss, aud,
-						sub, email, exp));
+		String payload = encode(String.format(
+				"{\"iss\":\"%s\",\"aud\":\"%s\",\"sub\":\"%s\",\"email\":\"%s\",\"name\":\"홍길동\",\"exp\":%d}", iss, aud,
+				sub, email, exp));
 		return header + "." + payload + ".dummy-signature";
 	}
 

@@ -115,9 +115,8 @@ public class MemberController {
 	@PutMapping("/me/onboarding")
 	public CustomResponse<OnboardingProfileResponse> updateMyOnboarding(@Valid @RequestBody OnboardingRequest request) {
 		Long memberId = memberResolver.resolveMemberId();
-		OnboardingProfile updated = onboardingService.update(memberId, request.name(), request.birthDate(),
-				request.sido(), request.sigungu(), request.employmentStatus(), request.incomeBracket(),
-				request.householdSize());
+		OnboardingProfile updated = onboardingService.update(memberId, request.birthDate(), request.sido(),
+				request.sigungu(), request.employmentStatus(), request.incomeBracket(), request.householdSize());
 		return CustomResponse.ok(toResponse(updated));
 	}
 

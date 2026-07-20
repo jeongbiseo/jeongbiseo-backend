@@ -134,7 +134,7 @@ public class AuthService {
 		}
 		try {
 			Member created = this.memberProvisioner.createMemberWithAuth(providerEnum, userInfo.providerId(),
-					userInfo.email());
+					userInfo.email(), userInfo.name());
 			return new ProvisionResult(created, true);
 		}
 		catch (DataIntegrityViolationException e) {

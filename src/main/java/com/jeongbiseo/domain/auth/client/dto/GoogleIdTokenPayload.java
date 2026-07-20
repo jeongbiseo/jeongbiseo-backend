@@ -7,5 +7,5 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * 갈음하고, iss·aud·exp만 검사함(설계 §13 Fable 메타검토).
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record GoogleIdTokenPayload(String iss, String aud, String sub, String email, Long exp) {
+public record GoogleIdTokenPayload(String iss, String aud, String sub, String email, String name, Long exp) {
 }

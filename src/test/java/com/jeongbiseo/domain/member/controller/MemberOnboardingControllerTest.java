@@ -96,10 +96,9 @@ class MemberOnboardingControllerTest {
 
 	@Test
 	void updateMyOnboarding_유효요청이면_200을_반환한다() throws Exception {
-		given(onboardingService.update(any(), any(), any(), any(), any(), any(), any(), any()))
-			.willReturn(profile("김철수"));
+		given(onboardingService.update(any(), any(), any(), any(), any(), any(), any())).willReturn(profile("김철수"));
 		String body = """
-				{"name":"김철수","birthDate":"1999-03-15","sido":"서울특별시","sigungu":"강남구","employmentStatus":"STUDENT"}""";
+				{"birthDate":"1999-03-15","sido":"서울특별시","sigungu":"강남구","employmentStatus":"STUDENT"}""";
 
 		mockMvc.perform(put("/api/v1/members/me/onboarding").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isOk())
@@ -107,9 +106,9 @@ class MemberOnboardingControllerTest {
 	}
 
 	@Test
-	void updateMyOnboarding_이름이_짧으면_400_VALID400_1() throws Exception {
+	void updateMyOnboarding_고용상태가_없으면_400_VALID400_1() throws Exception {
 		String body = """
-				{"name":"김","birthDate":"1999-03-15","sido":"서울특별시","sigungu":"강남구","employmentStatus":"STUDENT"}""";
+				{"birthDate":"1999-03-15","sido":"서울특별시","sigungu":"강남구"}""";
 
 		mockMvc.perform(put("/api/v1/members/me/onboarding").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isBadRequest())

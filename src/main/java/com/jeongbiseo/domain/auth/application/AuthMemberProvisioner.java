@@ -34,9 +34,9 @@ public class AuthMemberProvisioner {
 	 * 전파되며(REQUIRES_NEW라 이 트랜잭션만 롤백), 호출부가 기존 auth를 재조회해야 함.
 	 */
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
-	public Member createMemberWithAuth(Provider provider, String providerId, String email) {
+	public Member createMemberWithAuth(Provider provider, String providerId, String email, String name) {
 		Member member = this.memberRepository
-			.save(Member.builder().email(email).role(Role.ROLE_USER).onboardingCompleted(false).build());
+			.save(Member.builder().email(email).name(name).role(Role.ROLE_USER).onboardingCompleted(false).build());
 		this.authRepository.save(Auth.builder().provider(provider).providerId(providerId).member(member).build());
 		return member;
 	}

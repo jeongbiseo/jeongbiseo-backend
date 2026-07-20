@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class OnboardingControllerTest {
 
 	private static final String VALID_BODY = """
-			{"name":"홍길동","birthDate":"1999-03-15","sido":"서울특별시","sigungu":"강남구",\
+			{"birthDate":"1999-03-15","sido":"서울특별시","sigungu":"강남구",\
 			"employmentStatus":"EMPLOYED","incomeBracket":"UNDER_200","householdSize":1}""";
 
 	@Autowired
@@ -65,7 +65,7 @@ class OnboardingControllerTest {
 			.employmentStatus(EmploymentStatus.EMPLOYED)
 			.householdSize(1)
 			.build();
-		given(onboardingService.submit(any(), any(), any(), any(), any(), any(), any(), any())).willReturn(profile);
+		given(onboardingService.submit(any(), any(), any(), any(), any(), any(), any())).willReturn(profile);
 
 		mockMvc.perform(post("/api/v1/onboarding").contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
 			.andExpect(status().isCreated())
@@ -76,9 +76,9 @@ class OnboardingControllerTest {
 	}
 
 	@Test
-	void submitOnboarding_이름이_없으면_400_VALID400_1() throws Exception {
+	void submitOnboarding_거주지가_없으면_400_VALID400_1() throws Exception {
 		String body = """
-				{"birthDate":"1999-03-15","sido":"서울특별시","sigungu":"강남구","employmentStatus":"EMPLOYED"}""";
+				{"birthDate":"1999-03-15","sigungu":"강남구","employmentStatus":"EMPLOYED"}""";
 
 		mockMvc.perform(post("/api/v1/onboarding").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isBadRequest())
@@ -89,7 +89,7 @@ class OnboardingControllerTest {
 	@Test
 	void submitOnboarding_생년월일이_미래면_400_VALID400_1() throws Exception {
 		String body = """
-				{"name":"홍길동","birthDate":"3000-01-01","sido":"서울특별시","sigungu":"강남구","employmentStatus":"EMPLOYED"}""";
+				{"birthDate":"3000-01-01","sido":"서울특별시","sigungu":"강남구","employmentStatus":"EMPLOYED"}""";
 
 		mockMvc.perform(post("/api/v1/onboarding").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isBadRequest())
@@ -101,7 +101,7 @@ class OnboardingControllerTest {
 	@Test
 	void submitOnboarding_소득구간이_계약밖_문자열이면_400_VALID400_1과_허용값을_반환한다() throws Exception {
 		String body = """
-				{"name":"홍길동","birthDate":"1999-03-15","sido":"서울특별시","sigungu":"강남구",\
+				{"birthDate":"1999-03-15","sido":"서울특별시","sigungu":"강남구",\
 				"employmentStatus":"EMPLOYED","incomeBracket":"200~300만원"}""";
 
 		mockMvc.perform(post("/api/v1/onboarding").contentType(MediaType.APPLICATION_JSON).content(body))
@@ -114,7 +114,7 @@ class OnboardingControllerTest {
 	@Test
 	void submitOnboarding_생년월일_형식이_깨졌으면_400_VALID400_1과_필드명을_반환한다() throws Exception {
 		String body = """
-				{"name":"홍길동","birthDate":"1999-13-45","sido":"서울특별시","sigungu":"강남구",\
+				{"birthDate":"1999-13-45","sido":"서울특별시","sigungu":"강남구",\
 				"employmentStatus":"EMPLOYED"}""";
 
 		mockMvc.perform(post("/api/v1/onboarding").contentType(MediaType.APPLICATION_JSON).content(body))

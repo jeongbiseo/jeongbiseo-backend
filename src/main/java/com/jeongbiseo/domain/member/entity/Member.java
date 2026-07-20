@@ -38,8 +38,10 @@ public class Member extends BaseEntity {
 	@Column(name = "email", length = 100)
 	private String email;
 
-	// 실명 2자에서 12자. UNIQUE 없음(동명이인 허용). 온보딩 전에는 null임(소셜 첫 로그인 시 회원만 생성됨) v1.4
-	@Column(name = "name", length = 12)
+	// 소셜 프로필에서 받은 표시용 이름임(구글 name, 카카오 profile.nickname). 실명이 아니라 UNIQUE도 없음. 소셜이 동의항목을
+	// 안 주면 null임. 길이는 닉네임이 실명보다 길 수 있어 50으로 둠(참고 레포 LikeLion14th와 동일) — 12자로 두면 긴 닉네임
+	// 사용자가 가입 시점에 저장 실패함.
+	@Column(name = "name", length = 50)
 	private String name;
 
 	@Enumerated(EnumType.STRING)

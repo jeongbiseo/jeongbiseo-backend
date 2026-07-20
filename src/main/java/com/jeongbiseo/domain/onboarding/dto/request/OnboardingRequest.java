@@ -16,10 +16,9 @@ import com.jeongbiseo.domain.common.enums.IncomeBracket;
 
 /**
  * 온보딩 제출과 수정 요청 본문임(API명세서 9번 submitOnboarding과 7번 updateMyOnboarding, 두 요청 필드가 동일해 하나로
- * 공유함). 이름은 실명 2자에서 12자 필수이며 소셜 프로필명이 아니라 사용자 입력이 정본임(v1.4, D6). 소득구간과 가구원 수는 선택이며 생략 시
- * null로 처리함.
+ * 공유함). 이름은 이 요청에 없음 — 소셜 첫 로그인 때 프로필에서 받아 저장하므로 온보딩 화면이 입력받지 않음(화면 설계에 이름 입력 항목이 없음).
+ * 소득구간과 가구원 수는 선택이며 생략 시 null로 처리함.
  *
- * @param name 이름(실명, 필수, 2자에서 12자)
  * @param birthDate 생년월일(필수, 과거 날짜)
  * @param sido 거주지 시 또는 도(필수)
  * @param sigungu 거주지 시군구(필수)
@@ -30,9 +29,6 @@ import com.jeongbiseo.domain.common.enums.IncomeBracket;
 // 필수 여부는 Jakarta Validation(@NotBlank·@NotNull)을 정본으로 삼고 @Schema에 requiredMode를 겹쳐 적지 않음.
 // swagger-core가 검증 어노테이션을 required 목록에 자동 반영하므로 중복 선언은 둘이 어긋날 위험만 남김.
 public record OnboardingRequest(
-		@Schema(description = "이름(실명). 소셜 프로필명을 자동 저장하지 않으므로 온보딩 화면에서 직접 입력받음. 동명이인을 허용해 UNIQUE 제약이 없음",
-				example = "홍길동") @NotBlank(
-						message = "이름은 필수예요") @Size(min = 2, max = 12, message = "이름은 2자에서 12자여야 해요") String name,
 		@Schema(description = "생년월일(YYYY-MM-DD). 만 나이는 서버가 계산하므로 나이를 따로 보내지 않음", example = "1999-03-15") @NotNull(
 				message = "생년월일은 필수예요") @Past(message = "생년월일은 과거 날짜여야 해요") LocalDate birthDate,
 		@Schema(description = "거주지 시 또는 도. 코드값이 아니라 전체 명칭 문자열임. 선택지는 GET /api/v1/regions 응답을 씀",

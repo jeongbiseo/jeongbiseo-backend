@@ -38,7 +38,8 @@ class KakaoOAuthClientTest {
 			.andRespond(withSuccess("{\"access_token\":\"kakao-access\"}", MediaType.APPLICATION_JSON));
 		server.expect(requestTo(USER_INFO_URI))
 			.andExpect(method(GET))
-			.andRespond(withSuccess("{\"id\":123456,\"kakao_account\":{\"email\":\"user@example.com\"}}",
+			.andRespond(withSuccess(
+					"{\"id\":123456,\"kakao_account\":{\"email\":\"user@example.com\",\"profile\":{\"nickname\":\"아기삼자\"}}}",
 					MediaType.APPLICATION_JSON));
 		KakaoOAuthClient client = new KakaoOAuthClient(builder, "client-id", "client-secret");
 
@@ -46,6 +47,8 @@ class KakaoOAuthClientTest {
 
 		assertThat(result.providerId()).isEqualTo("123456");
 		assertThat(result.email()).isEqualTo("user@example.com");
+		// 카카오는 실명이 아니라 profile.nickname을 표시용 이름으로 씀
+		assertThat(result.name()).isEqualTo("아기삼자");
 	}
 
 	@Test
@@ -60,6 +63,8 @@ class KakaoOAuthClientTest {
 		OAuthUserInfo result = client.exchange("code", CODE_VERIFIER, REDIRECT_URI);
 
 		assertThat(result.email()).isNull();
+		// kakao_account 자체가 없으면 프로필도 못 받으므로 이름도 null임
+		assertThat(result.name()).isNull();
 	}
 
 	@Test

@@ -44,18 +44,18 @@ class OnboardingServiceTest {
 	private OnboardingService onboardingService;
 
 	@Test
-	void submit_신규면_저장하고_이름과_완료를_갱신하며_지역코드를_파생한다() {
+	void submit_신규면_저장하고_완료를_갱신하며_소셜_이름은_유지한다() {
 		Member member = activeMember();
 		given(memberReader.getActiveMember(MEMBER_ID)).willReturn(member);
 		given(onboardingProfileRepository.existsByMemberId(MEMBER_ID)).willReturn(false);
 		given(onboardingProfileRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
-		OnboardingProfile saved = onboardingService.submit(MEMBER_ID, "홍길동", BIRTH_DATE, "서울특별시", "강남구",
+		OnboardingProfile saved = onboardingService.submit(MEMBER_ID, BIRTH_DATE, "서울특별시", "강남구",
 				EmploymentStatus.EMPLOYED, null, 1);
 
 		assertThat(saved.getRegionCode()).isEqualTo("11680");
 		assertThat(saved.getSido()).isEqualTo("서울특별시");
-		assertThat(member.getName()).isEqualTo("홍길동");
+		assertThat(member.getName()).isEqualTo("소셜닉네임"); // 온보딩이 소셜 이름을 덮어쓰지 않음
 		assertThat(member.isOnboardingCompleted()).isTrue();
 	}
 
@@ -66,7 +66,7 @@ class OnboardingServiceTest {
 		given(onboardingProfileRepository.existsByMemberId(MEMBER_ID)).willReturn(false);
 		given(onboardingProfileRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
-		OnboardingProfile saved = onboardingService.submit(MEMBER_ID, "홍길동", BIRTH_DATE, "제주특별자치도", "서귀포시",
+		OnboardingProfile saved = onboardingService.submit(MEMBER_ID, BIRTH_DATE, "제주특별자치도", "서귀포시",
 				EmploymentStatus.JOB_SEEKING, null, null);
 
 		assertThat(saved.getRegionCode()).isNull();
@@ -78,7 +78,7 @@ class OnboardingServiceTest {
 		given(memberReader.getActiveMember(MEMBER_ID)).willReturn(activeMember());
 		given(onboardingProfileRepository.existsByMemberId(MEMBER_ID)).willReturn(true);
 
-		assertThatThrownBy(() -> onboardingService.submit(MEMBER_ID, "홍길동", BIRTH_DATE, "서울특별시", "강남구",
+		assertThatThrownBy(() -> onboardingService.submit(MEMBER_ID, BIRTH_DATE, "서울특별시", "강남구",
 				EmploymentStatus.EMPLOYED, null, 1))
 			.isInstanceOf(CustomException.class)
 			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
@@ -91,7 +91,7 @@ class OnboardingServiceTest {
 		given(onboardingProfileRepository.existsByMemberId(MEMBER_ID)).willReturn(false);
 		given(onboardingProfileRepository.save(any())).willThrow(new DataIntegrityViolationException("uk_member"));
 
-		assertThatThrownBy(() -> onboardingService.submit(MEMBER_ID, "홍길동", BIRTH_DATE, "서울특별시", "강남구",
+		assertThatThrownBy(() -> onboardingService.submit(MEMBER_ID, BIRTH_DATE, "서울특별시", "강남구",
 				EmploymentStatus.EMPLOYED, null, 1))
 			.isInstanceOf(CustomException.class)
 			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
@@ -122,7 +122,7 @@ class OnboardingServiceTest {
 		given(memberReader.getActiveMember(MEMBER_ID)).willReturn(activeMember());
 		given(onboardingProfileRepository.findByMemberId(MEMBER_ID)).willReturn(Optional.empty());
 
-		assertThatThrownBy(() -> onboardingService.update(MEMBER_ID, "김철수", BIRTH_DATE, "서울특별시", "관악구",
+		assertThatThrownBy(() -> onboardingService.update(MEMBER_ID, BIRTH_DATE, "서울특별시", "관악구",
 				EmploymentStatus.STUDENT, null, null))
 			.isInstanceOf(CustomException.class)
 			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
@@ -130,23 +130,23 @@ class OnboardingServiceTest {
 	}
 
 	@Test
-	void update_있으면_전체교체하고_이름을_갱신한다() {
+	void update_있으면_전체교체하고_소셜_이름은_유지한다() {
 		Member member = activeMember();
 		given(memberReader.getActiveMember(MEMBER_ID)).willReturn(member);
 		OnboardingProfile profile = profileOf(member);
 		given(onboardingProfileRepository.findByMemberId(MEMBER_ID)).willReturn(Optional.of(profile));
 
-		OnboardingProfile updated = onboardingService.update(MEMBER_ID, "김철수", BIRTH_DATE, "서울특별시", "관악구",
+		OnboardingProfile updated = onboardingService.update(MEMBER_ID, BIRTH_DATE, "서울특별시", "관악구",
 				EmploymentStatus.STUDENT, null, null);
 
 		assertThat(updated.getSigungu()).isEqualTo("관악구");
 		assertThat(updated.getRegionCode()).isEqualTo("11620");
 		assertThat(updated.getIncomeBracket()).isNull();
-		assertThat(member.getName()).isEqualTo("김철수");
+		assertThat(member.getName()).isEqualTo("소셜닉네임"); // 수정도 이름을 건드리지 않음
 	}
 
 	private static Member activeMember() {
-		return Member.builder().role(Role.ROLE_USER).onboardingCompleted(false).build();
+		return Member.builder().name("소셜닉네임").role(Role.ROLE_USER).onboardingCompleted(false).build();
 	}
 
 	private static OnboardingProfile profileOf(Member member) {

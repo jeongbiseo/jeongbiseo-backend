@@ -49,7 +49,11 @@ public class KakaoOAuthClient implements OAuthClient {
 		KakaoTokenResponse token = requestToken(code, codeVerifier, redirectUri);
 		KakaoUserInfoResponse userInfo = requestUserInfo(token.accessToken());
 		String email = (userInfo.kakaoAccount() != null) ? userInfo.kakaoAccount().email() : null;
-		return new OAuthUserInfo(Provider.KAKAO, String.valueOf(userInfo.id()), email);
+		// 표시용 이름은 profile.nickname임. 동의항목 미제공 시 kakao_account나 profile이 통째로 안 오므로 단계마다
+		// null을 확인함.
+		String nickname = (userInfo.kakaoAccount() != null && userInfo.kakaoAccount().profile() != null)
+				? userInfo.kakaoAccount().profile().nickname() : null;
+		return new OAuthUserInfo(Provider.KAKAO, String.valueOf(userInfo.id()), email, nickname);
 	}
 
 	private KakaoTokenResponse requestToken(String code, String codeVerifier, String redirectUri) {

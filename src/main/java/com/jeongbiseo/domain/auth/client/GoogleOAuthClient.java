@@ -63,7 +63,8 @@ public class GoogleOAuthClient implements OAuthClient {
 		GoogleTokenResponse token = requestToken(code, codeVerifier, redirectUri);
 		GoogleIdTokenPayload payload = decodeIdToken(token.idToken());
 		validate(payload);
-		return new OAuthUserInfo(Provider.GOOGLE, payload.sub(), payload.email());
+		// 구글은 id_token payload의 name이 계정 표시명임(profile 스코프 기본 제공). 실명 보장은 없음.
+		return new OAuthUserInfo(Provider.GOOGLE, payload.sub(), payload.email(), payload.name());
 	}
 
 	private GoogleTokenResponse requestToken(String code, String codeVerifier, String redirectUri) {

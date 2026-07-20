@@ -104,7 +104,7 @@ class AuthServiceTest {
 	@Test
 	void handleCallback은_기존_auth가_있으면_기존_회원으로_로그인한다() {
 		given(kakaoClient.exchange("code", "verifier", "redirect"))
-			.willReturn(new OAuthUserInfo(Provider.KAKAO, "uid-1", "e@example.com"));
+			.willReturn(new OAuthUserInfo(Provider.KAKAO, "uid-1", "e@example.com", "테스터"));
 		Member existingMember = Member.builder().role(Role.ROLE_USER).onboardingCompleted(true).build();
 		setId(existingMember, 7L);
 		Auth existingAuth = Auth.builder().provider(Provider.KAKAO).providerId("uid-1").member(existingMember).build();
@@ -118,16 +118,16 @@ class AuthServiceTest {
 		assertThat(result.onboardingCompleted()).isTrue();
 		assertThat(result.refreshToken()).isNotBlank();
 		assertThat(jwtProvider.parseMemberId(result.accessToken())).isEqualTo(7L);
-		verify(memberProvisioner, never()).createMemberWithAuth(any(), anyString(), any());
+		verify(memberProvisioner, never()).createMemberWithAuth(any(), anyString(), any(), any());
 	}
 
 	@Test
 	void handleCallback은_동시_첫로그인_유니크충돌시_기존_auth를_재조회한다() {
 		given(kakaoClient.exchange("code", "verifier", "redirect"))
-			.willReturn(new OAuthUserInfo(Provider.KAKAO, "uid-2", "e@example.com"));
+			.willReturn(new OAuthUserInfo(Provider.KAKAO, "uid-2", "e@example.com", "테스터"));
 		given(authRepository.findByProviderAndProviderIdWithMember(Provider.KAKAO, "uid-2"))
 			.willReturn(Optional.empty(), Optional.of(winnerAuth("uid-2")));
-		given(memberProvisioner.createMemberWithAuth(eq(Provider.KAKAO), eq("uid-2"), any()))
+		given(memberProvisioner.createMemberWithAuth(eq(Provider.KAKAO), eq("uid-2"), any(), any()))
 			.willThrow(new DataIntegrityViolationException("duplicate"));
 		given(refreshTokenRepository.findByMemberId(9L)).willReturn(Optional.empty());
 

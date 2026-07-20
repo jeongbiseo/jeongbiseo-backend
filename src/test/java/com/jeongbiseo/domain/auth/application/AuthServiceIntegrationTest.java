@@ -86,7 +86,7 @@ class AuthServiceIntegrationTest {
 	@Test
 	void 콜백_1회로_회원과_auth가_생성되고_JWT와_리프레시가_발급된다() {
 		given(kakaoOAuthClient.exchange(any(), any(), any()))
-			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-1", "user1@example.com"));
+			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-1", "user1@example.com", "테스터"));
 
 		LoginResult result = this.authService.handleCallback("kakao", "code-1", "verifier-1", "https://front/callback");
 
@@ -103,7 +103,7 @@ class AuthServiceIntegrationTest {
 	@Test
 	void 같은_providerId로_재콜백하면_기존_회원으로_로그인된다() {
 		given(kakaoOAuthClient.exchange(any(), any(), any()))
-			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-2", "user2@example.com"));
+			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-2", "user2@example.com", "테스터"));
 		LoginResult first = this.authService.handleCallback("kakao", "code-1", "verifier-1", "https://front/callback");
 
 		LoginResult second = this.authService.handleCallback("kakao", "code-2", "verifier-2", "https://front/callback");
@@ -116,7 +116,7 @@ class AuthServiceIntegrationTest {
 	@Test
 	void reissue는_새_쌍을_주고_구_리프레시_재사용은_거부한다() {
 		given(kakaoOAuthClient.exchange(any(), any(), any()))
-			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-3", "user3@example.com"));
+			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-3", "user3@example.com", "테스터"));
 		LoginResult issued = this.authService.handleCallback("kakao", "code-1", "verifier-1", "https://front/callback");
 
 		ReissueResult rotated = this.authService.reissue(issued.refreshToken());
@@ -132,7 +132,7 @@ class AuthServiceIntegrationTest {
 	@Test
 	void processLogout은_리프레시_행을_삭제한다() {
 		given(kakaoOAuthClient.exchange(any(), any(), any()))
-			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-4", "user4@example.com"));
+			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-4", "user4@example.com", "테스터"));
 		LoginResult issued = this.authService.handleCallback("kakao", "code-1", "verifier-1", "https://front/callback");
 		Long memberId = this.jwtProvider.parseMemberId(issued.accessToken());
 
@@ -144,7 +144,7 @@ class AuthServiceIntegrationTest {
 	@Test
 	void 탈퇴하면_auth와_리프레시가_삭제되고_재로그인은_신규가입이_된다() {
 		given(kakaoOAuthClient.exchange(any(), any(), any()))
-			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-5", "user5@example.com"));
+			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-5", "user5@example.com", "테스터"));
 		LoginResult issued = this.authService.handleCallback("kakao", "code-1", "verifier-1", "https://front/callback");
 		Long memberId = this.jwtProvider.parseMemberId(issued.accessToken());
 
