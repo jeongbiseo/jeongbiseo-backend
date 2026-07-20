@@ -15,6 +15,8 @@ import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
 import com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult;
 import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 import com.jeongbiseo.domain.subsidy.repository.SubsidyRepository;
+import com.jeongbiseo.domain.subsidy.AiExplanationReader;
+import com.jeongbiseo.domain.subsidy.dto.AiExplanation;
 import com.jeongbiseo.global.apiPayload.code.SubsidyErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
 
@@ -30,11 +32,17 @@ public class SubsidyService {
 
 	private final FavoriteService favoriteService;
 
+	// 포트로 받음. 구현은 infra.enrichment에 있고 이 클래스는 그 존재를 모름 -- 등급 1~2에서 domain 패키지에 LLM
+	// import가 0건이어야 하는 불변식 때문임(AiExplanationReader Javadoc).
+	private final AiExplanationReader aiExplanationReader;
+
 	private final Clock clock;
 
-	public SubsidyService(SubsidyRepository subsidyRepository, FavoriteService favoriteService, Clock clock) {
+	public SubsidyService(SubsidyRepository subsidyRepository, FavoriteService favoriteService,
+			AiExplanationReader aiExplanationReader, Clock clock) {
 		this.subsidyRepository = subsidyRepository;
 		this.favoriteService = favoriteService;
+		this.aiExplanationReader = aiExplanationReader;
 		this.clock = clock;
 	}
 
@@ -64,12 +72,15 @@ public class SubsidyService {
 			.orElseThrow(() -> new CustomException(SubsidyErrorCode.SUBSIDY_NOT_FOUND));
 		Integer dDay = (s.getDeadline() == null) ? null : (int) ChronoUnit.DAYS.between(asOf, s.getDeadline());
 		boolean isFavorite = memberId != null && favoriteService.isFavorite(memberId, subsidyId);
+		// 검증을 통과해 저장된 해석만 붙음. 없으면 null이고 프론트가 기존 산정불가 배지를 그대로 그림 -- 보강 결과가 없다고
+		// 원래 보이던 정보까지 감추면 정보 격차가 오히려 커짐(판정원칙 5번). 외부 호출은 하지 않음.
+		AiExplanation aiExplanation = aiExplanationReader.findFor(subsidyId, s.getDescription()).orElse(null);
 		// paymentType·category는 enum 그대로 실음. Jackson이 상수명으로 직렬화해 JSON은 동일하고, springdoc이
 		// 허용값과
 		// 라벨 설명을 스키마에 실어 줌(String으로 평탄화하면 그 정보가 문서에서 사라짐).
 		return new SubsidyDetailResponse(s.getId(), s.getName(), s.getAgency(), s.getEligibilityText(), s.getDeadline(),
 				dDay, s.getEstimatedAmountMin(), s.getEstimatedAmountMax(), s.getPaymentType(), s.getCategory(),
-				s.getDescription(), s.getExternalUrl(), isFavorite);
+				s.getDescription(), s.getExternalUrl(), isFavorite, aiExplanation);
 	}
 
 }

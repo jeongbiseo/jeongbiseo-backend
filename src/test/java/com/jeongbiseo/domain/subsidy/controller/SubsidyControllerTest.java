@@ -141,7 +141,7 @@ class SubsidyControllerTest {
 	void getSubsidyDetail_정상이면_200과_상세매핑을_반환한다() throws Exception {
 		SubsidyDetailResponse response = new SubsidyDetailResponse(1L, "청년월세지원", "국토교통부", "만 19~34세 무주택 청년",
 				LocalDate.of(2026, 8, 1), 15, 100_000L, 200_000L, PaymentType.CASH, SubsidyCategory.YOUTH, "설명",
-				"https://example.com", false);
+				"https://example.com", false, null);
 		given(memberResolver.resolveMemberId()).willReturn(1L);
 		given(subsidyService.getDetail(1L, 1L)).willReturn(response);
 

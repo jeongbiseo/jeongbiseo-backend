@@ -27,6 +27,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param description 상세 설명(null 허용)
  * @param externalUrl 외부 원문 링크(null 허용)
  * @param isFavorite 관심 등록 여부(비로그인이면 false)
+ * @param aiExplanation AI 금액 해석(등급 1). 검증 통과분이 없으면 null이며 프론트는 기존 산정불가 배지를 유지함
  */
 public record SubsidyDetailResponse(@Schema(description = "지원금 ID", example = "101") Long subsidyId,
 		@Schema(description = "지원금명", example = "청년월세지원") String name,
@@ -41,5 +42,9 @@ public record SubsidyDetailResponse(@Schema(description = "지원금 ID", exampl
 		@Schema(description = "외부 원문 링크. 원천에 링크가 없으면 null임", nullable = true) String externalUrl,
 		@Schema(description = "관심 등록 여부. 계약상 로그인 회원의 등록 여부를 반영하고 비로그인이면 false임. "
 				+ "다만 배포 N에서는 무헤더 요청이 고정 회원으로 해석되므로 그 회원의 등록 여부가 내려감",
-				example = "false") @JsonProperty("isFavorite") boolean isFavorite) {
+				example = "false") @JsonProperty("isFavorite") boolean isFavorite,
+		@Schema(description = "AI 금액 해석. 공고 원문을 LLM이 읽어 구조화하고 검증기를 통과한 결과만 실림. "
+				+ "통과분이 없으면 null이며 그때는 기존 금액 필드와 산정불가 배지를 그대로 쓰면 됨. "
+				+ "값과 함께 근거 문장(evidence)이 오므로 사용자가 원문과 대조할 수 있게 함께 표시할 것",
+				nullable = true) AiExplanation aiExplanation) {
 }
