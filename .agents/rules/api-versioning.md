@@ -12,12 +12,12 @@
 
 ## 2. 컨트롤러 경로 매핑
 
-각 컨트롤러 클래스에 `@RequestMapping("/api/v1/...")`을 두고, 메소드 매핑(`@GetMapping` 등)은 상대 경로만 씀. 엔드포인트 19개는 아래 8개 컨트롤러로 나뉨(operationId 정본은 API명세서). 명세서 한눈에 보기 표의 번호는 20까지 가지만 **3번은 결번**임 — 실명 수집 확정(명세서 v1.4)으로 checkNickname이 제거되고 이후 번호를 보존하려 결번 처리함.
+각 컨트롤러 클래스에 `@RequestMapping("/api/v1/...")`을 두고, 메소드 매핑(`@GetMapping` 등)은 상대 경로만 씀. 엔드포인트는 계약 기준 19개이며 아래 8개 컨트롤러로 나뉨(operationId 정본은 API명세서). 명세서 한눈에 보기 표의 번호는 21까지 가지만 **결번이 2개**임 — 3번은 실명 수집 확정(명세서 v1.4)으로 checkNickname이, 2번은 방식 B 전환(명세서 v1.11)으로 socialCallback이 폐기되고 이후 번호를 보존하려 결번 처리함. 21번 getMe(`GET /api/v1/members/me`)는 2026-07-19 신설됨(명세서 v1.12).
 
 | 컨트롤러 | 클래스 레벨 매핑 | 담당 operationId |
 |---|---|---|
-| AuthController | `/api/v1/auth` | socialAuthorize, socialCallback, logOut, refreshToken |
-| MemberController | `/api/v1/members` | getMyOnboarding, updateMyOnboarding, deleteMember |
+| AuthController | `/api/v1/auth` | login, reissue, logOut |
+| MemberController | `/api/v1/members` | getMe, getMyOnboarding, updateMyOnboarding, deleteMember |
 | OnboardingController | `/api/v1/onboarding` | submitOnboarding, setReceivedSubsidies |
 | RegionController | `/api/v1/regions` | getRegions |
 | SubsidyController | `/api/v1/subsidies` | getSubsidyCategories, searchSubsidies, getSubsidyDetail, addFavorite, removeFavorite |
@@ -33,14 +33,23 @@
 @RequiredArgsConstructor
 public class AuthController {
 
-    // GET /api/v1/auth/{provider}  (operationId: socialAuthorize)
-    @GetMapping("/{provider}")
-    public void socialAuthorize(@PathVariable String provider, HttpServletResponse response) { ... }
+    // POST /api/v1/auth/{provider}  (operationId: login)
+    // 프론트 콜백 페이지가 code·codeVerifier·redirectUri를 바디로 전달함(셋 다 @NotBlank).
+    // 200 result는 accessToken·isNewMember·onboardingCompleted이고, 리프레시 토큰은 Set-Cookie로 나감.
+    @PostMapping("/{provider}")
+    public CustomResponse<SocialCallbackResponse> login(@PathVariable("provider") String provider,
+            @Valid @RequestBody SocialLoginRequest request, HttpServletResponse response) { ... }
 
-    // GET /api/v1/auth/{provider}/callback  (operationId: socialCallback)
-    // IdP는 브라우저를 프론트 콜백 페이지로 되돌리고, 프론트가 code·state를 이 API로 전달함
-    @GetMapping("/{provider}/callback")
-    public CustomResponse<SocialCallbackResDTO> socialCallback(@PathVariable String provider, @RequestParam String code, @RequestParam String state) { ... }
+    // POST /api/v1/auth/reissue  (operationId: reissue)
+    // 바디 없음. 리프레시 토큰은 쿠키로만 받음. 200 result는 accessToken이고 새 리프레시 쿠키로 회전함.
+    @PostMapping("/reissue")
+    public CustomResponse<ReissueResponse> reissue(
+            @CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse response) { ... }
+
+    // POST /api/v1/auth/logout  (operationId: logOut)
+    // 200 result는 문자열이고 리프레시 쿠키를 Max-Age 0으로 삭제함.
+    @PostMapping("/logout")
+    public CustomResponse<String> logOut(HttpServletResponse response) { ... }
 }
 
 @RestController
