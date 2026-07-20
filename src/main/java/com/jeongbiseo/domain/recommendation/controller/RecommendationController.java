@@ -105,7 +105,7 @@ public class RecommendationController {
 		List<String> reasons = matchResult.uncomputableReasons().stream().map(EligibilityReason::getMessage).toList();
 		return new RecommendationItemResponse(summary.subsidyId(), summary.name(), summary.agency(), summary.deadline(),
 				dDay, summary.eligibilitySummary(), summary.estimatedAmountMin(), summary.estimatedAmountMax(),
-				matchResult.matchScore(), matchResult.uncomputable(), reasons);
+				summary.paymentType(), matchResult.matchScore(), matchResult.uncomputable(), reasons);
 	}
 
 }
