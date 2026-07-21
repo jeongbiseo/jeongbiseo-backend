@@ -1,5 +1,8 @@
 package com.jeongbiseo.domain.subsidy.controller;
 
+import java.util.Arrays;
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -22,6 +25,7 @@ import com.jeongbiseo.domain.common.enums.SubsidyCategory;
 import com.jeongbiseo.domain.favorite.dto.FavoriteListResponse;
 import com.jeongbiseo.domain.favorite.dto.FavoriteResponse;
 import com.jeongbiseo.domain.favorite.service.FavoriteService;
+import com.jeongbiseo.domain.subsidy.dto.SubsidyCategoryResponse;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyPageResponse;
 import com.jeongbiseo.domain.subsidy.dto.SubsidySort;
@@ -107,6 +111,14 @@ public class SubsidyController {
 	public CustomResponse<FavoriteListResponse> getFavorites() {
 		return CustomResponse
 			.ok(FavoriteListResponse.from(favoriteService.getFavorites(memberResolver.resolveMemberId())));
+	}
+
+	// /categories도 리터럴 세그먼트라 아래 /{subsidyId}보다 우선 매칭됨. 정적 목록이라 서비스·인증 없이 바로 반환함.
+	@Operation(summary = "지원금 카테고리 목록", description = "화면 필터 칩용 카테고리 7종(code·label)을 반환함. 정적 목록이라 인증 불필요이고 파라미터도 없음.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "카테고리 목록 조회 성공", useReturnTypeSchema = true) })
+	@GetMapping("/categories")
+	public CustomResponse<List<SubsidyCategoryResponse>> getSubsidyCategories() {
+		return CustomResponse.ok(Arrays.stream(SubsidyCategory.values()).map(SubsidyCategoryResponse::from).toList());
 	}
 
 	@Operation(summary = "지원금 상세 조회",
