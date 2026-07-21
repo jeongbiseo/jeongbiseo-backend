@@ -285,4 +285,25 @@ class SubsidyControllerTest {
 			.andExpect(jsonPath("$.code").value("FAVORITE404_1"));
 	}
 
+	@Test
+	void getSubsidyCategories_7종_code_label_전부_반환() throws Exception {
+		mockMvc.perform(get("/api/v1/subsidies/categories"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result.length()").value(7))
+			.andExpect(jsonPath("$.result[0].code").value("YOUTH"))
+			.andExpect(jsonPath("$.result[0].label").value("청년"))
+			.andExpect(jsonPath("$.result[1].code").value("HOUSING"))
+			.andExpect(jsonPath("$.result[1].label").value("주거"))
+			.andExpect(jsonPath("$.result[2].code").value("EMPLOYMENT"))
+			.andExpect(jsonPath("$.result[2].label").value("고용"))
+			.andExpect(jsonPath("$.result[3].code").value("EDUCATION"))
+			.andExpect(jsonPath("$.result[3].label").value("교육"))
+			.andExpect(jsonPath("$.result[4].code").value("STARTUP"))
+			.andExpect(jsonPath("$.result[4].label").value("창업"))
+			.andExpect(jsonPath("$.result[5].code").value("WELFARE"))
+			.andExpect(jsonPath("$.result[5].label").value("복지"))
+			.andExpect(jsonPath("$.result[6].code").value("ETC"))
+			.andExpect(jsonPath("$.result[6].label").value("기타"));
+	}
+
 }
