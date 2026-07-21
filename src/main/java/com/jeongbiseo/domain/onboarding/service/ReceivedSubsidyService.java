@@ -42,10 +42,11 @@ public class ReceivedSubsidyService {
 	}
 
 	/**
-	 * 회원의 기수령 지원금 목록(id와 이름)을 조회함(API명세서 getReceivedSubsidies). 온보딩 미완이거나 없으면 빈 목록임(404
-	 * 아님). ReceivedSubsidy는 연관관계 없이 subsidyId만 갖고 있어 이름은 SubsidyRepository에서 별도로 읽음(2쿼리,
-	 * N+1 아님). findAllById는 입력 순서를 보장하지 않으므로 id로 인덱싱한 뒤 원래 순서대로 재구성하고, 참조가 사라진 id는 방어적으로
-	 * 제외함.
+	 * 회원이 저장한 기수령 지원금 목록(id와 이름)을 조회함(API명세서 getReceivedSubsidies). 저장된 항목이 없으면 빈 목록임.
+	 * 기수령은 온보딩 완료 여부와 독립적으로 저장되는 사용자 입력이라 완료 여부를 조회 조건으로 두지 않음(저장 경로인
+	 * setReceivedSubsidies도 완료 여부를 검사하지 않아 저장·조회 계약이 대칭임). ReceivedSubsidy는 연관관계 없이
+	 * subsidyId만 갖고 있어 이름은 SubsidyRepository에서 별도로 읽음(2쿼리, N+1 아님). findAllById는 입력 순서를
+	 * 보장하지 않으므로 id로 인덱싱한 뒤 원래 순서대로 재구성하고, 참조가 사라진 id는 방어적으로 제외함.
 	 * @param memberId 대상 회원
 	 * @return 기수령 지원금 목록(없으면 빈 목록)
 	 */

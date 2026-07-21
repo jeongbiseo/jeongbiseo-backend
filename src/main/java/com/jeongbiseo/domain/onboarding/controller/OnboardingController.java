@@ -106,8 +106,8 @@ public class OnboardingController {
 	}
 
 	@Operation(summary = "기수령 지원금 목록 조회",
-			description = "현재 회원의 기수령 지원금 목록(지원금 id와 이름)을 반환함. 마이페이지 진입 시 현재 기수령 상태를 복원함. "
-					+ "온보딩 미완이거나 설정한 적이 없으면 빈 목록 200임(404 아님 — getMyOnboarding의 ONB404_1과 다른 계약).")
+			description = "현재 회원이 저장한 기수령 지원금 목록(지원금 id와 이름)을 반환합니다. "
+					+ "저장된 항목이 없으면 content: [], totalCount: 0으로 200을 반환합니다.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "기수령 지원금 목록 조회 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
