@@ -13,6 +13,7 @@ import com.jeongbiseo.domain.common.enums.SubsidyCategory;
 import com.jeongbiseo.domain.favorite.service.FavoriteService;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
 import com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult;
+import com.jeongbiseo.domain.subsidy.dto.SubsidySort;
 import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 import com.jeongbiseo.domain.subsidy.repository.SubsidyRepository;
 import com.jeongbiseo.domain.subsidy.AiExplanationReader;
@@ -47,14 +48,23 @@ public class SubsidyService {
 	}
 
 	/**
-	 * 키워드·분류로 지원금을 검색함(융자 상품은 항상 제외, keyword·category는 nullable).
+	 * 키워드·분류로 지원금을 검색함(융자 상품은 항상 제외, keyword·category는 nullable). sort가 null이면 현행 id
+	 * 오름차순을 유지하고(하위호환), DEADLINE·NAME이면 각 전용 쿼리로 정렬함.
 	 * @param keyword 지원금명·소관기관 부분 일치 키워드(null이면 무시)
 	 * @param category 지원금 분류 필터(null이면 무시)
-	 * @param pageable 페이지 요청
+	 * @param sort 정렬 기준(null이면 id 오름차순)
+	 * @param pageable 페이지 요청(sort가 null이면 id 정렬을 실어 넘기고, 그 외에는 페이지·크기만 실음)
 	 * @return 검색 결과 페이지
 	 */
 	@Transactional(readOnly = true)
-	public Page<SubsidySearchResult> search(String keyword, SubsidyCategory category, Pageable pageable) {
+	public Page<SubsidySearchResult> search(String keyword, SubsidyCategory category, SubsidySort sort,
+			Pageable pageable) {
+		if (sort == SubsidySort.DEADLINE) {
+			return subsidyRepository.searchOrderByDeadline(keyword, category, pageable);
+		}
+		if (sort == SubsidySort.NAME) {
+			return subsidyRepository.searchOrderByName(keyword, category, pageable);
+		}
 		return subsidyRepository.search(keyword, category, pageable);
 	}
 
