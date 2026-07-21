@@ -28,6 +28,7 @@ import com.jeongbiseo.global.security.FixedMemberResolver;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -63,7 +64,7 @@ class SubsidyControllerTest {
 	void searchSubsidies_기본파라미터로_200과_페이지응답을_반환한다() throws Exception {
 		SubsidySearchResult result = new SubsidySearchResult(1L, "청년월세지원", "국토교통부", SubsidyCategory.YOUTH,
 				LocalDate.of(2026, 8, 1));
-		given(subsidyService.search(any(), any(), any(), any()))
+		given(subsidyService.search(any(), any(), any(), anyBoolean(), any()))
 			.willReturn(new PageImpl<>(List.of(result), PageRequest.of(0, 20), 1));
 
 		mockMvc.perform(get("/api/v1/subsidies"))
@@ -93,40 +94,57 @@ class SubsidyControllerTest {
 
 	@Test
 	void searchSubsidies_keyword와_category가_서비스로_전달된다() throws Exception {
-		given(subsidyService.search(any(), any(), any(), any()))
+		given(subsidyService.search(any(), any(), any(), anyBoolean(), any()))
 			.willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
 		mockMvc.perform(get("/api/v1/subsidies").param("keyword", "청년").param("category", "YOUTH"))
 			.andExpect(status().isOk());
 
-		org.mockito.Mockito.verify(subsidyService).search(eq("청년"), eq(SubsidyCategory.YOUTH), any(), any());
+		org.mockito.Mockito.verify(subsidyService)
+			.search(eq("청년"), eq(SubsidyCategory.YOUTH), any(), anyBoolean(), any());
 	}
 
 	@Test
 	void searchSubsidies_sort_미지정이면_null과_id정렬_Pageable을_넘긴다() throws Exception {
-		given(subsidyService.search(any(), any(), any(), any()))
+		given(subsidyService.search(any(), any(), any(), anyBoolean(), any()))
 			.willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 		ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
 
 		mockMvc.perform(get("/api/v1/subsidies")).andExpect(status().isOk());
 
-		org.mockito.Mockito.verify(subsidyService).search(any(), any(), eq(null), captor.capture());
+		org.mockito.Mockito.verify(subsidyService).search(any(), any(), eq(null), anyBoolean(), captor.capture());
 		// 미지정 경로는 id 오름차순을 Pageable에 실어 하위호환 응답을 유지함
 		assertThat(captor.getValue().getSort().getOrderFor("id")).isNotNull();
 	}
 
 	@Test
 	void searchSubsidies_sort_DEADLINE이면_enum과_비정렬_Pageable을_넘긴다() throws Exception {
-		given(subsidyService.search(any(), any(), any(), any()))
+		given(subsidyService.search(any(), any(), any(), anyBoolean(), any()))
 			.willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 		ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
 
 		mockMvc.perform(get("/api/v1/subsidies").param("sort", "DEADLINE")).andExpect(status().isOk());
 
 		org.mockito.Mockito.verify(subsidyService)
-			.search(any(), any(), eq(com.jeongbiseo.domain.subsidy.dto.SubsidySort.DEADLINE), captor.capture());
+			.search(any(), any(), eq(com.jeongbiseo.domain.subsidy.dto.SubsidySort.DEADLINE), anyBoolean(),
+					captor.capture());
 		// 정렬은 전용 쿼리 order by에 있으므로 Pageable엔 정렬이 없어야 함(이중 부여 방지)
 		assertThat(captor.getValue().getSort().isSorted()).isFalse();
+	}
+
+	@Test
+	void searchSubsidies_includeClosed_쿼리파라미터가_서비스로_전달되고_미지정이면_false가_기본이다() throws Exception {
+		given(subsidyService.search(any(), any(), any(), anyBoolean(), any()))
+			.willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+		ArgumentCaptor<Boolean> includeClosedCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+		mockMvc.perform(get("/api/v1/subsidies").param("includeClosed", "true")).andExpect(status().isOk());
+		mockMvc.perform(get("/api/v1/subsidies")).andExpect(status().isOk());
+
+		org.mockito.Mockito.verify(subsidyService, org.mockito.Mockito.times(2))
+			.search(any(), any(), any(), includeClosedCaptor.capture(), any());
+		// 첫 호출(includeClosed=true 지정)과 두 번째 호출(미지정 -- 기본 false) 순서대로 값이 실림
+		assertThat(includeClosedCaptor.getAllValues()).containsExactly(true, false);
 	}
 
 	@Test
@@ -138,13 +156,13 @@ class SubsidyControllerTest {
 
 	@Test
 	void searchSubsidies_size는_상한클램프되고_id_오름차순_정렬을_고정한다() throws Exception {
-		given(subsidyService.search(any(), any(), any(), any()))
+		given(subsidyService.search(any(), any(), any(), anyBoolean(), any()))
 			.willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0));
 		ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
 
 		mockMvc.perform(get("/api/v1/subsidies").param("size", "500")).andExpect(status().isOk());
 
-		org.mockito.Mockito.verify(subsidyService).search(any(), any(), any(), captor.capture());
+		org.mockito.Mockito.verify(subsidyService).search(any(), any(), any(), anyBoolean(), captor.capture());
 		assertThat(captor.getValue().getPageSize()).isEqualTo(100);
 		Sort.Order idOrder = captor.getValue().getSort().getOrderFor("id");
 		assertThat(idOrder).isNotNull();
@@ -153,13 +171,13 @@ class SubsidyControllerTest {
 
 	@Test
 	void searchSubsidies_size가_0이하면_기본20으로_보정한다() throws Exception {
-		given(subsidyService.search(any(), any(), any(), any()))
+		given(subsidyService.search(any(), any(), any(), anyBoolean(), any()))
 			.willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 		ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
 
 		mockMvc.perform(get("/api/v1/subsidies").param("size", "0")).andExpect(status().isOk());
 
-		org.mockito.Mockito.verify(subsidyService).search(any(), any(), any(), captor.capture());
+		org.mockito.Mockito.verify(subsidyService).search(any(), any(), any(), anyBoolean(), captor.capture());
 		assertThat(captor.getValue().getPageSize()).isEqualTo(20);
 	}
 

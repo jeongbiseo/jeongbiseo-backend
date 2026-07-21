@@ -1,5 +1,6 @@
 package com.jeongbiseo.domain.subsidy;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -69,12 +70,17 @@ class SubsidySearchDetailIntegrationTest {
 	@Autowired
 	private ReceivedSubsidyRepository receivedSubsidyRepository;
 
+	// ClockConfig가 제공하는 고정 빈임. RecommendationScopeIntegrationTest 관례를 따라, 테스트가 "오늘"을
+	// 직접 가정하지 않고 서비스가 실제로 쓰는 Clock에서 기준일을 파생함.
+	@Autowired
+	private Clock clock;
+
 	@Test
 	void search_키워드로_이름과_기관을_검색한다() {
 		subsidyRepository.save(base("k1").name("청년월세지원").agency("국토교통부").build());
 		subsidyRepository.save(base("k2").name("창업지원금").agency("중소벤처기업부").build());
 
-		Page<SubsidySearchResult> page = subsidyService.search("청년", null, null, PageRequest.of(0, 20));
+		Page<SubsidySearchResult> page = subsidyService.search("청년", null, null, false, PageRequest.of(0, 20));
 
 		assertThat(page.getContent()).extracting(SubsidySearchResult::name).containsExactly("청년월세지원");
 	}
@@ -84,7 +90,7 @@ class SubsidySearchDetailIntegrationTest {
 		subsidyRepository.save(base("c1").category(SubsidyCategory.YOUTH).build());
 		subsidyRepository.save(base("c2").category(SubsidyCategory.HOUSING).build());
 
-		Page<SubsidySearchResult> page = subsidyService.search(null, SubsidyCategory.HOUSING, null,
+		Page<SubsidySearchResult> page = subsidyService.search(null, SubsidyCategory.HOUSING, null, false,
 				PageRequest.of(0, 20));
 
 		assertThat(page.getContent()).extracting(SubsidySearchResult::subsidyId).hasSize(1);
@@ -96,7 +102,7 @@ class SubsidySearchDetailIntegrationTest {
 		SubsidyEntity normal = subsidyRepository.save(base("n1").build());
 		subsidyRepository.save(base("loan1").loanProduct(true).build());
 
-		Page<SubsidySearchResult> page = subsidyService.search(null, null, null, PageRequest.of(0, 20));
+		Page<SubsidySearchResult> page = subsidyService.search(null, null, null, false, PageRequest.of(0, 20));
 
 		assertThat(page.getContent()).extracting(SubsidySearchResult::subsidyId).containsExactly(normal.getId());
 	}
@@ -107,7 +113,7 @@ class SubsidySearchDetailIntegrationTest {
 			subsidyRepository.save(base("p" + i).build());
 		}
 
-		Page<SubsidySearchResult> firstPage = subsidyService.search(null, null, null, PageRequest.of(0, 2));
+		Page<SubsidySearchResult> firstPage = subsidyService.search(null, null, null, false, PageRequest.of(0, 2));
 
 		assertThat(firstPage.getContent()).hasSize(2);
 		assertThat(firstPage.getTotalElements()).isEqualTo(5);
@@ -117,11 +123,15 @@ class SubsidySearchDetailIntegrationTest {
 
 	@Test
 	void search_sort_DEADLINE은_마감임박순이고_마감미상은_뒤로_보낸다() {
-		SubsidyEntity far = subsidyRepository.save(base("d_far").deadline(AS_OF.plusDays(30)).build());
-		SubsidyEntity near = subsidyRepository.save(base("d_near").deadline(AS_OF.plusDays(3)).build());
+		// AS_OF가 이미 과거라 includeClosed=false로는 고정 날짜를 쓸 수 없음 -- 실제 Clock 기준 상대 날짜로 계산함
+		// (RecommendationScopeIntegrationTest 관례).
+		LocalDate asOf = LocalDate.now(clock);
+		SubsidyEntity far = subsidyRepository.save(base("d_far").deadline(asOf.plusDays(30)).build());
+		SubsidyEntity near = subsidyRepository.save(base("d_near").deadline(asOf.plusDays(3)).build());
 		SubsidyEntity noDeadline = subsidyRepository.save(base("d_null").deadline(null).build());
 
-		Page<SubsidySearchResult> page = subsidyService.search(null, null, SubsidySort.DEADLINE, PageRequest.of(0, 20));
+		Page<SubsidySearchResult> page = subsidyService.search(null, null, SubsidySort.DEADLINE, false,
+				PageRequest.of(0, 20));
 
 		// 가까운 마감 먼저, 먼 마감 다음, 마감 미상(null)은 항상 맨 뒤
 		assertThat(page.getContent()).extracting(SubsidySearchResult::subsidyId)
@@ -135,7 +145,8 @@ class SubsidySearchDetailIntegrationTest {
 		subsidyRepository.save(base("n_ga").name("가지원금").build());
 		subsidyRepository.save(base("n_na").name("나지원금").build());
 
-		Page<SubsidySearchResult> page = subsidyService.search(null, null, SubsidySort.NAME, PageRequest.of(0, 20));
+		Page<SubsidySearchResult> page = subsidyService.search(null, null, SubsidySort.NAME, false,
+				PageRequest.of(0, 20));
 
 		assertThat(page.getContent()).extracting(SubsidySearchResult::name).containsExactly("가지원금", "나지원금", "다지원금");
 	}
@@ -146,8 +157,9 @@ class SubsidySearchDetailIntegrationTest {
 			subsidyRepository.save(base("np" + i).name("동일이름지원금").build());
 		}
 
-		Page<SubsidySearchResult> firstPage = subsidyService.search(null, null, SubsidySort.NAME, PageRequest.of(0, 2));
-		Page<SubsidySearchResult> secondPage = subsidyService.search(null, null, SubsidySort.NAME,
+		Page<SubsidySearchResult> firstPage = subsidyService.search(null, null, SubsidySort.NAME, false,
+				PageRequest.of(0, 2));
+		Page<SubsidySearchResult> secondPage = subsidyService.search(null, null, SubsidySort.NAME, false,
 				PageRequest.of(1, 2));
 
 		// 동명 지원금도 id tie-breaker로 순서가 결정되어 페이지 간 중복이 없어야 함
@@ -164,9 +176,9 @@ class SubsidySearchDetailIntegrationTest {
 		subsidyRepository.save(base("ws_miss").name("창업 도약 자금").build());
 
 		// 키워드에 공백이 없어도(청년월세) 이름의 공백을 지우고 매칭됨
-		Page<SubsidySearchResult> spaced = subsidyService.search("청년월세", null, sort, PageRequest.of(0, 20));
+		Page<SubsidySearchResult> spaced = subsidyService.search("청년월세", null, sort, false, PageRequest.of(0, 20));
 		// 키워드에 공백이 있어도(청년 월세) 동일하게 매칭됨
-		Page<SubsidySearchResult> reversed = subsidyService.search("청년 월세", null, sort, PageRequest.of(0, 20));
+		Page<SubsidySearchResult> reversed = subsidyService.search("청년 월세", null, sort, false, PageRequest.of(0, 20));
 
 		assertThat(spaced.getContent()).extracting(SubsidySearchResult::name).containsExactly("청년 월세 특별지원");
 		assertThat(reversed.getContent()).extracting(SubsidySearchResult::name).containsExactly("청년 월세 특별지원");
@@ -178,7 +190,7 @@ class SubsidySearchDetailIntegrationTest {
 		subsidyRepository.save(base("blank1").build());
 		subsidyRepository.save(base("blank2").build());
 
-		Page<SubsidySearchResult> page = subsidyService.search("   ", null, null, PageRequest.of(0, 20));
+		Page<SubsidySearchResult> page = subsidyService.search("   ", null, null, false, PageRequest.of(0, 20));
 
 		assertThat(page.getTotalElements()).isEqualTo(2);
 	}
@@ -226,6 +238,24 @@ class SubsidySearchDetailIntegrationTest {
 		List<Long> secondPut = receivedSubsidyService.replaceAll(MEMBER_ID, List.of(s1.getId(), s2.getId()));
 
 		assertThat(secondPut).containsExactlyInAnyOrder(s1.getId(), s2.getId());
+	}
+
+	@Test
+	void search_includeClosed_기본은_마감지난건을_제외하고_상시는_포함한다() {
+		LocalDate asOf = LocalDate.now(clock);
+		SubsidyEntity future = subsidyRepository.save(base("ic_future").deadline(asOf.plusDays(10)).build());
+		SubsidyEntity past = subsidyRepository.save(base("ic_past").deadline(asOf.minusDays(1)).build());
+		SubsidyEntity ongoing = subsidyRepository.save(base("ic_null").deadline(null).build());
+
+		Page<SubsidySearchResult> excluded = subsidyService.search(null, null, null, false, PageRequest.of(0, 20));
+		Page<SubsidySearchResult> included = subsidyService.search(null, null, null, true, PageRequest.of(0, 20));
+
+		// 기본(false)은 마감 지난 past를 빼고 future·ongoing만 남김
+		assertThat(excluded.getContent()).extracting(SubsidySearchResult::subsidyId)
+			.containsExactlyInAnyOrder(future.getId(), ongoing.getId());
+		// true면 마감 지난 것도 포함해 셋 다 남김
+		assertThat(included.getContent()).extracting(SubsidySearchResult::subsidyId)
+			.containsExactlyInAnyOrder(future.getId(), past.getId(), ongoing.getId());
 	}
 
 	private static SubsidyEntity.SubsidyEntityBuilder base(String externalId) {

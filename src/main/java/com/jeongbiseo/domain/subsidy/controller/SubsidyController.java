@@ -65,9 +65,11 @@ public class SubsidyController {
 	// Wave에서 실제 발생함(명세서 각주 COMMON401 정합).
 	@Operation(summary = "지원금 검색",
 			description = "키워드·분류로 지원금을 검색함(융자 상품은 항상 제외). keyword는 지원금명 또는 소관기관 부분 일치이고 "
-					+ "keyword·category 모두 생략 가능함. page가 음수면 400으로 거절하고, size는 0 이하면 기본값 20으로 "
-					+ "대체하며 100을 넘으면 100으로 줄임(page는 줄이지 않고 거절함). sort는 생략하면 등록순(id 오름차순)이고 "
-					+ "DEADLINE(마감 임박순, 마감 미상은 뒤)·NAME(가나다순) 중 하나이며, 허용값 밖이면 400으로 거절함.")
+					+ "공백을 무시해 비교함(\"청년 월세\"로 \"청년월세\"도 잡음). keyword·category 모두 생략 가능함. page가 음수면 "
+					+ "400으로 거절하고, size는 0 이하면 기본값 20으로 대체하며 100을 넘으면 100으로 줄임(page는 줄이지 않고 거절함). "
+					+ "sort는 생략하면 등록순(id 오름차순)이고 DEADLINE(마감 임박순, 마감 미상은 뒤)·NAME(가나다순) 중 하나이며, "
+					+ "허용값 밖이면 400으로 거절함. includeClosed는 기본 false로 마감 지난 지원금을 제외하고(상시 모집은 항상 포함), "
+					+ "true면 마감분도 포함함 — 기수령 등 과거 공고를 찾는 화면은 true로 호출함.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "지원금 검색 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400",
 					description = "쿼리 파라미터 검증 실패(VALID400_0, page 음수 또는 page·size·sort 타입·허용값 불일치)",
@@ -79,7 +81,8 @@ public class SubsidyController {
 	@GetMapping
 	public CustomResponse<SubsidyPageResponse> searchSubsidies(@RequestParam(required = false) String keyword,
 			@RequestParam(required = false) SubsidyCategory category, @RequestParam(required = false) SubsidySort sort,
-			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+			@RequestParam(defaultValue = "false") boolean includeClosed, @RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size) {
 		if (page < 0) { // 음수 page는 PageRequest.of가 던져 500이 되므로 먼저 거절(추천 limit 검증과 같은 선례)
 			throw new CustomException(ValidationErrorCode.INVALID_QUERY_PARAMETER);
 		}
@@ -88,7 +91,8 @@ public class SubsidyController {
 		// order by 본문에 명시한 전용 쿼리라 Pageable엔 페이지·크기만 실어 넘김(정렬 이중 부여 방지).
 		Pageable pageable = (sort == null) ? PageRequest.of(page, effectiveSize, Sort.by(Sort.Direction.ASC, "id"))
 				: PageRequest.of(page, effectiveSize);
-		return CustomResponse.ok(SubsidyPageResponse.from(subsidyService.search(keyword, category, sort, pageable)));
+		return CustomResponse
+			.ok(SubsidyPageResponse.from(subsidyService.search(keyword, category, sort, includeClosed, pageable)));
 	}
 
 	// /favorites는 리터럴 세그먼트라 아래 /{subsidyId} 경로 변수보다 우선 매칭됨(경로 충돌 없음).
