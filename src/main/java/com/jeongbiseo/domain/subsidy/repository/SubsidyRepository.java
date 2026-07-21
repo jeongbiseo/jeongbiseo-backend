@@ -31,20 +31,28 @@ import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, SubsidyReader {
 
 	// 지원금 검색(API명세서 13번 searchSubsidies). 융자 상품은 항상 제외하고, keyword·category는 nullable로
-	// 처리함.
+	// 처리함. keyword 매칭은 공백 무시임 — 컬럼 쪽 replace(col,' ','')로 지운 뒤 비교하고, 키워드 쪽 공백 제거는
+	// SubsidyService.search 진입부에서 1회 전처리함("청년 월세"로 "청년월세"를 잡음).
+	// WHERE(loanProduct·keyword·category 3절)는
+	// search·searchOrderByDeadline·searchOrderByName 3벌이 동일하게 유지돼야 함 — 한 곳을 고치면 3곳(각
+	// main·count) 함께 고칠 것.
 	@Query(value = """
 			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
 			from SubsidyEntity s
 			where s.loanProduct = false
-			and (:keyword is null or s.name like concat('%', :keyword, '%') or s.agency like concat('%', :keyword, '%'))
+			and (:keyword is null
+				or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+				or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
 			and (:category is null or s.category = :category)
 			""",
 			countQuery = """
-					select count(s) from SubsidyEntity s
-					where s.loanProduct = false
-					and (:keyword is null or s.name like concat('%', :keyword, '%') or s.agency like concat('%', :keyword, '%'))
-					and (:category is null or s.category = :category)
-					""")
+						select count(s) from SubsidyEntity s
+						where s.loanProduct = false
+						and (:keyword is null
+					or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+					or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+						and (:category is null or s.category = :category)
+						""")
 	Page<SubsidySearchResult> search(@Param("keyword") String keyword, @Param("category") SubsidyCategory category,
 			Pageable pageable);
 
@@ -56,16 +64,20 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
 			from SubsidyEntity s
 			where s.loanProduct = false
-			and (:keyword is null or s.name like concat('%', :keyword, '%') or s.agency like concat('%', :keyword, '%'))
+			and (:keyword is null
+				or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+				or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
 			and (:category is null or s.category = :category)
 			order by case when s.deadline is null then 1 else 0 end, s.deadline asc, s.id asc
 			""",
 			countQuery = """
-					select count(s) from SubsidyEntity s
-					where s.loanProduct = false
-					and (:keyword is null or s.name like concat('%', :keyword, '%') or s.agency like concat('%', :keyword, '%'))
-					and (:category is null or s.category = :category)
-					""")
+						select count(s) from SubsidyEntity s
+						where s.loanProduct = false
+						and (:keyword is null
+					or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+					or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+						and (:category is null or s.category = :category)
+						""")
 	Page<SubsidySearchResult> searchOrderByDeadline(@Param("keyword") String keyword,
 			@Param("category") SubsidyCategory category, Pageable pageable);
 
@@ -75,16 +87,20 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
 			from SubsidyEntity s
 			where s.loanProduct = false
-			and (:keyword is null or s.name like concat('%', :keyword, '%') or s.agency like concat('%', :keyword, '%'))
+			and (:keyword is null
+				or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+				or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
 			and (:category is null or s.category = :category)
 			order by s.name asc, s.id asc
 			""",
 			countQuery = """
-					select count(s) from SubsidyEntity s
-					where s.loanProduct = false
-					and (:keyword is null or s.name like concat('%', :keyword, '%') or s.agency like concat('%', :keyword, '%'))
-					and (:category is null or s.category = :category)
-					""")
+						select count(s) from SubsidyEntity s
+						where s.loanProduct = false
+						and (:keyword is null
+					or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+					or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+						and (:category is null or s.category = :category)
+						""")
 	Page<SubsidySearchResult> searchOrderByName(@Param("keyword") String keyword,
 			@Param("category") SubsidyCategory category, Pageable pageable);
 

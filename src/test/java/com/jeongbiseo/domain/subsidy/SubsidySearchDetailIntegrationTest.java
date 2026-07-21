@@ -4,6 +4,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -150,6 +153,34 @@ class SubsidySearchDetailIntegrationTest {
 		// 동명 지원금도 id tie-breaker로 순서가 결정되어 페이지 간 중복이 없어야 함
 		assertThat(firstPage.getContent()).extracting(SubsidySearchResult::subsidyId)
 			.doesNotContainAnyElementsOf(secondPage.getContent().stream().map(SubsidySearchResult::subsidyId).toList());
+	}
+
+	// sort 3변형(미지정·DEADLINE·NAME)에 공백 무시 매칭이 다 동작하는지 고정함 — WHERE 3벌 replace 복붙의 드리프트 보험임.
+	@ParameterizedTest(name = "sort={0}")
+	@NullSource
+	@EnumSource(SubsidySort.class)
+	void search_키워드와_이름의_공백을_무시하고_매칭한다(SubsidySort sort) {
+		subsidyRepository.save(base("ws_hit").name("청년 월세 특별지원").build());
+		subsidyRepository.save(base("ws_miss").name("창업 도약 자금").build());
+
+		// 키워드에 공백이 없어도(청년월세) 이름의 공백을 지우고 매칭됨
+		Page<SubsidySearchResult> spaced = subsidyService.search("청년월세", null, sort, PageRequest.of(0, 20));
+		// 키워드에 공백이 있어도(청년 월세) 동일하게 매칭됨
+		Page<SubsidySearchResult> reversed = subsidyService.search("청년 월세", null, sort, PageRequest.of(0, 20));
+
+		assertThat(spaced.getContent()).extracting(SubsidySearchResult::name).containsExactly("청년 월세 특별지원");
+		assertThat(reversed.getContent()).extracting(SubsidySearchResult::name).containsExactly("청년 월세 특별지원");
+	}
+
+	@Test
+	void search_키워드가_공백만이면_null로_취급해_전체를_반환한다() {
+		// " "는 전처리 후 빈 문자열이 되는데 그대로 두면 like '%%'가 전건 일치가 됨. null 정규화로 "키워드 없음"과 동일 취급함.
+		subsidyRepository.save(base("blank1").build());
+		subsidyRepository.save(base("blank2").build());
+
+		Page<SubsidySearchResult> page = subsidyService.search("   ", null, null, PageRequest.of(0, 20));
+
+		assertThat(page.getTotalElements()).isEqualTo(2);
 	}
 
 	@Test
