@@ -51,6 +51,15 @@ public class Member extends BaseEntity {
 	@Column(name = "onboarding_completed", nullable = false)
 	private boolean onboardingCompleted;
 
+	// 마케팅 정보 수신 동의 여부(마이페이지 토글). 필수 약관과 달리 버전 없는 가변 상태라 회원 컬럼으로 둠(결정 D1, PLAN 19). 신규
+	// 컬럼이라 기존 행은 MySQL implicit default(0=false)로 채워짐
+	@Column(name = "marketing_consent", nullable = false)
+	private boolean marketingConsent;
+
+	// 마케팅 동의 최종 변경 시각. 한 번도 변경한 적 없으면 null임
+	@Column(name = "marketing_consent_updated_at")
+	private LocalDateTime marketingConsentUpdatedAt;
+
 	// soft delete 시각(회원 탈퇴). null이면 활성 회원임(데이터모델 삭제 정책, AUTH-172)
 	@Column(name = "deleted_at")
 	private LocalDateTime deletedAt;
@@ -83,6 +92,13 @@ public class Member extends BaseEntity {
 	/** 온보딩 완료로 표시함(submitOnboarding 성공 시). */
 	public void completeOnboarding() {
 		this.onboardingCompleted = true;
+	}
+
+	// ponytail: 마케팅 동의는 이력을 보관하지 않고 현재 상태만 덮어씀(기획 확정, 상태+시각만). 이력이 필요해지면 별도 이력 테이블로 승격함.
+	/** 마케팅 수신 동의 여부를 목표 상태로 설정함(멱등). 변경 시각을 함께 갱신함. */
+	public void updateMarketingConsent(boolean agreed, LocalDateTime at) {
+		this.marketingConsent = agreed;
+		this.marketingConsentUpdatedAt = at;
 	}
 
 }
