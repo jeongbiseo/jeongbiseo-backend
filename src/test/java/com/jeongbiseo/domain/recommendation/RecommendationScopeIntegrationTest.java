@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.MySQLContainer;
 
+import com.jeongbiseo.domain.estimate.EstimatedTotalResult;
+import com.jeongbiseo.domain.estimate.service.EstimatedAmountService;
 import com.jeongbiseo.domain.common.enums.EmploymentStatus;
 import com.jeongbiseo.domain.common.enums.IncomeBracket;
 import com.jeongbiseo.domain.common.enums.OccupationRestriction;
@@ -74,6 +77,9 @@ class RecommendationScopeIntegrationTest {
 	@Autowired
 	private RecommendationQueryService recommendationQueryService;
 
+	@Autowired
+	private EstimatedAmountService estimatedAmountService;
+
 	// ClockConfig가 제공하는 Asia/Seoul 고정 빈임. asOf 파생 기준을 실제 서비스가 쓰는 시각과 일치시켜 날짜 드리프트에
 	// 흔들리지 않게 함(테스트가 "오늘"을 직접 가정하지 않고 서비스가 실제로 쓰는 Clock에서 계산함).
 	@Autowired
@@ -124,7 +130,7 @@ class RecommendationScopeIntegrationTest {
 		SubsidyEntity unknownPayment = subsidyRepository.save(alwaysMatching("scope-unknown-payment",
 				TargetAudience.PERSONAL, OccupationRestriction.NONE, PaymentType.UNKNOWN));
 
-		RecommendationView view = recommendationQueryService.getRecommendations(memberId, 10);
+		RecommendationView view = recommendationQueryService.getRecommendations(memberId, 10, false);
 
 		List<Long> ids = view.items().stream().map(item -> item.summary().subsidyId()).toList();
 		assertThat(ids).contains(personal.getId(), mixed.getId(), unknownAudience.getId(), voucher.getId(),
@@ -140,8 +146,8 @@ class RecommendationScopeIntegrationTest {
 			.toList());
 		assertThat(saved).hasSize(25);
 
-		RecommendationView defaultView = recommendationQueryService.getRecommendations(memberId, null);
-		RecommendationView clampedView = recommendationQueryService.getRecommendations(memberId, 100);
+		RecommendationView defaultView = recommendationQueryService.getRecommendations(memberId, null, false);
+		RecommendationView clampedView = recommendationQueryService.getRecommendations(memberId, 100, false);
 
 		assertThat(defaultView.items()).hasSize(3);
 		assertThat(clampedView.items()).hasSize(20);
@@ -156,11 +162,48 @@ class RecommendationScopeIntegrationTest {
 		receivedSubsidyRepository
 			.save(ReceivedSubsidy.builder().memberId(memberId).subsidyId(received.getId()).build());
 
-		RecommendationView view = recommendationQueryService.getRecommendations(memberId, 10);
+		RecommendationView view = recommendationQueryService.getRecommendations(memberId, 10, false);
 
 		List<Long> ids = view.items().stream().map(item -> item.summary().subsidyId()).toList();
 		assertThat(ids).contains(notReceived.getId());
 		assertThat(ids).doesNotContain(received.getId());
+	}
+
+	@Test
+	void recommend_includeReceived_true면_기수령도_추천에_노출된다() {
+		SubsidyEntity received = subsidyRepository.save(
+				alwaysMatching("inc-received", TargetAudience.PERSONAL, OccupationRestriction.NONE, PaymentType.CASH));
+		receivedSubsidyRepository
+			.save(ReceivedSubsidy.builder().memberId(memberId).subsidyId(received.getId()).build());
+
+		RecommendationView view = recommendationQueryService.getRecommendations(memberId, 10, true);
+
+		List<Long> ids = view.items().stream().map(item -> item.summary().subsidyId()).toList();
+		// 토글 ON이면 이미 받은 지원금도 후보에 남아 노출됨(중복허용)
+		assertThat(ids).contains(received.getId());
+	}
+
+	@Test
+	void 예상총액은_includeReceived와_무관하게_기수령을_제외한다() {
+		// 핵심 가드: 추천을 includeReceived=true로 불러 기수령이 노출돼도, 예상 총액은 기수령을 총액에서 빼야 함(이미 받은 돈
+		// 재합산 방지). 총액 경로는 토글 파라미터 자체가 없어 항상 제외해야 정상임.
+		SubsidyEntity received = subsidyRepository.save(cashSingleAmount("guard-received", 100_000L));
+		receivedSubsidyRepository
+			.save(ReceivedSubsidy.builder().memberId(memberId).subsidyId(received.getId()).build());
+
+		RecommendationView recommended = recommendationQueryService.getRecommendations(memberId, 10, true);
+		EstimatedTotalResult total = estimatedAmountService.getEstimatedTotal(memberId);
+
+		// 추천에는 노출되지만
+		assertThat(recommended.items().stream().map(item -> item.summary().subsidyId()).toList())
+			.contains(received.getId());
+		// 총액 어느 분류에도 기수령은 들어가지 않음
+		List<Long> countedIds = Stream.concat(
+				Stream.concat(total.oneTimeItems().stream().map(EstimatedTotalResult.IncludedItem::subsidyId),
+						total.monthlyItems().stream().map(EstimatedTotalResult.IncludedItem::subsidyId)),
+				total.separateItems().stream().map(EstimatedTotalResult.SeparateItem::subsidyId))
+			.toList();
+		assertThat(countedIds).doesNotContain(received.getId());
 	}
 
 	@Test
@@ -187,7 +230,7 @@ class RecommendationScopeIntegrationTest {
 			.recommendable(true)
 			.build());
 
-		RecommendationView view = recommendationQueryService.getRecommendations(memberId, 10);
+		RecommendationView view = recommendationQueryService.getRecommendations(memberId, 10, false);
 
 		List<Long> ids = view.items().stream().map(item -> item.summary().subsidyId()).toList();
 		assertThat(ids).contains(nationwide.getId(), regional.getId());
@@ -199,7 +242,7 @@ class RecommendationScopeIntegrationTest {
 		SubsidyEntity dueToday = subsidyRepository.save(withDeadline("deadline-today", asOf));
 		SubsidyEntity expired = subsidyRepository.save(withDeadline("deadline-expired", asOf.minusDays(1)));
 
-		RecommendationView view = recommendationQueryService.getRecommendations(memberId, 10);
+		RecommendationView view = recommendationQueryService.getRecommendations(memberId, 10, false);
 
 		List<Long> ids = view.items().stream().map(item -> item.summary().subsidyId()).toList();
 		assertThat(ids).contains(dueToday.getId());
@@ -219,6 +262,25 @@ class RecommendationScopeIntegrationTest {
 			.targetAudience(targetAudience)
 			.occupationRestriction(occupationRestriction)
 			.regionScope(RegionScope.NATIONWIDE)
+			.active(true)
+			.recommendable(true)
+			.build();
+	}
+
+	// 예상 총액에 합산되는 현금·단일 금액 지원금 시드임(min==max라 조건부 금액이 아니라 합산 대상이 됨).
+	private static SubsidyEntity cashSingleAmount(String externalId, long amount) {
+		return SubsidyEntity.builder()
+			.sourceId("scope-test")
+			.externalId(externalId)
+			.name("총액 가드 지원금 " + externalId)
+			.category(SubsidyCategory.YOUTH)
+			.paymentType(PaymentType.CASH)
+			.duplicationPolicy("ALLOW")
+			.targetAudience(TargetAudience.PERSONAL)
+			.occupationRestriction(OccupationRestriction.NONE)
+			.regionScope(RegionScope.NATIONWIDE)
+			.estimatedAmountMin(amount)
+			.estimatedAmountMax(amount)
 			.active(true)
 			.recommendable(true)
 			.build();

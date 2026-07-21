@@ -22,8 +22,11 @@ import com.jeongbiseo.domain.subsidy.dto.SubsidySummary;
 import com.jeongbiseo.global.security.FixedMemberResolver;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -76,7 +79,7 @@ class RecommendationControllerTest {
 				asOf.plusDays(10), "gov24", "EXT-1");
 		RecommendationItem item = new RecommendationItem(summary, matchResult);
 		RecommendationView view = new RecommendationView(List.of(item), asOf, LocalDateTime.of(2026, 7, 15, 12, 0));
-		given(recommendationQueryService.getRecommendations(anyLong(), any())).willReturn(view);
+		given(recommendationQueryService.getRecommendations(anyLong(), any(), anyBoolean())).willReturn(view);
 
 		mockMvc.perform(get("/api/v1/recommendations"))
 			.andExpect(status().isOk())
@@ -93,6 +96,28 @@ class RecommendationControllerTest {
 	}
 
 	@Test
+	void getRecommendations_includeReceived_생략하면_기본true를_서비스로_넘긴다() throws Exception {
+		LocalDate asOf = LocalDate.of(2026, 7, 16);
+		RecommendationView view = new RecommendationView(List.of(), asOf, null);
+		given(recommendationQueryService.getRecommendations(anyLong(), any(), anyBoolean())).willReturn(view);
+
+		mockMvc.perform(get("/api/v1/recommendations")).andExpect(status().isOk());
+
+		verify(recommendationQueryService).getRecommendations(anyLong(), any(), eq(true));
+	}
+
+	@Test
+	void getRecommendations_includeReceived_false면_그대로_서비스로_넘긴다() throws Exception {
+		LocalDate asOf = LocalDate.of(2026, 7, 16);
+		RecommendationView view = new RecommendationView(List.of(), asOf, null);
+		given(recommendationQueryService.getRecommendations(anyLong(), any(), anyBoolean())).willReturn(view);
+
+		mockMvc.perform(get("/api/v1/recommendations").param("includeReceived", "false")).andExpect(status().isOk());
+
+		verify(recommendationQueryService).getRecommendations(anyLong(), any(), eq(false));
+	}
+
+	@Test
 	void getRecommendations_dDay는_deadline이_null이면_null이다() throws Exception {
 		LocalDate asOf = LocalDate.of(2026, 7, 16);
 		SubsidySummary summary = new SubsidySummary(2L, "상시접수 지원금", "고용노동부", null, "제한 없음", null, null,
@@ -100,7 +125,7 @@ class RecommendationControllerTest {
 		MatchResult matchResult = new MatchResult(2L, false, true, 3, List.of(), null, "gov24", "EXT-2");
 		RecommendationItem item = new RecommendationItem(summary, matchResult);
 		RecommendationView view = new RecommendationView(List.of(item), asOf, null);
-		given(recommendationQueryService.getRecommendations(anyLong(), any())).willReturn(view);
+		given(recommendationQueryService.getRecommendations(anyLong(), any(), anyBoolean())).willReturn(view);
 
 		mockMvc.perform(get("/api/v1/recommendations"))
 			.andExpect(status().isOk())
