@@ -86,6 +86,27 @@ class SubsidySearchDetailIntegrationTest {
 	}
 
 	@Test
+	void search_결과에_예상금액이_실려온다() {
+		// constructor expression이 estimatedAmountMin/Max를 DB에서 채워 응답에 싣는지 고정함(금액 없는 행은
+		// null).
+		SubsidyEntity withAmount = subsidyRepository
+			.save(base("amt").name("금액있음지원금").estimatedAmountMin(200000L).estimatedAmountMax(500000L).build());
+		SubsidyEntity noAmount = subsidyRepository.save(base("noamt").name("금액없음지원금").build());
+
+		Page<SubsidySearchResult> page = subsidyService.search(null, null, null, false, PageRequest.of(0, 20));
+
+		assertThat(page.getContent()).filteredOn(r -> r.subsidyId().equals(withAmount.getId()))
+			.singleElement()
+			.satisfies(r -> {
+				assertThat(r.estimatedAmountMin()).isEqualTo(200000L);
+				assertThat(r.estimatedAmountMax()).isEqualTo(500000L);
+			});
+		assertThat(page.getContent()).filteredOn(r -> r.subsidyId().equals(noAmount.getId()))
+			.singleElement()
+			.satisfies(r -> assertThat(r.estimatedAmountMin()).isNull());
+	}
+
+	@Test
 	void search_category로_필터링한다() {
 		subsidyRepository.save(base("c1").category(SubsidyCategory.YOUTH).build());
 		subsidyRepository.save(base("c2").category(SubsidyCategory.HOUSING).build());

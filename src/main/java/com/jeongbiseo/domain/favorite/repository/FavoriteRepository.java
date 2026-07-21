@@ -23,7 +23,8 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
 	// 관심 목록 조회(API명세서 getFavorites). join으로 N+1을 막고, 검색 결과와 동일한 SubsidySearchResult로 직접
 	// 투영해 프론트가 같은 카드 스키마를 재사용하게 함. 최근 등록순(f.id desc)임.
 	@Query("""
-			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
+			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category,
+				s.deadline, s.estimatedAmountMin, s.estimatedAmountMax)
 			from Favorite f
 			join f.subsidy s
 			where f.member.id = :memberId

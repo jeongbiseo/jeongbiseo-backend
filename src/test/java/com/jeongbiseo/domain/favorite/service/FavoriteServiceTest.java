@@ -134,8 +134,9 @@ class FavoriteServiceTest {
 
 	@Test
 	void getFavorites_리포지토리결과를_그대로_반환한다() {
-		List<SubsidySearchResult> favorites = List.of(new SubsidySearchResult(10L, "청년 월세 특별지원", null, null, null),
-				new SubsidySearchResult(11L, "청년 구직활동 지원금", null, null, null));
+		List<SubsidySearchResult> favorites = List.of(
+				new SubsidySearchResult(10L, "청년 월세 특별지원", null, null, null, 200000L, 200000L),
+				new SubsidySearchResult(11L, "청년 구직활동 지원금", null, null, null, null, null));
 		given(favoriteRepository.findFavoriteSubsidies(MEMBER_ID)).willReturn(favorites);
 
 		assertThat(favoriteService.getFavorites(MEMBER_ID)).isEqualTo(favorites);

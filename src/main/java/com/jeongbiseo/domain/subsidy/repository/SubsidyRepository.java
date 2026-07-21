@@ -38,7 +38,8 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 	// search·searchOrderByDeadline·searchOrderByName 3벌이 동일하게 유지돼야 함 — 한 곳을 고치면 3곳(각
 	// main·count) 함께 고칠 것.
 	@Query(value = """
-			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
+			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category,
+				s.deadline, s.estimatedAmountMin, s.estimatedAmountMax)
 			from SubsidyEntity s
 			where s.loanProduct = false
 			and (:keyword is null
@@ -46,16 +47,15 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 				or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
 			and (:category is null or s.category = :category)
 				and (:includeClosed = true or s.deadline is null or s.deadline >= :asOf)
-			""",
-			countQuery = """
-							select count(s) from SubsidyEntity s
-							where s.loanProduct = false
-							and (:keyword is null
-						or replace(s.name, ' ', '') like concat('%', :keyword, '%')
-						or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
-							and (:category is null or s.category = :category)
-					and (:includeClosed = true or s.deadline is null or s.deadline >= :asOf)
-							""")
+			""", countQuery = """
+					select count(s) from SubsidyEntity s
+					where s.loanProduct = false
+					and (:keyword is null
+				or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+				or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+					and (:category is null or s.category = :category)
+			and (:includeClosed = true or s.deadline is null or s.deadline >= :asOf)
+					""")
 	Page<SubsidySearchResult> search(@Param("keyword") String keyword, @Param("category") SubsidyCategory category,
 			@Param("includeClosed") boolean includeClosed, @Param("asOf") LocalDate asOf, Pageable pageable);
 
@@ -64,7 +64,8 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 	// 페이지·크기만
 	// 실어 넘김(정렬 미포함).
 	@Query(value = """
-			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
+			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category,
+				s.deadline, s.estimatedAmountMin, s.estimatedAmountMax)
 			from SubsidyEntity s
 			where s.loanProduct = false
 			and (:keyword is null
@@ -73,16 +74,15 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 			and (:category is null or s.category = :category)
 				and (:includeClosed = true or s.deadline is null or s.deadline >= :asOf)
 			order by case when s.deadline is null then 1 else 0 end, s.deadline asc, s.id asc
-			""",
-			countQuery = """
-							select count(s) from SubsidyEntity s
-							where s.loanProduct = false
-							and (:keyword is null
-						or replace(s.name, ' ', '') like concat('%', :keyword, '%')
-						or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
-							and (:category is null or s.category = :category)
-					and (:includeClosed = true or s.deadline is null or s.deadline >= :asOf)
-							""")
+			""", countQuery = """
+					select count(s) from SubsidyEntity s
+					where s.loanProduct = false
+					and (:keyword is null
+				or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+				or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+					and (:category is null or s.category = :category)
+			and (:includeClosed = true or s.deadline is null or s.deadline >= :asOf)
+					""")
 	Page<SubsidySearchResult> searchOrderByDeadline(@Param("keyword") String keyword,
 			@Param("category") SubsidyCategory category, @Param("includeClosed") boolean includeClosed,
 			@Param("asOf") LocalDate asOf, Pageable pageable);
@@ -90,7 +90,8 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 	// sort=NAME 정렬 검색. 가나다순은 DB 컬럼 collation에 의존함(utf8mb4 기본 collation은 현대 한글을 가나다순으로
 	// 정렬함). tie-breaker로 s.id asc를 붙여 동명 지원금의 페이지 경계 중복·누락을 막음.
 	@Query(value = """
-			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
+			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category,
+				s.deadline, s.estimatedAmountMin, s.estimatedAmountMax)
 			from SubsidyEntity s
 			where s.loanProduct = false
 			and (:keyword is null
@@ -99,16 +100,15 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 			and (:category is null or s.category = :category)
 				and (:includeClosed = true or s.deadline is null or s.deadline >= :asOf)
 			order by s.name asc, s.id asc
-			""",
-			countQuery = """
-							select count(s) from SubsidyEntity s
-							where s.loanProduct = false
-							and (:keyword is null
-						or replace(s.name, ' ', '') like concat('%', :keyword, '%')
-						or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
-							and (:category is null or s.category = :category)
-					and (:includeClosed = true or s.deadline is null or s.deadline >= :asOf)
-							""")
+			""", countQuery = """
+					select count(s) from SubsidyEntity s
+					where s.loanProduct = false
+					and (:keyword is null
+				or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+				or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+					and (:category is null or s.category = :category)
+			and (:includeClosed = true or s.deadline is null or s.deadline >= :asOf)
+					""")
 	Page<SubsidySearchResult> searchOrderByName(@Param("keyword") String keyword,
 			@Param("category") SubsidyCategory category, @Param("includeClosed") boolean includeClosed,
 			@Param("asOf") LocalDate asOf, Pageable pageable);
