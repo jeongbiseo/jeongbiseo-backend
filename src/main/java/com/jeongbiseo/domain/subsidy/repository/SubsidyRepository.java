@@ -31,8 +31,9 @@ import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, SubsidyReader {
 
 	// 지원금 검색(API명세서 13번 searchSubsidies). 융자 상품은 항상 제외하고, keyword·category는 nullable로
-	// 처리함. keyword 매칭은 공백 무시임 — 컬럼 쪽 replace(col,' ','')로 지운 뒤 비교하고, 키워드 쪽 공백 제거는
-	// SubsidyService.search 진입부에서 1회 전처리함("청년 월세"로 "청년월세"를 잡음).
+	// 처리함. keyword 매칭은 공백 무시임 — 컬럼 쪽 replace(col, ' ', '')는 일반 띄어쓰기(U+0020)만 지우고
+	// (탭·전각 공백 U+3000은 안 지움), 키워드 쪽 공백 제거는 SubsidyService.search 진입부에서 1회 전처리함
+	// ("청년 월세"로 "청년월세"를 잡음).
 	// WHERE(loanProduct·keyword·category 3절)는
 	// search·searchOrderByDeadline·searchOrderByName 3벌이 동일하게 유지돼야 함 — 한 곳을 고치면 3곳(각
 	// main·count) 함께 고칠 것.

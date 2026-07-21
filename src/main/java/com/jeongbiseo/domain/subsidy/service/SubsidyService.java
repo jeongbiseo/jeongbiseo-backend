@@ -49,8 +49,9 @@ public class SubsidyService {
 
 	/**
 	 * 키워드·분류로 지원금을 검색함(융자 상품은 항상 제외, keyword·category는 nullable). sort가 null이면 현행 id
-	 * 오름차순을 유지하고(하위호환), DEADLINE·NAME이면 각 전용 쿼리로 정렬함. 키워드 매칭은 공백 무시임 — 키워드의 모든 공백을 지운 뒤
-	 * 리포지토리의 컬럼 쪽 replace와 짝을 맞춰 "청년 월세"로 "청년월세"를 잡음.
+	 * 오름차순을 유지하고(하위호환), DEADLINE·NAME이면 각 전용 쿼리로 정렬함. 키워드 매칭은 공백 무시임 — 키워드의 ASCII 공백을 지운
+	 * 뒤 리포지토리의 컬럼 쪽 replace(U+0020만 제거)와 짝을 맞춰 "청년 월세"로 "청년월세"를 잡음. 전각 공백(U+3000)은
+	 * 미대응임(알려진 한계).
 	 * @param keyword 지원금명·소관기관 부분 일치 키워드(null이거나 공백만이면 무시)
 	 * @param category 지원금 분류 필터(null이면 무시)
 	 * @param sort 정렬 기준(null이면 id 오름차순)
@@ -60,8 +61,10 @@ public class SubsidyService {
 	@Transactional(readOnly = true)
 	public Page<SubsidySearchResult> search(String keyword, SubsidyCategory category, SubsidySort sort,
 			Pageable pageable) {
-		// 공백 무시 매칭: 키워드의 모든 공백(탭·전각 포함)을 제거해 컬럼 쪽 replace와 짝을 맞춤. 공백만 입력하면 빈 문자열이 되어
-		// like '%%'가 전건 일치가 되므로, 그 경우 null로 정규화해 "키워드 없음"과 동일 취급함.
+		// 공백 무시 매칭: 키워드의 ASCII 공백(스페이스·탭·개행, \s 범위)을 지워 컬럼 쪽 replace와 짝을 맞춤. 컬럼 쪽은 일반
+		// 띄어쓰기(U+0020)만 지우므로 실질 커버리지는 U+0020 기준임. 전각 공백(U+3000)·NBSP는 양쪽 다 미대응(알려진 한계,
+		// 데모 범위 밖)이고, 탭은 키워드 쪽만 지워짐(컬럼에 탭이 있으면 못 잡음). 공백만 입력하면 빈 문자열이 되어 like '%%'가 전건
+		// 일치가 되므로, 그 경우 null로 정규화해 "키워드 없음"과 동일 취급함.
 		String normalizedKeyword = (keyword == null) ? null : keyword.replaceAll("\\s", "");
 		if (normalizedKeyword != null && normalizedKeyword.isEmpty()) {
 			normalizedKeyword = null;
