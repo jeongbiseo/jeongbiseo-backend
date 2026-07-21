@@ -63,7 +63,7 @@ class SubsidyControllerTest {
 	@Test
 	void searchSubsidies_기본파라미터로_200과_페이지응답을_반환한다() throws Exception {
 		SubsidySearchResult result = new SubsidySearchResult(1L, "청년월세지원", "국토교통부", SubsidyCategory.YOUTH,
-				LocalDate.of(2026, 8, 1));
+				LocalDate.of(2026, 8, 1), 200000L, 500000L);
 		given(subsidyService.search(any(), any(), any(), anyBoolean(), any()))
 			.willReturn(new PageImpl<>(List.of(result), PageRequest.of(0, 20), 1));
 
@@ -73,6 +73,8 @@ class SubsidyControllerTest {
 			.andExpect(jsonPath("$.code").value("200"))
 			.andExpect(jsonPath("$.result.content[0].subsidyId").value(1))
 			.andExpect(jsonPath("$.result.content[0].name").value("청년월세지원"))
+			.andExpect(jsonPath("$.result.content[0].estimatedAmountMin").value(200000))
+			.andExpect(jsonPath("$.result.content[0].estimatedAmountMax").value(500000))
 			.andExpect(jsonPath("$.result.page").value(0))
 			.andExpect(jsonPath("$.result.size").value(20))
 			.andExpect(jsonPath("$.result.totalElements").value(1));
@@ -82,8 +84,8 @@ class SubsidyControllerTest {
 	void getFavorites_200과_관심목록_totalCount를_반환한다() throws Exception {
 		// /favorites가 /{subsidyId}(getSubsidyDetail)로 새지 않고 getFavorites로 매핑되는지도 함께 고정함.
 		given(memberResolver.resolveMemberId()).willReturn(1L);
-		given(favoriteService.getFavorites(1L)).willReturn(List
-			.of(new SubsidySearchResult(10L, "청년 월세 특별지원", "국토교통부", SubsidyCategory.YOUTH, LocalDate.of(2026, 8, 1))));
+		given(favoriteService.getFavorites(1L)).willReturn(List.of(new SubsidySearchResult(10L, "청년 월세 특별지원", "국토교통부",
+				SubsidyCategory.YOUTH, LocalDate.of(2026, 8, 1), 200000L, 200000L)));
 
 		mockMvc.perform(get("/api/v1/subsidies/favorites"))
 			.andExpect(status().isOk())
