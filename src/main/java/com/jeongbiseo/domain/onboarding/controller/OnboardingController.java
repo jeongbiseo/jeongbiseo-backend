@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +22,7 @@ import com.jeongbiseo.domain.onboarding.dto.request.OnboardingRequest;
 import com.jeongbiseo.domain.onboarding.dto.request.ReceivedSubsidiesRequest;
 import com.jeongbiseo.domain.onboarding.dto.response.OnboardingSubmitResponse;
 import com.jeongbiseo.domain.onboarding.dto.response.ReceivedSubsidiesResponse;
+import com.jeongbiseo.domain.onboarding.dto.response.ReceivedSubsidyListResponse;
 import com.jeongbiseo.domain.onboarding.entity.OnboardingProfile;
 import com.jeongbiseo.domain.onboarding.service.OnboardingService;
 import com.jeongbiseo.domain.onboarding.service.ReceivedSubsidyService;
@@ -101,6 +103,20 @@ public class OnboardingController {
 		Long memberId = memberResolver.resolveMemberId();
 		return CustomResponse
 			.ok(new ReceivedSubsidiesResponse(receivedSubsidyService.replaceAll(memberId, request.subsidyIds())));
+	}
+
+	@Operation(summary = "기수령 지원금 목록 조회",
+			description = "현재 회원의 기수령 지원금 목록(지원금 id와 이름)을 반환함. 마이페이지 진입 시 현재 기수령 상태를 복원함. "
+					+ "온보딩 미완이거나 설정한 적이 없으면 빈 목록 200임(404 아님 — getMyOnboarding의 ONB404_1과 다른 계약).")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "기수령 지원금 목록 조회 성공", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
+							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))) })
+	@GetMapping("/received-subsidies")
+	public CustomResponse<ReceivedSubsidyListResponse> getReceivedSubsidies() {
+		Long memberId = memberResolver.resolveMemberId();
+		return CustomResponse
+			.ok(ReceivedSubsidyListResponse.from(receivedSubsidyService.findReceivedSubsidies(memberId)));
 	}
 
 }

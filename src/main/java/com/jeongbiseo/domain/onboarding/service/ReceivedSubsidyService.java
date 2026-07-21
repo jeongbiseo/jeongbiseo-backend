@@ -1,12 +1,16 @@
 package com.jeongbiseo.domain.onboarding.service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.jeongbiseo.domain.onboarding.dto.response.ReceivedSubsidyItem;
 import com.jeongbiseo.domain.onboarding.entity.ReceivedSubsidy;
 import com.jeongbiseo.domain.onboarding.repository.ReceivedSubsidyRepository;
+import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 import com.jeongbiseo.domain.subsidy.repository.SubsidyRepository;
 import com.jeongbiseo.global.apiPayload.code.SubsidyErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
@@ -35,6 +39,30 @@ public class ReceivedSubsidyService {
 	@Transactional(readOnly = true)
 	public List<Long> findReceivedSubsidyIds(Long memberId) {
 		return repository.findSubsidyIdsByMemberId(memberId);
+	}
+
+	/**
+	 * 회원의 기수령 지원금 목록(id와 이름)을 조회함(API명세서 getReceivedSubsidies). 온보딩 미완이거나 없으면 빈 목록임(404
+	 * 아님). ReceivedSubsidy는 연관관계 없이 subsidyId만 갖고 있어 이름은 SubsidyRepository에서 별도로 읽음(2쿼리,
+	 * N+1 아님). findAllById는 입력 순서를 보장하지 않으므로 id로 인덱싱한 뒤 원래 순서대로 재구성하고, 참조가 사라진 id는 방어적으로
+	 * 제외함.
+	 * @param memberId 대상 회원
+	 * @return 기수령 지원금 목록(없으면 빈 목록)
+	 */
+	@Transactional(readOnly = true)
+	public List<ReceivedSubsidyItem> findReceivedSubsidies(Long memberId) {
+		List<Long> ids = repository.findSubsidyIdsByMemberId(memberId);
+		if (ids.isEmpty()) {
+			return List.of();
+		}
+		Map<Long, String> nameById = new HashMap<>();
+		for (SubsidyEntity entity : subsidyRepository.findAllById(ids)) {
+			nameById.put(entity.getId(), entity.getName());
+		}
+		return ids.stream()
+			.filter(nameById::containsKey)
+			.map(id -> new ReceivedSubsidyItem(id, nameById.get(id)))
+			.toList();
 	}
 
 	/**
