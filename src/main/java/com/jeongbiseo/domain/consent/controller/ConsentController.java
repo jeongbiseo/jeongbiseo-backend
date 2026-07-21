@@ -22,7 +22,7 @@ import com.jeongbiseo.global.apiPayload.CustomResponse;
 import com.jeongbiseo.global.security.FixedMemberResolver;
 
 /**
- * 마이페이지 약관 자원(약관 동의 조회, 마케팅 수신 동의 변경)을 다룸(API명세서 22번 getMyTermConsents·23번
+ * 마이페이지 약관 자원(약관 동의 조회, 마케팅 수신 동의 변경)을 다룸(API명세서 24번 getMyTermConsents·25번
  * updateMarketingConsent). 경로는 members 도메인 공간(/api/v1/members/me/terms)에 두어 "내 자원"의 /me
  * 규칙을 따르고, 컨트롤러는 consent 도메인에 둠. 회원 식별은 FixedMemberResolver 고정 회원임(소셜 인증 전, 결정 7번).
  */
