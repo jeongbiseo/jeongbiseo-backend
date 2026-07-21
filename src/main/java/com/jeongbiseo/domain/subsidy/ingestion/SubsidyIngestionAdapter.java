@@ -76,8 +76,9 @@ public class SubsidyIngestionAdapter {
 			.externalId(subsidy.externalId())
 			.name(subsidy.name())
 			.agency(subsidy.agency())
-			// ponytail: 4종 원문 taxonomy의 7종 카테고리 매핑은 미확정이므로 값을 지어내지 않음.
-			.category(null)
+			// 소스별 카테고리 매핑(CategoryMapper): 온통청년은 전건 YOUTH, gov24는 서비스분야 10종을 도메인 칩으로,
+			// gov24 미매핑·null은 ETC.
+			.category(CategoryMapper.map(subsidy.source(), subsidy.categoryRawText()))
 			.description(subsidy.description())
 			.eligibilityText(subsidy.eligibilityText())
 			.externalUrl(firstNonNull(subsidy.applicationUrl(), subsidy.referenceUrl()))
