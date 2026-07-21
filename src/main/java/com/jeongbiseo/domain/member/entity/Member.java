@@ -94,9 +94,15 @@ public class Member extends BaseEntity {
 		this.onboardingCompleted = true;
 	}
 
-	// ponytail: 마케팅 동의는 이력을 보관하지 않고 현재 상태만 덮어씀(기획 확정, 상태+시각만). 이력이 필요해지면 별도 이력 테이블로 승격함.
-	/** 마케팅 수신 동의 여부를 목표 상태로 설정함(멱등). 변경 시각을 함께 갱신함. */
+	// ponytail: 마케팅 동의는 이력을 보관하지 않고 현재 상태만 저장함(기획 확정, 상태+시각만). 이력이 필요해지면 별도 이력 테이블로 승격함.
+	/**
+	 * 마케팅 수신 동의 여부를 목표 상태로 설정함(멱등 set). 상태가 실제로 바뀌거나 아직 결정 시각이 없을 때만 값과 시각을 갱신하고, 이미 같은
+	 * 상태를 결정한 뒤 같은 값을 재전송하면 시각을 보존함 — 더블탭·재시도로 변경 시각이 흔들리지 않게 함.
+	 */
 	public void updateMarketingConsent(boolean agreed, LocalDateTime at) {
+		if (this.marketingConsent == agreed && this.marketingConsentUpdatedAt != null) {
+			return;
+		}
 		this.marketingConsent = agreed;
 		this.marketingConsentUpdatedAt = at;
 	}

@@ -69,18 +69,38 @@ public class TermConsentService {
 	}
 
 	/**
-	 * 마케팅 수신 동의를 목표 상태로 설정함(멱등 set). 같은 값 재전송이어도 변경 시각을 갱신함. 회원 엔티티가 영속 상태라 dirty
-	 * checking으로 반영됨.
+	 * 마케팅 수신 동의를 목표 상태로 설정함(멱등 set). 상태가 실제로 바뀔 때만 변경 시각을 갱신하고 같은 값 재전송은 시각을 보존함. 회원 엔티티가
+	 * 영속 상태라 dirty checking으로 반영되며, 응답은 반영 후의 엔티티 상태로 구성함.
 	 * @param memberId 대상 회원(활성이어야 함)
 	 * @param agreed 설정할 동의 여부
-	 * @return 변경된 동의 여부와 변경 시각
+	 * @return 반영 후의 동의 여부와 변경 시각
 	 */
 	@Transactional
 	public MarketingConsentResponse updateMarketingConsent(Long memberId, boolean agreed) {
 		Member member = this.memberReader.getActiveMember(memberId);
-		LocalDateTime updatedAt = LocalDateTime.now(this.clock);
-		member.updateMarketingConsent(agreed, updatedAt);
-		return new MarketingConsentResponse(agreed, updatedAt);
+		member.updateMarketingConsent(agreed, LocalDateTime.now(this.clock));
+		return new MarketingConsentResponse(member.isMarketingConsent(), member.getMarketingConsentUpdatedAt());
+	}
+
+	/**
+	 * 시더 전용으로 회원에게 누락된 필수 약관 동의만 현재 버전으로 추가함(add-missing). 이미 있는 동의는 건드리지 않아 매 기동마다
+	 * decidedAt이 갱신되는 것을 피함 — 기존 회원이 있는 배포에서도 마이페이지 약관 조회가 동의 상태로 나오게 하기 위함임.
+	 * @param member 대상 회원
+	 */
+	@Transactional
+	public void ensureRequiredConsents(Member member) {
+		LocalDateTime decidedAt = LocalDateTime.now(this.clock);
+		for (TermType termType : TermType.required()) {
+			if (this.memberTermConsentRepository.findByMemberIdAndTermType(member.getId(), termType).isPresent()) {
+				continue;
+			}
+			this.memberTermConsentRepository.save(MemberTermConsent.builder()
+				.member(member)
+				.termType(termType)
+				.versionId(currentVersionId(termType))
+				.decidedAt(decidedAt)
+				.build());
+		}
 	}
 
 	/**

@@ -62,7 +62,9 @@ public class ConsentController {
 
 	// 마케팅 수신 동의 변경 처리함 (POST /api/v1/members/me/terms/marketing, operationId
 	// updateMarketingConsent)
-	// 토글이지만 서버는 현재 값을 뒤집지 않고 요청 바디의 목표 상태(agreed)로 멱등하게 설정함. 같은 값 재전송이어도 변경 시각을 갱신함.
+	// 토글이지만 서버는 현재 값을 뒤집지 않고 요청 바디의 목표 상태(agreed)로 멱등하게 설정함. 상태가 실제로 바뀔 때만 변경 시각을 갱신하고 같은
+	// 값
+	// 재전송은 시각을 보존함.
 	@Operation(summary = "마케팅 수신 동의 변경",
 			description = "마케팅 정보 수신 동의를 요청 바디의 목표 상태로 설정함(멱등 set, 서버 플립 아님). 변경 후 상태와 변경 시각을 반환함.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "마케팅 동의 변경 성공", useReturnTypeSchema = true),

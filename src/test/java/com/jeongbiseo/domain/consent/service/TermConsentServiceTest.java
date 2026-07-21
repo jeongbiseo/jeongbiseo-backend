@@ -195,6 +195,47 @@ class TermConsentServiceTest {
 		assertThat(member.getMarketingConsentUpdatedAt()).isEqualTo(EXPECTED_DECIDED_AT);
 	}
 
+	@Test
+	void updateMarketingConsent_같은_값_재전송은_이전_변경시각을_유지한다() {
+		Member member = activeMember();
+		member.updateMarketingConsent(true, LocalDateTime.of(2026, 7, 16, 9, 0));
+
+		// 같은 값(true)을 나중 시각으로 재전송해도 시각을 보존함(멱등)
+		member.updateMarketingConsent(true, LocalDateTime.of(2026, 7, 20, 10, 0));
+
+		assertThat(member.isMarketingConsent()).isTrue();
+		assertThat(member.getMarketingConsentUpdatedAt()).isEqualTo(LocalDateTime.of(2026, 7, 16, 9, 0));
+	}
+
+	@Test
+	void ensureRequiredConsents_누락된_항목만_추가하고_기존_동의는_건드리지_않는다() {
+		Member member = memberWithId(1L);
+		givenCurrentVersionForAll();
+		// SERVICE는 이미 동의(구버전), PRIVACY·AGE_OVER_14는 없음
+		MemberTermConsent existing = MemberTermConsent.builder()
+			.member(member)
+			.termType(TermType.SERVICE)
+			.versionId("v0.9")
+			.decidedAt(LocalDateTime.of(2026, 1, 1, 0, 0))
+			.build();
+		given(memberTermConsentRepository.findByMemberIdAndTermType(eq(1L), eq(TermType.SERVICE)))
+			.willReturn(Optional.of(existing));
+		given(memberTermConsentRepository.findByMemberIdAndTermType(eq(1L), eq(TermType.PRIVACY)))
+			.willReturn(Optional.empty());
+		given(memberTermConsentRepository.findByMemberIdAndTermType(eq(1L), eq(TermType.AGE_OVER_14)))
+			.willReturn(Optional.empty());
+
+		termConsentService.ensureRequiredConsents(member);
+
+		// 누락 2건만 저장하고 기존 SERVICE는 reconsent하지 않아 버전·시각을 보존함
+		ArgumentCaptor<MemberTermConsent> captor = ArgumentCaptor.forClass(MemberTermConsent.class);
+		verify(memberTermConsentRepository, times(2)).save(captor.capture());
+		assertThat(captor.getAllValues()).extracting(MemberTermConsent::getTermType)
+			.containsExactlyInAnyOrder(TermType.PRIVACY, TermType.AGE_OVER_14);
+		assertThat(existing.getVersionId()).isEqualTo("v0.9");
+		assertThat(existing.getDecidedAt()).isEqualTo(LocalDateTime.of(2026, 1, 1, 0, 0));
+	}
+
 	// 마케팅 상태 왕복 검증용 실제 회원(목이 아니라 setter가 필요함). id는 조회 파라미터로만 쓰여 별도 주입 불필요함.
 	private static Member activeMember() {
 		return Member.builder().role(Role.ROLE_USER).onboardingCompleted(false).build();
