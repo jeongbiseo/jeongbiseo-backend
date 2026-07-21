@@ -60,7 +60,8 @@ public class RecommendationController {
 					+ "항상 기수령을 제외함(받을 수 있는 금액 기준).")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "추천 리스트 조회 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400",
-					description = "잘못된 limit·includeReceived 파라미터(VALID400_0, 타입·형식 불일치) 또는 탈퇴 계정(MEMBER400_1)",
+					description = "잘못된 limit·includeReceived 파라미터(VALID400_0: limit이 0 이하이거나 타입·형식 불일치) "
+							+ "또는 탈퇴 계정(MEMBER400_1)",
 					content = @Content(mediaType = "application/json", examples = { @ExampleObject(name = "VALID400_0",
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"),
 							@ExampleObject(name = "MEMBER400_1",
