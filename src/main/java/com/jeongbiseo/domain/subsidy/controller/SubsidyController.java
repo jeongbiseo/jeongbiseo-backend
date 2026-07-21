@@ -72,7 +72,7 @@ public class SubsidyController {
 					+ "true면 마감분도 포함함 — 기수령 등 과거 공고를 찾는 화면은 true로 호출함.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "지원금 검색 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400",
-					description = "쿼리 파라미터 검증 실패(VALID400_0, page 음수 또는 page·size·sort 타입·허용값 불일치)",
+					description = "쿼리 파라미터 검증 실패(VALID400_0, page 음수 또는 page·size·sort·category·includeClosed 타입·허용값 불일치)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"))),
 			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
