@@ -52,14 +52,20 @@ public class RecommendationQueryService {
 	 * @param memberId 조회 대상 회원
 	 * @param limit 노출 개수(null이면 기본값, 정규화는 RecommendationService가 담당). 0 이하 거부는 컨트롤러의 HTTP
 	 * 검증이 먼저 처리함
+	 * @param includeReceived 기수령 지원금 포함 여부. true면 제외하지 않고 함께 노출함(중복허용). 예상 총액은 이 값과 무관하게
+	 * 항상 기수령을 제외함(EstimatedAmountService가 receivedIds를 그대로 씀)
 	 * @return 추천 항목·기준일·최신 갱신 시각을 담은 뷰
 	 */
 	// 조회 전용 유즈케이스라 readOnly 트랜잭션으로 묶어, 온보딩·기수령·후보·표시정보 여러 조회가 한 스냅샷에서 일관되게 읽히게 함(트랜잭션
 	// 경계는 유즈케이스를 조립하는 이 애플리케이션 서비스가 소유함).
 	@Transactional(readOnly = true)
-	public RecommendationView getRecommendations(Long memberId, Integer limit) {
+	public RecommendationView getRecommendations(Long memberId, Integer limit, boolean includeReceived) {
 		ApplicantContext ctx = resolveContext(memberId);
-		List<RecommendationItem> items = recommendationService.recommend(ctx.applicant(), ctx.receivedIds(), ctx.asOf(),
+		// includeReceived면 제외 집합을 비워 기수령도 후보에 남김. RecommendationService/Policy/Ranking은
+		// 무수정이고
+		// 제외 여부는 이 분기 한 줄로만 갈림(총액 경로는 이 분기를 타지 않아 항상 제외 유지).
+		Set<Long> excludeIds = includeReceived ? Set.of() : ctx.receivedIds();
+		List<RecommendationItem> items = recommendationService.recommend(ctx.applicant(), excludeIds, ctx.asOf(),
 				limit);
 		LocalDateTime dataUpdatedAt = subsidyReader.findLatestDataUpdatedAt();
 		return new RecommendationView(items, ctx.asOf(), dataUpdatedAt);

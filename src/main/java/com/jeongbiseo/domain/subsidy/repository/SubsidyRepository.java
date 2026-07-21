@@ -31,22 +31,79 @@ import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, SubsidyReader {
 
 	// 지원금 검색(API명세서 13번 searchSubsidies). 융자 상품은 항상 제외하고, keyword·category는 nullable로
-	// 처리함.
+	// 처리함. keyword 매칭은 공백 무시임 — 컬럼 쪽 replace(col, ' ', '')는 일반 띄어쓰기(U+0020)만 지우고
+	// (탭·전각 공백 U+3000은 안 지움), 키워드 쪽 공백 제거는 SubsidyService.search 진입부에서 1회 전처리함
+	// ("청년 월세"로 "청년월세"를 잡음).
+	// WHERE(loanProduct·keyword·category 3절)는
+	// search·searchOrderByDeadline·searchOrderByName 3벌이 동일하게 유지돼야 함 — 한 곳을 고치면 3곳(각
+	// main·count) 함께 고칠 것.
 	@Query(value = """
 			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
 			from SubsidyEntity s
 			where s.loanProduct = false
-			and (:keyword is null or s.name like concat('%', :keyword, '%') or s.agency like concat('%', :keyword, '%'))
+			and (:keyword is null
+				or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+				or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
 			and (:category is null or s.category = :category)
 			""",
 			countQuery = """
-					select count(s) from SubsidyEntity s
-					where s.loanProduct = false
-					and (:keyword is null or s.name like concat('%', :keyword, '%') or s.agency like concat('%', :keyword, '%'))
-					and (:category is null or s.category = :category)
-					""")
+						select count(s) from SubsidyEntity s
+						where s.loanProduct = false
+						and (:keyword is null
+					or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+					or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+						and (:category is null or s.category = :category)
+						""")
 	Page<SubsidySearchResult> search(@Param("keyword") String keyword, @Param("category") SubsidyCategory category,
 			Pageable pageable);
+
+	// sort=DEADLINE 정렬 검색. 마감일 미상(null)은 case 표현식으로 항상 뒤로 보냄(Pageable Sort로는 nulls last를
+	// 못 그려 order by를 본문에 명시함). WHERE·countQuery는 search와 동일하고 order by만 다름. Pageable은
+	// 페이지·크기만
+	// 실어 넘김(정렬 미포함).
+	@Query(value = """
+			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
+			from SubsidyEntity s
+			where s.loanProduct = false
+			and (:keyword is null
+				or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+				or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+			and (:category is null or s.category = :category)
+			order by case when s.deadline is null then 1 else 0 end, s.deadline asc, s.id asc
+			""",
+			countQuery = """
+						select count(s) from SubsidyEntity s
+						where s.loanProduct = false
+						and (:keyword is null
+					or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+					or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+						and (:category is null or s.category = :category)
+						""")
+	Page<SubsidySearchResult> searchOrderByDeadline(@Param("keyword") String keyword,
+			@Param("category") SubsidyCategory category, Pageable pageable);
+
+	// sort=NAME 정렬 검색. 가나다순은 DB 컬럼 collation에 의존함(utf8mb4 기본 collation은 현대 한글을 가나다순으로
+	// 정렬함). tie-breaker로 s.id asc를 붙여 동명 지원금의 페이지 경계 중복·누락을 막음.
+	@Query(value = """
+			select new com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult(s.id, s.name, s.agency, s.category, s.deadline)
+			from SubsidyEntity s
+			where s.loanProduct = false
+			and (:keyword is null
+				or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+				or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+			and (:category is null or s.category = :category)
+			order by s.name asc, s.id asc
+			""",
+			countQuery = """
+						select count(s) from SubsidyEntity s
+						where s.loanProduct = false
+						and (:keyword is null
+					or replace(s.name, ' ', '') like concat('%', :keyword, '%')
+					or replace(s.agency, ' ', '') like concat('%', :keyword, '%'))
+						and (:category is null or s.category = :category)
+						""")
+	Page<SubsidySearchResult> searchOrderByName(@Param("keyword") String keyword,
+			@Param("category") SubsidyCategory category, Pageable pageable);
 
 	// setReceivedSubsidies 존재 검증용. 요청 id 목록 중 실제 존재하는 개수를 세어 전부 존재하는지 판정함.
 	long countByIdIn(List<Long> ids);

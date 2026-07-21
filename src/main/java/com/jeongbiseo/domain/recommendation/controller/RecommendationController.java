@@ -55,7 +55,9 @@ public class RecommendationController {
 	@Operation(summary = "추천 리스트 조회",
 			description = "회원의 온보딩 프로필을 기준으로 개인 맞춤 추천 리스트를 조회함. 온보딩 미완료면 404, 탈퇴 계정이면 400으로 거절함. "
 					+ "대출·융자 상품과 마감된 공고는 추천 모집단에서 제외함. 거주 지역이 다른 공고는 탈락시키지 않고 정렬 후순위로 내림. "
-					+ "각 항목의 matchScore는 0에서 5 사이 정수이며 통과한 매칭 축의 개수임(백분율이 아님).")
+					+ "각 항목의 matchScore는 0에서 5 사이 정수이며 통과한 매칭 축의 개수임(백분율이 아님). "
+					+ "includeReceived는 생략하면 true이고, false면 이미 받은 지원금을 추천에서 제외함. 예상 총액은 이 값과 무관하게 "
+					+ "항상 기수령을 제외함(받을 수 있는 금액 기준).")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "추천 리스트 조회 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400", description = "잘못된 limit 파라미터(VALID400_0) 또는 탈퇴 계정(MEMBER400_1)",
 					content = @Content(mediaType = "application/json", examples = { @ExampleObject(name = "VALID400_0",
@@ -76,10 +78,12 @@ public class RecommendationController {
 	@GetMapping
 	public CustomResponse<RecommendationResponse> getRecommendations(
 			@Parameter(description = "노출 개수(선택). 생략하면 3이고, 20을 넘기면 20으로 줄임. 0 이하는 400으로 거절함",
-					example = "3") @RequestParam(required = false) Integer limit) {
+					example = "3") @RequestParam(required = false) Integer limit,
+			@Parameter(description = "기수령 지원금 포함 여부(선택). 생략하면 true(포함), false면 이미 받은 지원금을 추천에서 제외함",
+					example = "true") @RequestParam(defaultValue = "true") boolean includeReceived) {
 		validateLimit(limit);
 		Long memberId = memberResolver.resolveMemberId();
-		RecommendationView view = recommendationQueryService.getRecommendations(memberId, limit);
+		RecommendationView view = recommendationQueryService.getRecommendations(memberId, limit, includeReceived);
 
 		List<RecommendationItemResponse> responseItems = view.items()
 			.stream()
