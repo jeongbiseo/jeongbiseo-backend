@@ -1,5 +1,6 @@
 package com.jeongbiseo.domain.consent.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,5 +18,10 @@ public interface MemberTermConsentRepository extends JpaRepository<MemberTermCon
 	 * traverse됨(MemberTermConsent에 memberId 필드 없음).
 	 */
 	Optional<MemberTermConsent> findByMemberIdAndTermType(Long memberId, TermType termType);
+
+	/**
+	 * 회원의 전체 항목 동의를 조회함(마이페이지 약관 조회용). 항목당 최대 1건이라 항목 수만큼만 반환됨.
+	 */
+	List<MemberTermConsent> findByMemberId(Long memberId);
 
 }

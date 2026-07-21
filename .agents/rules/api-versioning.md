@@ -13,11 +13,11 @@
 
 ## 2. 컨트롤러 경로 매핑
 
-각 컨트롤러 클래스에 `@RequestMapping("/api/v1/...")`을 두고, 메소드 매핑(`@GetMapping` 등)은 상대 경로만 씀. 엔드포인트는 아래 8개 컨트롤러로 나뉨(operationId 정본은 API명세서). 명세서 한눈에 보기 표의 번호는 20까지 가지만 **결번이 2개**라 실제 계약은 18개임. 2번(socialCallback)은 방식 B 전환(명세서 v1.11)으로, 3번(checkNickname)은 실명 수집 확정(명세서 v1.4)으로 각각 폐기됨. 번호를 당기지 않고 결번으로 남기는 이유는 기능ID·RTM·프론트 문서의 기존 참조가 깨지기 때문임.
+각 컨트롤러 클래스에 `@RequestMapping("/api/v1/...")`을 두고, 메소드 매핑(`@GetMapping` 등)은 상대 경로만 씀. 엔드포인트는 아래 9개 컨트롤러로 나뉨(operationId 정본은 API명세서). 명세서 한눈에 보기 표의 번호는 25까지 가지만 **결번이 2개**라 실제 계약은 23개임. 2번(socialCallback)은 방식 B 전환(명세서 v1.11)으로, 3번(checkNickname)은 실명 수집 확정(명세서 v1.4)으로 각각 폐기됨. 번호를 당기지 않고 결번으로 남기는 이유는 기능ID·RTM·프론트 문서의 기존 참조가 깨지기 때문임.
 
 2026-07-19에 **getMe(`GET /api/v1/members/me`, 명세서 21번)를 신설**함(v1.12). 프론트가 앱 시작·새로고침 직후 로그인 상태와 회원 정보를 복구할 경로가 없었기 때문임 — getMyOnboarding은 온보딩 프로필 레코드 존재 여부로 판정해 온보딩 전 회원에게 ONB404_1을 던지고, reissue 응답은 `accessToken` 하나뿐임. getMe는 `Member.onboardingCompleted` 플래그를 그대로 실어 온보딩 전 회원도 200으로 반환함. 따라서 아래 개수 서술은 계약 19개로 갱신됨(구현 수는 다음 문단 참조).
 
-엔드포인트 개수는 **계약 21개, 구현 20개**임(2026-07-21 배포본 `/v3/api-docs` 실측, 명세서 v1.20). 미구현은 `getSubsidyCategories` 1개뿐이며 카테고리 매핑 기준(DEC-15) 팀 확정 대기로 막혀 있음. addFavorite·removeFavorite는 2026-07-20에, getFavorites(22번)·getReceivedSubsidies(23번)는 2026-07-21에 구현·배포됨. 검색(searchSubsidies)에 `sort`(DEADLINE·NAME)·공백 무시 매칭·마감 제외(`includeClosed` 기본 false, 상시 모집은 항상 포함), 추천(getRecommendations)에 `includeReceived`(기본 true) 파라미터가 2026-07-21에 추가됨(하위호환, 엔드포인트 개수 불변).
+엔드포인트 개수는 **계약 23개, 구현 22개**임(2026-07-22 기준, 명세서 v1.22). 미구현은 `getSubsidyCategories` 1개뿐이며 카테고리 매핑 기준(DEC-15) 팀 확정 대기로 막혀 있음. addFavorite·removeFavorite는 2026-07-20에, getFavorites(22번)·getReceivedSubsidies(23번)는 2026-07-21에 구현·배포됨. 마이페이지 약관 조회(getMyTermConsents, 24번)와 마케팅 수신 동의 변경(updateMarketingConsent, 25번)은 2026-07-22에 신설·구현됨(ConsentController, `/api/v1/members/me/terms`, v1.22). 검색(searchSubsidies)에 `sort`(DEADLINE·NAME)·공백 무시 매칭·마감 제외(`includeClosed` 기본 false, 상시 모집은 항상 포함), 추천(getRecommendations)에 `includeReceived`(기본 true) 파라미터가 2026-07-21에 추가됨(하위호환, 엔드포인트 개수 불변).
 
 > 2026-07-19까지 이 절은 "계약 18개, 구현 15개"로 적혀 있었고 바로 위 문단의 19/16과 서로 모순이었음. 방식 A 폐기로 auth가 4개에서 3개로 줄어든 것을 계약 총수에서 한 번 더 뺀 중복 차감이 원인임. **결번 2개(2번 socialCallback, 3번 checkNickname)를 뺀 뒤의 값이 19이므로 거기서 또 빼지 말 것.**
 
@@ -31,6 +31,7 @@
 | RecommendationController | `/api/v1/recommendations` | getRecommendations |
 | CalendarController | `/api/v1/calendar` | getDeadlineCalendar |
 | EstimatedAmountController | `/api/v1/estimated-total` | getEstimatedTotal, getEstimatedBreakdown |
+| ConsentController | `/api/v1/members/me/terms` | getMyTermConsents, updateMarketingConsent |
 
 매핑 예시:
 
@@ -73,7 +74,7 @@ public class MemberController {
 
 - 인증 방식 재결정(2026-07-09, 소셜 전용)으로 signUp과 D1 결정(회원가입은 회원 자원 생성이라 `POST /api/v1/members`에 둠)은 폐기됨. 소셜 첫 로그인 시 자동 가입이라 별도 회원가입 엔드포인트 자체가 없음.
 - 실명 수집 확정(2026-07-13, 명세서 v1.4)으로 닉네임 도메인이 소멸함. checkNickname 엔드포인트와 `GET /api/v1/members/nickname/check` 경로는 없음. `Member`는 `name`을 가지며 UNIQUE 제약이 없음(동명이인 허용).
-- "내 ~" 자원은 `/me` 세그먼트를 씀(getMyOnboarding, updateMyOnboarding, deleteMember). `/me` 패턴은 members·auth 도메인에만 허용함. 다른 도메인(subsidies, recommendations, calendar 등)은 `/me`를 쓰지 않음. 알림 설정 조회·변경(getNotificationSetting, updateNotificationSetting)은 2026-07-09 알림 제거 결정으로 소멸함.
+- "내 ~" 자원은 `/me` 세그먼트를 씀(getMyOnboarding, updateMyOnboarding, deleteMember, 그리고 마이페이지 약관의 getMyTermConsents·updateMarketingConsent). `/me` 패턴은 members 경로 공간(members·auth 도메인, 그리고 consent 도메인이 서비스하는 `/api/v1/members/me/terms`)에만 허용함 — 경로가 members 공간이면 컨트롤러가 다른 도메인이어도 무방함. 다른 경로 공간(subsidies, recommendations, calendar 등)은 `/me`를 쓰지 않음. 알림 설정 조회·변경(getNotificationSetting, updateNotificationSetting)은 2026-07-09 알림 제거 결정으로 소멸함.
 
 기각한 방식: `WebMvcConfigurer`의 `configurePathMatch(... addPathPrefix("/api/v1", ...))`로 접두사를 일괄 주입하는 방식은 쓰지 않음. 이유는 세 가지임. 첫째, 소스에서 `grep`으로 실제 경로가 안 보여 점검(5절)이 무력화됨. 둘째, 참고 레포 관례가 클래스 레벨 명시 매핑임. 셋째, 컨트롤러별 예외(버전 혼재 등)를 두기 어려움.
 

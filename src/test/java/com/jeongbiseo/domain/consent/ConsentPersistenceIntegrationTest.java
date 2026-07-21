@@ -80,6 +80,20 @@ class ConsentPersistenceIntegrationTest {
 			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 
+	@Test
+	void 마케팅_동의_컬럼이_실제_DB에_flush된다() {
+		Member member = memberRepository.save(Member.builder().role(Role.ROLE_USER).onboardingCompleted(true).build());
+		member.updateMarketingConsent(true, LocalDateTime.of(2026, 7, 16, 9, 0));
+
+		// flush가 예외 없이 통과하면 marketing_consent·marketing_consent_updated_at 컬럼 매핑이 실제
+		// MySQL과 정합함
+		memberRepository.saveAndFlush(member);
+
+		assertThat(memberRepository.findById(member.getId())).get()
+			.extracting(Member::isMarketingConsent, Member::getMarketingConsentUpdatedAt)
+			.containsExactly(true, LocalDateTime.of(2026, 7, 16, 9, 0));
+	}
+
 	private static MemberTermConsent consentOf(Member member, String versionId) {
 		return MemberTermConsent.builder()
 			.member(member)
