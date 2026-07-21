@@ -1,5 +1,6 @@
 package com.jeongbiseo.domain.favorite.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,7 @@ import com.jeongbiseo.domain.favorite.repository.FavoriteRepository;
 import com.jeongbiseo.domain.member.entity.Member;
 import com.jeongbiseo.domain.member.entity.Role;
 import com.jeongbiseo.domain.member.repository.MemberRepository;
+import com.jeongbiseo.domain.subsidy.dto.SubsidySearchResult;
 import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 import com.jeongbiseo.domain.subsidy.repository.SubsidyRepository;
 import com.jeongbiseo.global.apiPayload.code.FavoriteErrorCode;
@@ -128,6 +130,22 @@ class FavoriteServiceTest {
 		given(favoriteRepository.existsByMemberIdAndSubsidyId(MEMBER_ID, SUBSIDY_ID)).willReturn(true);
 
 		assertThat(favoriteService.isFavorite(MEMBER_ID, SUBSIDY_ID)).isTrue();
+	}
+
+	@Test
+	void getFavorites_리포지토리결과를_그대로_반환한다() {
+		List<SubsidySearchResult> favorites = List.of(new SubsidySearchResult(10L, "청년 월세 특별지원", null, null, null),
+				new SubsidySearchResult(11L, "청년 구직활동 지원금", null, null, null));
+		given(favoriteRepository.findFavoriteSubsidies(MEMBER_ID)).willReturn(favorites);
+
+		assertThat(favoriteService.getFavorites(MEMBER_ID)).isEqualTo(favorites);
+	}
+
+	@Test
+	void getFavorites_없으면_빈목록을_반환한다() {
+		given(favoriteRepository.findFavoriteSubsidies(MEMBER_ID)).willReturn(List.of());
+
+		assertThat(favoriteService.getFavorites(MEMBER_ID)).isEmpty();
 	}
 
 	private static void assertErrorCode(org.assertj.core.api.ThrowableAssert.ThrowingCallable callable,

@@ -9,8 +9,10 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.jeongbiseo.domain.onboarding.dto.response.ReceivedSubsidyItem;
 import com.jeongbiseo.domain.onboarding.entity.ReceivedSubsidy;
 import com.jeongbiseo.domain.onboarding.repository.ReceivedSubsidyRepository;
+import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 import com.jeongbiseo.domain.subsidy.repository.SubsidyRepository;
 import com.jeongbiseo.global.apiPayload.code.SubsidyErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
@@ -93,6 +95,40 @@ class ReceivedSubsidyServiceTest {
 		assertThat(entitiesCaptor.getValue()).hasSize(2)
 			.extracting(ReceivedSubsidy::getSubsidyId)
 			.containsExactlyInAnyOrder(1L, 2L);
+	}
+
+	@Test
+	void findReceivedSubsidies_id와_이름을_원래순서로_반환한다() {
+		given(receivedSubsidyRepository.findSubsidyIdsByMemberId(10L)).willReturn(List.of(2L, 1L));
+		// findAllById는 입력 순서를 보장하지 않으므로 뒤섞인 순서로 돌려줘도 결과가 원래 id 순서(2,1)로 재구성됨을 고정함.
+		given(subsidyRepository.findAllById(List.of(2L, 1L)))
+			.willReturn(List.of(SubsidyEntity.builder().id(1L).name("청년 구직활동 지원금").build(),
+					SubsidyEntity.builder().id(2L).name("청년 월세 특별지원").build()));
+
+		List<ReceivedSubsidyItem> result = receivedSubsidyService.findReceivedSubsidies(10L);
+
+		assertThat(result).containsExactly(new ReceivedSubsidyItem(2L, "청년 월세 특별지원"),
+				new ReceivedSubsidyItem(1L, "청년 구직활동 지원금"));
+	}
+
+	@Test
+	void findReceivedSubsidies_없으면_조회없이_빈목록을_반환한다() {
+		given(receivedSubsidyRepository.findSubsidyIdsByMemberId(10L)).willReturn(List.of());
+
+		assertThat(receivedSubsidyService.findReceivedSubsidies(10L)).isEmpty();
+		verify(subsidyRepository, never()).findAllById(any());
+	}
+
+	@Test
+	void findReceivedSubsidies_참조가_사라진id는_제외한다() {
+		given(receivedSubsidyRepository.findSubsidyIdsByMemberId(10L)).willReturn(List.of(1L, 2L));
+		// 2L 지원금이 삭제돼 findAllById가 1L만 돌려주는 경우, 결과에서 2L을 방어적으로 제외함.
+		given(subsidyRepository.findAllById(List.of(1L, 2L)))
+			.willReturn(List.of(SubsidyEntity.builder().id(1L).name("청년 구직활동 지원금").build()));
+
+		List<ReceivedSubsidyItem> result = receivedSubsidyService.findReceivedSubsidies(10L);
+
+		assertThat(result).containsExactly(new ReceivedSubsidyItem(1L, "청년 구직활동 지원금"));
 	}
 
 }

@@ -78,6 +78,20 @@ class SubsidyControllerTest {
 	}
 
 	@Test
+	void getFavorites_200과_관심목록_totalCount를_반환한다() throws Exception {
+		// /favorites가 /{subsidyId}(getSubsidyDetail)로 새지 않고 getFavorites로 매핑되는지도 함께 고정함.
+		given(memberResolver.resolveMemberId()).willReturn(1L);
+		given(favoriteService.getFavorites(1L)).willReturn(List
+			.of(new SubsidySearchResult(10L, "청년 월세 특별지원", "국토교통부", SubsidyCategory.YOUTH, LocalDate.of(2026, 8, 1))));
+
+		mockMvc.perform(get("/api/v1/subsidies/favorites"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.result.content[0].subsidyId").value(10))
+			.andExpect(jsonPath("$.result.totalCount").value(1));
+	}
+
+	@Test
 	void searchSubsidies_keyword와_category가_서비스로_전달된다() throws Exception {
 		given(subsidyService.search(any(), any(), any()))
 			.willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));

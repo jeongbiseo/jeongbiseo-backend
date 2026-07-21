@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jeongbiseo.domain.common.enums.SubsidyCategory;
+import com.jeongbiseo.domain.favorite.dto.FavoriteListResponse;
 import com.jeongbiseo.domain.favorite.dto.FavoriteResponse;
 import com.jeongbiseo.domain.favorite.service.FavoriteService;
 import com.jeongbiseo.domain.subsidy.dto.SubsidyDetailResponse;
@@ -83,6 +84,20 @@ public class SubsidyController {
 		// id 오름차순 안정 정렬을 고정해 페이지 간 중복·누락을 막음(정렬 없으면 반환 순서 비결정)
 		Pageable pageable = PageRequest.of(page, effectiveSize, Sort.by(Sort.Direction.ASC, "id"));
 		return CustomResponse.ok(SubsidyPageResponse.from(subsidyService.search(keyword, category, pageable)));
+	}
+
+	// /favorites는 리터럴 세그먼트라 아래 /{subsidyId} 경로 변수보다 우선 매칭됨(경로 충돌 없음).
+	@Operation(summary = "관심 목록 조회",
+			description = "현재 회원의 관심 등록 지원금 목록을 최근 등록순으로 반환함. 아이템은 검색 결과와 동일 스키마임. "
+					+ "목록의 하트 상태는 이 응답의 subsidyId 집합으로 클라이언트가 대조함(목록 아이템에 isFavorite 필드를 두지 않음).")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "관심 목록 조회 성공", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
+							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))) })
+	@GetMapping("/favorites")
+	public CustomResponse<FavoriteListResponse> getFavorites() {
+		return CustomResponse
+			.ok(FavoriteListResponse.from(favoriteService.getFavorites(memberResolver.resolveMemberId())));
 	}
 
 	@Operation(summary = "지원금 상세 조회",

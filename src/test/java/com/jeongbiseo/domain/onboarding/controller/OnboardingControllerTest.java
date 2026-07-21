@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.jeongbiseo.domain.common.enums.EmploymentStatus;
 import com.jeongbiseo.domain.member.entity.Member;
 import com.jeongbiseo.domain.member.entity.Role;
+import com.jeongbiseo.domain.onboarding.dto.response.ReceivedSubsidyItem;
 import com.jeongbiseo.domain.onboarding.entity.OnboardingProfile;
 import com.jeongbiseo.domain.onboarding.service.OnboardingService;
 import com.jeongbiseo.domain.onboarding.service.ReceivedSubsidyService;
@@ -25,6 +26,7 @@ import com.jeongbiseo.global.security.FixedMemberResolver;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -174,6 +176,29 @@ class OnboardingControllerTest {
 				.content("{\"subsidyIds\":[999]}"))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("SUBSIDY404_1"));
+	}
+
+	@Test
+	void getReceivedSubsidies_200과_기수령목록_totalCount를_반환한다() throws Exception {
+		given(receivedSubsidyService.findReceivedSubsidies(anyLong()))
+			.willReturn(List.of(new ReceivedSubsidyItem(1L, "청년 월세 특별지원")));
+
+		mockMvc.perform(get("/api/v1/onboarding/received-subsidies"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.result.content[0].subsidyId").value(1))
+			.andExpect(jsonPath("$.result.content[0].name").value("청년 월세 특별지원"))
+			.andExpect(jsonPath("$.result.totalCount").value(1));
+	}
+
+	@Test
+	void getReceivedSubsidies_없으면_200과_빈목록을_반환한다() throws Exception {
+		given(receivedSubsidyService.findReceivedSubsidies(anyLong())).willReturn(List.of());
+
+		mockMvc.perform(get("/api/v1/onboarding/received-subsidies"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result.content").isEmpty())
+			.andExpect(jsonPath("$.result.totalCount").value(0));
 	}
 
 }
