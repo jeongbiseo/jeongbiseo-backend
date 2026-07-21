@@ -1,4 +1,4 @@
-> 출처: campus-hackathon-2026/.agents/rules/api-versioning.md — 정본 갱신 시 동기화함(최근 동기화 2026-07-20)
+> 출처: campus-hackathon-2026/.agents/rules/api-versioning.md — 정본 갱신 시 동기화함(최근 동기화 2026-07-21)
 
 # API 버전화 규칙 (정비서, campus-hackathon-2026)
 
@@ -17,7 +17,7 @@
 
 2026-07-19에 **getMe(`GET /api/v1/members/me`, 명세서 21번)를 신설**함(v1.12). 프론트가 앱 시작·새로고침 직후 로그인 상태와 회원 정보를 복구할 경로가 없었기 때문임 — getMyOnboarding은 온보딩 프로필 레코드 존재 여부로 판정해 온보딩 전 회원에게 ONB404_1을 던지고, reissue 응답은 `accessToken` 하나뿐임. getMe는 `Member.onboardingCompleted` 플래그를 그대로 실어 온보딩 전 회원도 200으로 반환함. 따라서 아래 개수 서술은 계약 19개로 갱신됨(구현 수는 다음 문단 참조).
 
-엔드포인트 개수는 **계약 19개, 구현 18개**임(2026-07-20 배포본 `/v3/api-docs` 실측). 미구현은 `getSubsidyCategories` 1개뿐이며 카테고리 매핑 기준(DEC-15) 팀 확정 대기로 막혀 있음. addFavorite·removeFavorite는 2026-07-20에 구현·배포됨.
+엔드포인트 개수는 **계약 21개, 구현 20개**임(2026-07-21 배포본 `/v3/api-docs` 실측, 명세서 v1.20). 미구현은 `getSubsidyCategories` 1개뿐이며 카테고리 매핑 기준(DEC-15) 팀 확정 대기로 막혀 있음. addFavorite·removeFavorite는 2026-07-20에, getFavorites(22번)·getReceivedSubsidies(23번)는 2026-07-21에 구현·배포됨. 검색(searchSubsidies)에 `sort`(DEADLINE·NAME)·공백 무시 매칭·마감 제외(`includeClosed` 기본 false, 상시 모집은 항상 포함), 추천(getRecommendations)에 `includeReceived`(기본 true) 파라미터가 2026-07-21에 추가됨(하위호환, 엔드포인트 개수 불변).
 
 > 2026-07-19까지 이 절은 "계약 18개, 구현 15개"로 적혀 있었고 바로 위 문단의 19/16과 서로 모순이었음. 방식 A 폐기로 auth가 4개에서 3개로 줄어든 것을 계약 총수에서 한 번 더 뺀 중복 차감이 원인임. **결번 2개(2번 socialCallback, 3번 checkNickname)를 뺀 뒤의 값이 19이므로 거기서 또 빼지 말 것.**
 
@@ -25,9 +25,9 @@
 |---|---|---|
 | AuthController | `/api/v1/auth` | login, reissue, logOut |
 | MemberController | `/api/v1/members` | getMe, getMyOnboarding, updateMyOnboarding, deleteMember |
-| OnboardingController | `/api/v1/onboarding` | submitOnboarding, setReceivedSubsidies |
+| OnboardingController | `/api/v1/onboarding` | submitOnboarding, setReceivedSubsidies, getReceivedSubsidies |
 | RegionController | `/api/v1/regions` | getRegions |
-| SubsidyController | `/api/v1/subsidies` | getSubsidyCategories, searchSubsidies, getSubsidyDetail, addFavorite, removeFavorite |
+| SubsidyController | `/api/v1/subsidies` | getSubsidyCategories, searchSubsidies, getFavorites, getSubsidyDetail, addFavorite, removeFavorite |
 | RecommendationController | `/api/v1/recommendations` | getRecommendations |
 | CalendarController | `/api/v1/calendar` | getDeadlineCalendar |
 | EstimatedAmountController | `/api/v1/estimated-total` | getEstimatedTotal, getEstimatedBreakdown |
