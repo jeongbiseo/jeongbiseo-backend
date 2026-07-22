@@ -247,6 +247,8 @@ class RecommendationPolicyTest {
 		assertThat(result.uncomputableReasons()).containsExactly(EligibilityReason.AGE_CONDITION_UNKNOWN,
 				EligibilityReason.EMPLOYMENT_CONDITION_UNKNOWN, EligibilityReason.INCOME_CONDITION_UNKNOWN,
 				EligibilityReason.HOUSEHOLD_CONDITION_UNKNOWN);
+		// UNKNOWN은 통과이되 확인은 아님 — confirmedMatchCount에 안 셈
+		assertThat(result.confirmedMatchCount()).isZero();
 	}
 
 	@Test
@@ -259,6 +261,8 @@ class RecommendationPolicyTest {
 
 		assertThat(result.matched()).isTrue();
 		assertThat(result.uncomputableReasons()).isEmpty();
+		// UNRESTRICTED(제약 없음)는 통과이되 확인은 아님 — confirmedMatchCount에 안 셈
+		assertThat(result.confirmedMatchCount()).isZero();
 	}
 
 	@Test
@@ -274,6 +278,8 @@ class RecommendationPolicyTest {
 				EligibilityReason.EMPLOYMENT_CONDITION_DETAILS_MISSING,
 				EligibilityReason.INCOME_CONDITION_DETAILS_MISSING,
 				EligibilityReason.HOUSEHOLD_CONDITION_DETAILS_MISSING);
+		// RESTRICTED이나 세부기준이 없어 판단 보류(DETAILS_MISSING) — 확인이 아니므로 안 셈
+		assertThat(result.confirmedMatchCount()).isZero();
 	}
 
 	@Test
@@ -286,6 +292,43 @@ class RecommendationPolicyTest {
 
 		assertThat(result.matched()).isFalse();
 		assertThat(result.matchScore()).isEqualTo(2);
+	}
+
+	@Test
+	void confirmedMatchCount_countsFourRestrictedConfirmedAxes_excludingRegion() {
+		// 4축 전부 RESTRICTED 세부기준 있고 사용자 정보로 통과 확인 — 확인 4. 지역은 별도 축이라 상한이 5가 아니라 4임
+		SubsidyCriteria criteria = eligibilityCriteria(EligibilitySignal.RESTRICTED, 19, 34,
+				EligibilitySignal.RESTRICTED, "JOB_SEEKING", "0013011", EligibilitySignal.RESTRICTED, 2_000_000L,
+				EligibilitySignal.RESTRICTED, "1인 가구");
+
+		MatchResult result = policy.evaluate(applicant(), criteria);
+
+		assertThat(result.matched()).isTrue();
+		assertThat(result.confirmedMatchCount()).isEqualTo(4);
+	}
+
+	@Test
+	void confirmedMatchCount_excludesUserInfoMissingPass() {
+		// 연령만 RESTRICTED 확인(1), 소득은 RESTRICTED 세부기준 있으나 신청자 소득 null이라 INCOME_MISSING으로 통과
+		// —
+		// 확인 아님. 고용·가구는 UNRESTRICTED라 확인 아님. 총 확인 1
+		SubsidyCriteria criteria = eligibilityCriteria(EligibilitySignal.RESTRICTED, 19, 34,
+				EligibilitySignal.UNRESTRICTED, null, "0013011", EligibilitySignal.RESTRICTED, 2_000_000L,
+				EligibilitySignal.UNRESTRICTED, null);
+		ApplicantProfile incomeUnknown = new ApplicantProfile(27, "11620", EmploymentStatus.JOB_SEEKING, null, 1);
+
+		MatchResult result = policy.evaluate(incomeUnknown, criteria);
+
+		assertThat(result.matched()).isTrue();
+		assertThat(result.uncomputableReasons()).contains(EligibilityReason.INCOME_MISSING);
+		assertThat(result.confirmedMatchCount()).isEqualTo(1);
+	}
+
+	@Test
+	void qualificationUncertainty_trueForQualificationAxis_falseForAmount() {
+		// 자격 축 사유는 "추가 확인 필요"에 셈, 금액 축 사유(AMOUNT_INFO_MISSING)만 제외함
+		assertThat(EligibilityReason.INCOME_MISSING.qualificationUncertainty()).isTrue();
+		assertThat(EligibilityReason.AMOUNT_INFO_MISSING.qualificationUncertainty()).isFalse();
 	}
 
 	private static SubsidyCriteria eligibilityCriteria(EligibilitySignal ageSignal, Integer ageMin, Integer ageMax,

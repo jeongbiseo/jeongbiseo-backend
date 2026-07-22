@@ -94,8 +94,9 @@ class RegionDemotionTest {
 
 	@Test
 	void 정렬_강등건은_마감이_임박해도_비강등건보다_뒤에_온다() {
-		MatchResult demoted = new MatchResult(1L, true, true, 5, List.of(), LocalDate.of(2026, 7, 18), "gov24", "D1");
-		MatchResult notDemoted = new MatchResult(2L, false, true, 5, List.of(), LocalDate.of(2026, 8, 1), "gov24",
+		MatchResult demoted = new MatchResult(1L, true, true, 5, 0, List.of(), LocalDate.of(2026, 7, 18), "gov24",
+				"D1");
+		MatchResult notDemoted = new MatchResult(2L, false, true, 5, 0, List.of(), LocalDate.of(2026, 8, 1), "gov24",
 				"N1");
 
 		List<MatchResult> sorted = new ArrayList<>(List.of(demoted, notDemoted));

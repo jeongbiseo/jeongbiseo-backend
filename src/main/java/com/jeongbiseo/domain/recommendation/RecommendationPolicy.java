@@ -77,8 +77,13 @@ public final class RecommendationPolicy {
 		int score = matchScore(ageOutcome.passed(), regionMatched, employmentOutcome.passed(), incomeOutcome.passed(),
 				houseOutcome.passed());
 
-		return new MatchResult(criteria.subsidyId(), demoted, matched, score, List.copyOf(reasons), criteria.deadline(),
-				criteria.sourceId(), criteria.externalId());
+		// confirmedMatchCount는 지역을 뺀 4축 중 RESTRICTED 세부기준을 사용자 정보로 통과 확인한 개수임(지역은
+		// regionDemoted 축으로 이미 반영이라 이중 가중 제외).
+		int confirmedMatchCount = (ageOutcome.confirmed() ? 1 : 0) + (employmentOutcome.confirmed() ? 1 : 0)
+				+ (incomeOutcome.confirmed() ? 1 : 0) + (houseOutcome.confirmed() ? 1 : 0);
+
+		return new MatchResult(criteria.subsidyId(), demoted, matched, score, confirmedMatchCount, List.copyOf(reasons),
+				criteria.deadline(), criteria.sourceId(), criteria.externalId());
 	}
 
 	/**
@@ -103,7 +108,7 @@ public final class RecommendationPolicy {
 			case UNKNOWN -> new ConditionOutcome(true, EligibilityReason.AGE_CONDITION_UNKNOWN);
 			case RESTRICTED ->
 				min == null && max == null ? new ConditionOutcome(true, EligibilityReason.AGE_CONDITION_DETAILS_MISSING)
-						: new ConditionOutcome(matchAge(age, min, max), null);
+						: asConfirmed(new ConditionOutcome(matchAge(age, min, max), null));
 		};
 	}
 
@@ -189,7 +194,7 @@ public final class RecommendationPolicy {
 			case UNKNOWN -> new ConditionOutcome(true, EligibilityReason.EMPLOYMENT_CONDITION_UNKNOWN);
 			case RESTRICTED -> tagsCsv == null || tagsCsv.isBlank()
 					? new ConditionOutcome(true, EligibilityReason.EMPLOYMENT_CONDITION_DETAILS_MISSING)
-					: new ConditionOutcome(matchEmployment(status, tagsCsv), null);
+					: asConfirmed(new ConditionOutcome(matchEmployment(status, tagsCsv), null));
 		};
 	}
 
@@ -224,7 +229,7 @@ public final class RecommendationPolicy {
 			case UNKNOWN -> new ConditionOutcome(true, EligibilityReason.INCOME_CONDITION_UNKNOWN);
 			case RESTRICTED ->
 				incomeThreshold == null ? new ConditionOutcome(true, EligibilityReason.INCOME_CONDITION_DETAILS_MISSING)
-						: matchIncome(bracket, incomeThreshold);
+						: asConfirmed(matchIncome(bracket, incomeThreshold));
 		};
 	}
 
@@ -266,7 +271,7 @@ public final class RecommendationPolicy {
 			case UNKNOWN -> new ConditionOutcome(true, EligibilityReason.HOUSEHOLD_CONDITION_UNKNOWN);
 			case RESTRICTED -> householdCondition == null || householdCondition.isBlank()
 					? new ConditionOutcome(true, EligibilityReason.HOUSEHOLD_CONDITION_DETAILS_MISSING)
-					: matchHousehold(householdSize, householdCondition);
+					: asConfirmed(matchHousehold(householdSize, householdCondition));
 		};
 	}
 
@@ -283,6 +288,12 @@ public final class RecommendationPolicy {
 		if (outcome.reason() != null) {
 			reasons.add(outcome.reason());
 		}
+	}
+
+	// RESTRICTED 세부 비교 통과를 확인 상태로 승격함. INCOME_MISSING·HOUSEHOLD_UNDETERMINED처럼 사용자 정보 부재로
+	// 통과한 경우(reason 있음)나 탈락은 승격 안 됨(confirmed false).
+	private static ConditionOutcome asConfirmed(ConditionOutcome outcome) {
+		return new ConditionOutcome(outcome.passed(), outcome.reason(), outcome.passed() && outcome.reason() == null);
 	}
 
 	// ponytail: matchScore 산식은 계약에 산식이 없어 5조건 중 통과 개수의 단순 가중합(각 1점,
@@ -318,9 +329,15 @@ public final class RecommendationPolicy {
 	 *
 	 * @param passed 매칭 통과 여부(미입력이어도 항상 true)
 	 * @param reason 산정불가 사유(산정 가능하면 null)
+	 * @param confirmed 지원금이 명시한 제한(RESTRICTED)을 세부기준 있는 채로 사용자 정보로 통과 확인했는지임. 제약
+	 * 없음·불명·세부기준 부재·사용자 정보 미입력 통과는 false임(confirmedMatchCount 재료)
 	 */
-	record ConditionOutcome(boolean passed, EligibilityReason reason) {
+	record ConditionOutcome(boolean passed, EligibilityReason reason, boolean confirmed) {
 
+		// 기존 2인자 생성 지점(UNRESTRICTED·UNKNOWN·레거시 경로) 호환용임. confirmed는 false 고정임
+		ConditionOutcome(boolean passed, EligibilityReason reason) {
+			this(passed, reason, false);
+		}
 	}
 
 }

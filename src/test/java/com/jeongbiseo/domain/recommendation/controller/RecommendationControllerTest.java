@@ -75,7 +75,7 @@ class RecommendationControllerTest {
 		LocalDate asOf = LocalDate.of(2026, 7, 16);
 		SubsidySummary summary = new SubsidySummary(1L, "청년월세지원", "국토교통부", asOf.plusDays(10), "만 19~34세 청년", 100_000L,
 				200_000L, PaymentType.CASH);
-		MatchResult matchResult = new MatchResult(1L, false, true, 5, List.of(EligibilityReason.INCOME_MISSING),
+		MatchResult matchResult = new MatchResult(1L, false, true, 5, 2, List.of(EligibilityReason.INCOME_MISSING),
 				asOf.plusDays(10), "gov24", "EXT-1");
 		RecommendationItem item = new RecommendationItem(summary, matchResult);
 		RecommendationView view = new RecommendationView(List.of(item), asOf, LocalDateTime.of(2026, 7, 15, 12, 0));
@@ -92,7 +92,10 @@ class RecommendationControllerTest {
 			.andExpect(jsonPath("$.result.items[0].matchScore").value(5))
 			.andExpect(jsonPath("$.result.items[0].uncomputable").value(true))
 			.andExpect(jsonPath("$.result.items[0].uncomputableReasons[0]")
-				.value(EligibilityReason.INCOME_MISSING.getMessage()));
+				.value(EligibilityReason.INCOME_MISSING.getMessage()))
+			.andExpect(jsonPath("$.result.items[0].confirmedMatchCount").value(2))
+			// INCOME_MISSING은 자격 축 사유라 추가 확인 필요 1건으로 셈
+			.andExpect(jsonPath("$.result.items[0].unverifiedConditionCount").value(1));
 	}
 
 	@Test
@@ -122,7 +125,7 @@ class RecommendationControllerTest {
 		LocalDate asOf = LocalDate.of(2026, 7, 16);
 		SubsidySummary summary = new SubsidySummary(2L, "상시접수 지원금", "고용노동부", null, "제한 없음", null, null,
 				PaymentType.VOUCHER);
-		MatchResult matchResult = new MatchResult(2L, false, true, 3, List.of(), null, "gov24", "EXT-2");
+		MatchResult matchResult = new MatchResult(2L, false, true, 3, 0, List.of(), null, "gov24", "EXT-2");
 		RecommendationItem item = new RecommendationItem(summary, matchResult);
 		RecommendationView view = new RecommendationView(List.of(item), asOf, null);
 		given(recommendationQueryService.getRecommendations(anyLong(), any(), anyBoolean())).willReturn(view);
