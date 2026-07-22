@@ -26,6 +26,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    restart: unless-stopped
     networks:
       - jeongbiseo-network
 
@@ -36,6 +37,20 @@ services:
       - "8080:8080"
     env_file:
       - .env
+    # 2026-07-22 힙 OOM 장애 대응(리서치 문서 6.2절). t3.micro 1GiB에서 기본 최대 힙이 25%(약 227MB)뿐이라
+    # 명시함. ExitOnOutOfMemoryError는 OOM 시 좀비(Acceptor 스레드만 죽고 프로세스는 생존) 대신 즉시 종료해
+    # restart 정책이 재기동하게 함. 힙 덤프는 사후 분석용(호스트 볼륨에 남김). 파일명 고정이라 첫 크래시
+    # 덤프만 보존됨 — 디스크(8GB) 보호를 위한 의도임.
+    environment:
+      JAVA_TOOL_OPTIONS: >-
+        -Xms128m
+        -Xmx384m
+        -XX:+ExitOnOutOfMemoryError
+        -XX:+HeapDumpOnOutOfMemoryError
+        -XX:HeapDumpPath=/var/log/jeongbiseo/heap.hprof
+    volumes:
+      - jeongbiseo_heapdump:/var/log/jeongbiseo
+    restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
@@ -49,6 +64,7 @@ services:
 
 volumes:
   jeongbiseo_mysql_data:
+  jeongbiseo_heapdump:
 
 networks:
   jeongbiseo-network:
