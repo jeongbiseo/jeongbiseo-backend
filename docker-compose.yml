@@ -26,6 +26,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    # t3.micro 908MB 공유 예산에서 mysql 몫 상한(기본 buffer pool 128MB 기준 여유 포함).
+    # 초과 시 호스트 전체가 아니라 이 컨테이너만 cgroup OOM으로 격리됨
+    mem_limit: 400m
     restart: unless-stopped
     networks:
       - jeongbiseo-network
@@ -50,6 +53,9 @@ services:
         -XX:HeapDumpPath=/var/log/jeongbiseo/heap.hprof
     volumes:
       - jeongbiseo_heapdump:/var/log/jeongbiseo
+    # 힙 384m 더하기 Metaspace·스레드 스택·코드 캐시 등 네이티브 몫 여유임. 컨테이너 상한이 없으면 호스트 압박 시
+    # 커널 OOM killer가 mysql을 먼저 죽일 수 있어 서비스별로 격리함(CodeRabbit PR #59 리뷰 반영)
+    mem_limit: 640m
     restart: unless-stopped
     depends_on:
       mysql:
