@@ -24,6 +24,8 @@ import com.jeongbiseo.domain.common.enums.PaymentType;
  * @param matchScore 적합도 점수
  * @param uncomputable 산정불가 여부(확장 필드)
  * @param uncomputableReasons 산정불가 사유 안내 문구 목록(확장 필드, 비어있으면 산정 가능)
+ * @param confirmedMatchCount 확인된 개인 조건 수(확장 필드, 0에서 4)
+ * @param unverifiedConditionCount 추가 확인 필요 조건 수(확장 필드, 0에서 4)
  */
 public record RecommendationItemResponse(Long subsidyId, String name, String agency,
 		@Schema(description = "신청 마감일. 상시 모집이거나 마감일이 없는 유형이면 null임", nullable = true) LocalDate deadline,
@@ -32,6 +34,10 @@ public record RecommendationItemResponse(Long subsidyId, String name, String age
 		@Schema(description = "예상 수령액 하한(원). 원천에 금액 정보가 없으면 null임", nullable = true) Long estimatedAmountMin,
 		@Schema(description = "예상 수령액 상한(원). 원천에 금액 정보가 없으면 null임", nullable = true) Long estimatedAmountMax,
 		@Schema(description = "지급 유형. 비현금과 UNKNOWN도 추천에 노출되므로 배지·금액 표기 분기에 씀") PaymentType paymentType,
-		Integer matchScore, boolean uncomputable, List<String> uncomputableReasons) {
+		Integer matchScore, boolean uncomputable, List<String> uncomputableReasons,
+		@Schema(description = "확인된 개인 조건 수(0에서 4). 지원금이 명시한 제한을 사용자 정보로 통과 확인한 축의 개수임. "
+				+ "지역은 별도 축이라 포함하지 않음. matchScore와 달리 제약없음·불명은 세지 않음이라 백분율·5점 표기에 쓰지 말 것") int confirmedMatchCount,
+		@Schema(description = "추가 확인 필요 조건 수(0에서 4). 자격 축 중 조건 미공개·세부기준 부재·사용자 정보 미입력으로 "
+				+ "판단 보류된 축의 개수임(금액 산정불가는 포함하지 않음)") int unverifiedConditionCount) {
 
 }

@@ -109,9 +109,15 @@ public class RecommendationController {
 		MatchResult matchResult = item.matchResult();
 		Integer dDay = (summary.deadline() == null) ? null : (int) ChronoUnit.DAYS.between(today, summary.deadline());
 		List<String> reasons = matchResult.uncomputableReasons().stream().map(EligibilityReason::getMessage).toList();
+		int unverifiedConditionCount = (int) matchResult.uncomputableReasons()
+			.stream()
+			.filter(EligibilityReason::qualificationUncertainty)
+			.distinct()
+			.count();
 		return new RecommendationItemResponse(summary.subsidyId(), summary.name(), summary.agency(), summary.deadline(),
 				dDay, summary.eligibilitySummary(), summary.estimatedAmountMin(), summary.estimatedAmountMax(),
-				summary.paymentType(), matchResult.matchScore(), matchResult.uncomputable(), reasons);
+				summary.paymentType(), matchResult.matchScore(), matchResult.uncomputable(), reasons,
+				matchResult.confirmedMatchCount(), unverifiedConditionCount);
 	}
 
 }

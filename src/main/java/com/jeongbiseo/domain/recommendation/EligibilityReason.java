@@ -28,4 +28,10 @@ public enum EligibilityReason {
 		return message;
 	}
 
+	// 자격 축(연령·고용·소득·가구) 불확실 사유인지 반환함. 금액 축 사유(AMOUNT_INFO_MISSING)만 false임
+	// ("추가 확인 필요 조건 수" 집계 재료).
+	public boolean qualificationUncertainty() {
+		return this != AMOUNT_INFO_MISSING;
+	}
+
 }
