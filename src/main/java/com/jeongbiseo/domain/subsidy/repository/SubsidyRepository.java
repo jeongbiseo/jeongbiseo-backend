@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,10 +24,10 @@ import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 
 /**
  * SubsidyEntity Spring Data JPA 저장소임. SubsidyReader(domain.subsidy)를 직접 구현해 DIP 방향을 지킴.
- * findCandidates와 findSummaries는 엔티티 조회 후 정적 매퍼(toCriteria, toSummary)로 매핑함. 순서 불변식을 매퍼 한
- * 곳에 가둠. storage 타입은 domain 밖으로 새지 않음. search와 countByIdIn은 subsidy 자기 도메인(검색·상세,
- * setReceivedSubsidies 존재 검증)이 직접 쓰는 메서드라 SubsidyReader 포트에는 넣지 않음(추천 경계와 분리, PLAN
- * 08-subsidy-search-detail 1.1).
+ * findCandidates는 JPQL DTO 프로젝션으로 판정 필드만 조회하고(2026-07-22 힙 OOM 대응), findSummaries는 엔티티 조회
+ * 후 정적 매퍼(toSummary)로 매핑함. storage 타입은 domain 밖으로 새지 않음. search와 countByIdIn은 subsidy 자기
+ * 도메인(검색·상세, setReceivedSubsidies 존재 검증)이 직접 쓰는 메서드라 SubsidyReader 포트에는 넣지 않음(추천 경계와 분리,
+ * PLAN 08-subsidy-search-detail 1.1).
  */
 public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, SubsidyReader {
 
@@ -123,17 +124,35 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 	// 추천 후보 조건: 활성·추천 가능·비융자·대표 행이면서 기준일에 신청 가능함(마감일 미상은 누락 방지를 위해 통과).
 	// 마감 필터(HANDOFF 4장)와 융자 제외(HANDOFF 2.B-13, 2026-07-15)를 레코드 속성 필터로 함께 둠(deadline,
 	// recommendable와 같은 자리).
+	//
+	// 2026-07-22 힙 OOM 장애 대응 3종이 이 쿼리에 모여 있음(리서치 문서 docs/md/추천-후보조회-힙-OOM-AWS-대응-리서치
+	// -2026-07-22.md 3장):
+	// 1) DTO 프로젝션 — 엔티티 전체(description·eligibilityText 등 긴 TEXT 포함)를 힙에 올리지 않고 판정 필드만
+	// 조회함. 생성자 인자 순서는 SubsidyCriteria 정규 생성자 선언 순서와 일치해야 함.
+	// 2) 확실 탈락 프리필터 — 기업 대상·1차산업 전용을 DB에서 제외함. 판정 정본은 RecommendationPolicy.inScope()
+	// 이고 이 WHERE 절은 그 정본의 성능용 복제임(UNKNOWN·MIXED는 통과 원칙 그대로, 두 컬럼은 NOT NULL이라 null 분기
+	// 불필요). inScope가 바뀌면 여기도 함께 고칠 것.
+	// 3) order by — MAX_CANDIDATES 절단을 결정적으로 만듦. 주의: 노출 정렬(DeadlineRanking)의 1차 키는
+	// 지역 비강등이라 이 절단 축(마감 임박순)과 같지 않음. 캡에 실제로 닿으면 상시모집(deadline null)이 계통
+	// 탈락하므로 캡은 모집단(실측 8,647건) 위 여유값으로만 운용함(SubsidyReader.MAX_CANDIDATES javadoc).
 	@Query("""
-			select s
+			select new com.jeongbiseo.domain.subsidy.dto.SubsidyCriteria(s.id, s.targetAudience,
+				s.occupationRestriction, s.ageSignal, s.ageMin, s.ageMax, s.regionScope, s.regionCode,
+				s.employmentSignal, s.employmentTags, s.employmentRawCode, s.incomeSignal, s.incomeThreshold,
+				s.householdSignal, s.householdCondition, s.estimatedAmountMin, s.estimatedAmountMax, s.monthlyAmount,
+				s.paymentType, s.deadline, s.sourceId, s.externalId, s.regionCodes)
 			from SubsidyEntity s
 			where s.active = true and s.recommendable = true and s.loanProduct = false and s.duplicateOfId is null
 			and (s.deadline is null or s.deadline >= :asOf)
+			and s.targetAudience <> com.jeongbiseo.domain.common.enums.TargetAudience.BUSINESS
+			and s.occupationRestriction <> com.jeongbiseo.domain.common.enums.OccupationRestriction.PRIMARY_INDUSTRY_ONLY
+			order by case when s.deadline is null then 1 else 0 end, s.deadline asc, s.id asc
 			""")
-	List<SubsidyEntity> findCandidateEntities(@Param("asOf") LocalDate asOf);
+	List<SubsidyCriteria> findCandidateCriteria(@Param("asOf") LocalDate asOf, Pageable pageable);
 
 	@Override
 	default List<SubsidyCriteria> findCandidates(LocalDate asOf) {
-		return findCandidateEntities(asOf).stream().map(SubsidyRepository::toCriteria).toList();
+		return findCandidateCriteria(asOf, PageRequest.of(0, MAX_CANDIDATES));
 	}
 
 	// 추천 응답 조립용 표시 정보. RecommendationService가 매칭·정렬을 마친 subsidyId를 정렬 순서대로 넘김.
@@ -146,20 +165,6 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 			summariesById.put(entity.getId(), toSummary(entity));
 		}
 		return subsidyIds.stream().map(summariesById::get).filter(Objects::nonNull).toList();
-	}
-
-	/**
-	 * 매칭 조건 스냅샷 매핑임. SubsidyCriteria 22개 컴포넌트의 순서 불변식을 이 메서드 한 곳에 가둠(JPQL 문자열과 record 선언의
-	 * 이중관리 제거). DB 없이 단위 테스트 가능함.
-	 */
-	static SubsidyCriteria toCriteria(SubsidyEntity entity) {
-		return new SubsidyCriteria(entity.getId(), entity.getTargetAudience(), entity.getOccupationRestriction(),
-				entity.getAgeSignal(), entity.getAgeMin(), entity.getAgeMax(), entity.getRegionScope(),
-				entity.getRegionCode(), entity.getEmploymentSignal(), entity.getEmploymentTags(),
-				entity.getEmploymentRawCode(), entity.getIncomeSignal(), entity.getIncomeThreshold(),
-				entity.getHouseholdSignal(), entity.getHouseholdCondition(), entity.getEstimatedAmountMin(),
-				entity.getEstimatedAmountMax(), entity.getMonthlyAmount(), entity.getPaymentType(),
-				entity.getDeadline(), entity.getSourceId(), entity.getExternalId(), entity.getRegionCodes());
 	}
 
 	/**

@@ -7,6 +7,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,6 +70,38 @@ class SubsidyPersistenceIntegrationTest {
 
 		assertThat(found).extracting(SubsidyCriteria::subsidyId)
 			.containsExactlyInAnyOrder(candidate.getId(), dueToday.getId(), openEnded.getId(), representative.getId());
+	}
+
+	@Test
+	void 후보_쿼리_상한_절단은_마감_임박순으로_앞에서부터_채운다() {
+		SubsidyEntity later = subsidyRepository.save(base("later").deadline(AS_OF.plusDays(10)).build());
+		SubsidyEntity soon = subsidyRepository.save(base("soon").deadline(AS_OF.plusDays(1)).build());
+		SubsidyEntity openEnded = subsidyRepository.save(base("open").deadline(null).build());
+
+		// MAX_CANDIDATES 실물 대신 페이지 크기 2로 같은 쿼리의 절단 순서를 고정함(마감 미상이 먼저 잘림)
+		List<SubsidyCriteria> capped = subsidyRepository.findCandidateCriteria(AS_OF, PageRequest.of(0, 2));
+
+		assertThat(capped).extracting(SubsidyCriteria::subsidyId).containsExactly(soon.getId(), later.getId());
+		assertThat(capped).extracting(SubsidyCriteria::subsidyId).doesNotContain(openEnded.getId());
+	}
+
+	@Test
+	void 후보_쿼리_프리필터는_기업대상과_1차산업만_제외하고_미상은_통과시킨다() {
+		// inScope 정본과 같은 방향의 DB 프리필터 회귀 고정: 확실 탈락 2종만 빠지고,
+		// 개인 대상·조건 미상(UNKNOWN)은 잘못 제외되지 않아야 함(AGENTS.md 반대 방향 회귀 원칙)
+		SubsidyEntity personal = subsidyRepository.save(base("personal").build());
+		SubsidyEntity unknownAudience = subsidyRepository
+			.save(base("unknownAud").targetAudience(TargetAudience.UNKNOWN).build());
+		SubsidyEntity mixedAudience = subsidyRepository
+			.save(base("mixedAud").targetAudience(TargetAudience.MIXED).build());
+		subsidyRepository.save(base("business").targetAudience(TargetAudience.BUSINESS).build());
+		subsidyRepository
+			.save(base("primary").occupationRestriction(OccupationRestriction.PRIMARY_INDUSTRY_ONLY).build());
+
+		List<SubsidyCriteria> found = subsidyRepository.findCandidates(AS_OF);
+
+		assertThat(found).extracting(SubsidyCriteria::subsidyId)
+			.containsExactlyInAnyOrder(personal.getId(), unknownAudience.getId(), mixedAudience.getId());
 	}
 
 	@Test
