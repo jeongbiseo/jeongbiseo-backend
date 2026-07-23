@@ -65,8 +65,8 @@ public class SubsidyController {
 		this.memberResolver = memberResolver;
 	}
 
-	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
-	// Wave에서 실제 발생함(명세서 각주 COMMON401 정합).
+	// 검색은 인증 필요임 — 인증 강제화(AUTH-W001) 후 무토큰 요청은 SecurityConfig가 걸러 COMMON401을 반환함(명세서 각주
+	// COMMON401 정합).
 	@Operation(summary = "지원금 검색",
 			description = "키워드·분류로 지원금을 검색함(융자 상품은 항상 제외). keyword는 지원금명 또는 소관기관 부분 일치이고 "
 					+ "공백을 무시해 비교함(\"청년 월세\"로 \"청년월세\"도 잡음). keyword·category 모두 생략 가능함. page가 음수면 "
@@ -79,7 +79,7 @@ public class SubsidyController {
 					description = "쿼리 파라미터 검증 실패(VALID400_0, page 음수 또는 page·size·sort·category·includeClosed 타입·허용값 불일치)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"))),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))) })
 	@GetMapping
@@ -104,7 +104,7 @@ public class SubsidyController {
 			description = "현재 회원의 관심 등록 지원금 목록을 최근 등록순으로 반환함. 아이템은 검색 결과와 동일 스키마임. "
 					+ "목록의 하트 상태는 이 응답의 subsidyId 집합으로 클라이언트가 대조함(목록 아이템에 isFavorite 필드를 두지 않음).")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "관심 목록 조회 성공", useReturnTypeSchema = true),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))) })
 	@GetMapping("/favorites")
@@ -146,7 +146,7 @@ public class SubsidyController {
 			@ApiResponse(responseCode = "400", description = "경로 변수 타입 불일치(VALID400_0)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"))),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "지원금 미존재(SUBSIDY404_1)",
@@ -166,7 +166,7 @@ public class SubsidyController {
 			@ApiResponse(responseCode = "400", description = "경로 변수 타입 불일치(VALID400_0)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"))),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "관심 등록되지 않음(FAVORITE404_1)",
