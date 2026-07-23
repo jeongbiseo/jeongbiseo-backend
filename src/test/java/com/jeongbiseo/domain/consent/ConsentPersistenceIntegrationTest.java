@@ -1,15 +1,15 @@
 package com.jeongbiseo.domain.consent;
 
+import com.jeongbiseo.support.MySqlContainerSupport;
+
 import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
 
 import com.jeongbiseo.domain.consent.entity.MemberTermConsent;
 import com.jeongbiseo.domain.consent.entity.TermVersion;
@@ -30,14 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @Transactional
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-class ConsentPersistenceIntegrationTest {
-
-	@ServiceConnection
-	static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
-
-	static {
-		MYSQL.start();
-	}
+class ConsentPersistenceIntegrationTest extends MySqlContainerSupport {
 
 	@Autowired
 	private TermVersionRepository termVersionRepository;

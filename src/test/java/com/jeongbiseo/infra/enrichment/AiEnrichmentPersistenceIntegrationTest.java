@@ -1,13 +1,13 @@
 package com.jeongbiseo.infra.enrichment;
 
+import com.jeongbiseo.support.MySqlContainerSupport;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
 
 import com.jeongbiseo.domain.common.enums.OccupationRestriction;
 import com.jeongbiseo.domain.common.enums.PaymentType;
@@ -33,18 +33,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @Transactional
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-class AiEnrichmentPersistenceIntegrationTest {
+class AiEnrichmentPersistenceIntegrationTest extends MySqlContainerSupport {
 
 	private static final String MODEL = "meta/llama-3.1-70b-instruct";
 
 	private static final String EVIDENCE = "월 20만원을 최대 12개월간 지원합니다.";
-
-	@ServiceConnection
-	static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
-
-	static {
-		MYSQL.start();
-	}
 
 	@Autowired
 	private AiEnrichmentRepository enrichmentRepository;
