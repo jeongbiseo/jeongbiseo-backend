@@ -58,9 +58,21 @@ class OnboardingPersistenceIntegrationTest {
 	}
 
 	@Test
+	void 비서울_5자리_지역코드와_명칭이_왕복된다() {
+		Member member = memberRepository.save(newMember());
+		onboardingProfileRepository.save(profileOf(member, "50130", "제주특별자치도", "서귀포시"));
+
+		assertThat(onboardingProfileRepository.findByMemberId(member.getId())).get().satisfies(profile -> {
+			assertThat(profile.getRegionCode()).isEqualTo("50130");
+			assertThat(profile.getSido()).isEqualTo("제주특별자치도");
+			assertThat(profile.getSigungu()).isEqualTo("서귀포시");
+		});
+	}
+
+	@Test
 	void D3_카탈로그_밖_지역이면_regionCode_null도_저장된다() {
 		Member member = memberRepository.save(newMember());
-		onboardingProfileRepository.save(profileOf(member, null, "제주특별자치도", "서귀포시"));
+		onboardingProfileRepository.save(profileOf(member, null, "없는시도", "없는시군구"));
 
 		assertThat(onboardingProfileRepository.findByMemberId(member.getId())).get()
 			.extracting(OnboardingProfile::getRegionCode)

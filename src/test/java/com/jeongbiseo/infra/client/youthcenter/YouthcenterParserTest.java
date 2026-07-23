@@ -10,10 +10,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 
+import com.jeongbiseo.domain.region.RegionCatalog;
 import com.jeongbiseo.infra.client.common.dto.AmountKind;
 import com.jeongbiseo.infra.client.common.dto.AmountParseStatus;
 import com.jeongbiseo.infra.client.common.dto.ApplicationMethodFlags;
@@ -179,6 +181,23 @@ class YouthcenterParserTest {
 		// 시도 전역(xx000) 코드는 응답에 없음 — 프리픽스 매칭 로직을 만들지 않은 근거를 회귀로 고정함
 		assertThat(sidoWide).isZero();
 		assertThat(policies).allSatisfy(p -> assertThat(p.regionCodes()).allMatch(code -> code.matches("\\d{5}")));
+	}
+
+	@Test
+	void snapshot_regionCodes_areAllCoveredByRegionCatalog() throws IOException {
+		Set<String> catalogCodes = RegionCatalog.sidoList()
+			.stream()
+			.flatMap(sido -> RegionCatalog.sigunguListOf(sido).stream())
+			.map(RegionCatalog.Sigungu::code)
+			.collect(Collectors.toSet());
+		Set<String> snapshotCodes = parsedSnapshot().stream()
+			.flatMap(policy -> policy.regionCodes().stream())
+			.collect(Collectors.toSet());
+
+		assertThat(snapshotCodes).hasSize(258);
+		assertThat(catalogCodes).containsAll(snapshotCodes);
+		// 2026-07-01 신설된 전남광주통합특별시 12xxx와 시군구가 없는 세종 자체코드도 공식 카탈로그로 해석함
+		assertThat(catalogCodes).contains("12110", "12850", "36110");
 	}
 
 	@Test
