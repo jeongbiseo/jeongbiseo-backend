@@ -19,6 +19,7 @@ import com.jeongbiseo.domain.recommendation.service.RecommendationService;
 import com.jeongbiseo.global.apiPayload.code.EstimatedAmountErrorCode;
 import com.jeongbiseo.global.apiPayload.code.ValidationErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
+import com.jeongbiseo.infra.client.common.dto.AmountKind;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,8 +50,8 @@ class EstimatedAmountServiceTest {
 	void getEstimatedTotal_정상이면_후보를_분류한_결과를_반환한다() {
 		given(recommendationQueryService.resolveContext(anyLong())).willReturn(CONTEXT);
 		given(recommendationService.estimateCandidates(any(), any(), any(), any()))
-			.willReturn(List.of(new EstimateCandidate(1L, "일시금 현금", PaymentType.CASH, TargetAudience.PERSONAL, 100L,
-					300L, null, false)));
+			.willReturn(List.of(new EstimateCandidate(1L, "일시금 현금", PaymentType.CASH, TargetAudience.PERSONAL,
+					AmountKind.SINGLE, 100L, 300L, null, false)));
 
 		EstimatedTotalResult result = service.getEstimatedTotal(1L);
 
