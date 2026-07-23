@@ -31,7 +31,8 @@ class RegionControllerTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.isSuccess").value(true))
 			.andExpect(jsonPath("$.code").value("200"))
-			.andExpect(jsonPath("$.result.sidoList").value(hasItem("서울특별시")))
+			.andExpect(jsonPath("$.result.sidoList", hasSize(16)))
+			.andExpect(jsonPath("$.result.sidoList").value(hasItems("서울특별시", "전남광주통합특별시", "제주특별자치도")))
 			.andExpect(jsonPath("$.result.sido").value(nullValue()))
 			.andExpect(jsonPath("$.result.sigunguList").value(nullValue()));
 	}
@@ -42,15 +43,27 @@ class RegionControllerTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.result.sido").value("서울특별시"))
 			.andExpect(jsonPath("$.result.sidoList").value(nullValue()))
-			.andExpect(jsonPath("$.result.sigunguList", hasSize(2)))
+			.andExpect(jsonPath("$.result.sigunguList", hasSize(25)))
 			.andExpect(jsonPath("$.result.sigunguList[*].name", hasItems("강남구", "관악구")));
 	}
 
 	@Test
-	void getRegions_등록되지_않은_sido면_빈_시군구목록을_반환한다() throws Exception {
+	void getRegions_제주_지정_시_제주시와_서귀포시를_반환한다() throws Exception {
 		mockMvc.perform(get("/api/v1/regions").param("sido", "제주특별자치도"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.result.sido").value("제주특별자치도"))
+			.andExpect(jsonPath("$.result.sigunguList", hasSize(2)))
+			.andExpect(jsonPath("$.result.sigunguList[0].code").value("50110"))
+			.andExpect(jsonPath("$.result.sigunguList[0].name").value("제주시"))
+			.andExpect(jsonPath("$.result.sigunguList[1].code").value("50130"))
+			.andExpect(jsonPath("$.result.sigunguList[1].name").value("서귀포시"));
+	}
+
+	@Test
+	void getRegions_등록되지_않은_sido면_빈_시군구목록을_반환한다() throws Exception {
+		mockMvc.perform(get("/api/v1/regions").param("sido", "없는시도"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result.sido").value("없는시도"))
 			.andExpect(jsonPath("$.result.sigunguList", hasSize(0)));
 	}
 

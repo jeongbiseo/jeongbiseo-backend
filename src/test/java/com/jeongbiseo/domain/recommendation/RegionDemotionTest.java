@@ -58,6 +58,26 @@ class RegionDemotionTest {
 	}
 
 	@Test
+	void b2_비서울도_시도_prefix가_일치하면_정상_노출된다() {
+		SubsidyCriteria criteria = regionalCriteria("50110");
+		ApplicantProfile applicant = applicant("50130");
+
+		MatchResult result = policy.evaluate(applicant, criteria);
+
+		assertThat(result.regionDemoted()).isFalse();
+	}
+
+	@Test
+	void b3_비서울과_다른_시도_prefix면_강등된다() {
+		SubsidyCriteria criteria = regionalCriteria("50110");
+		ApplicantProfile applicant = applicant("26110");
+
+		MatchResult result = policy.evaluate(applicant, criteria);
+
+		assertThat(result.regionDemoted()).isTrue();
+	}
+
+	@Test
 	void c1_지원금_유효_지역코드가_없으면_강등하지_않는다() {
 		// regionCodes null, regionScope NATIONWIDE라 유효 지역코드 집합이 비어 강등 판정 불가(D6 조건2)
 		SubsidyCriteria criteria = nationwideCriteria();
