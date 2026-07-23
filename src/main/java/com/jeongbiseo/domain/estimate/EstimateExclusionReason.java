@@ -16,6 +16,10 @@ public enum EstimateExclusionReason {
 
 	NON_CASH("현금성 지원이 아니라 총액에서 제외했어요"),
 
+	CONDITIONAL_AMOUNT("조건에 따라 금액이 달라 총액에서 제외했어요"),
+
+	MULTIPLE_AMOUNT("여러 금액 기준이 있어 총액에서 제외했어요"),
+
 	AMOUNT_MISSING("금액을 확인할 수 없어 총액에서 제외했어요"),
 
 	BUSINESS("기업·사업자 대상 지원사업이라 총액에서 제외했어요"),

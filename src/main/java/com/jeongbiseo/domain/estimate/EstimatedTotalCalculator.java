@@ -7,11 +7,12 @@ import com.jeongbiseo.domain.common.enums.PaymentType;
 import com.jeongbiseo.domain.common.enums.TargetAudience;
 import com.jeongbiseo.domain.estimate.EstimatedTotalResult.IncludedItem;
 import com.jeongbiseo.domain.estimate.EstimatedTotalResult.SeparateItem;
+import com.jeongbiseo.infra.client.common.dto.AmountKind;
 
 /**
- * 예상 총액을 분류하는 순수 도메인 계산기임(스프링 빈 아님, RecommendationPolicy와 같은 관용). 팀 레포에는 lab의 AmountKind
- * enum이 없어 현금 확정성을 PaymentType 더하기 null 검사로 재유도함(PLAN D3). 각 후보는 first-match로 정확히 한
- * 버킷(일시금·월 지급·별도)에 배치되어 이중 계상이 없음.
+ * 예상 총액을 분류하는 순수 도메인 계산기임(스프링 빈 아님, RecommendationPolicy와 같은 관용). 일시금 현금은
+ * {@link AmountKind#SINGLE}인 확정액만 합산하며, 금액 성격이 없거나 조건부·복수이면 보수적으로 제외함. 각 후보는 first-match로
+ * 정확히 한 버킷(일시금·월 지급·별도)에 배치되어 이중 계상이 없음.
  */
 public final class EstimatedTotalCalculator {
 
@@ -72,6 +73,15 @@ public final class EstimatedTotalCalculator {
 			return EstimateExclusionReason.UNKNOWN_AUDIENCE;
 		}
 		if (candidate.paymentType() == PaymentType.CASH) {
+			if (candidate.amountKind() == AmountKind.CONDITIONAL) {
+				return EstimateExclusionReason.CONDITIONAL_AMOUNT;
+			}
+			if (candidate.amountKind() == AmountKind.MULTIPLE) {
+				return EstimateExclusionReason.MULTIPLE_AMOUNT;
+			}
+			if (candidate.amountKind() != AmountKind.SINGLE) {
+				return EstimateExclusionReason.AMOUNT_MISSING;
+			}
 			boolean amountConfirmed = candidate.estimatedAmountMin() != null && candidate.estimatedAmountMax() != null;
 			return amountConfirmed ? null : EstimateExclusionReason.AMOUNT_MISSING;
 		}
