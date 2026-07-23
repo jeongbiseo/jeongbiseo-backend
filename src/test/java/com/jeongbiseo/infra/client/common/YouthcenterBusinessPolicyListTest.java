@@ -58,7 +58,7 @@ class YouthcenterBusinessPolicyListTest {
 		assertThat(classifiedAsBusiness).as("코드 상수와 근거 파일의 목록이 같아야 함").containsExactlyInAnyOrderElementsOf(evidenceIds);
 	}
 
-	// 기업·단체가 받는 돈 11건. 개인 예상 총액에 들어가면 받지도 않을 돈이 계산됨.
+	// 추천·개인 예상 총액 모집단에서 제외해야 하는 기업·단체 대상 정책 11건임(금액 NONE 포함).
 	@ParameterizedTest(name = "[{index}] {1} -> BUSINESS")
 	@CsvSource({ "20260416005400112760, 글로벌 액셀러레이팅 3000만", "20260330005400212309, 디지털분야 청년창업 육성 1000만",
 			"20251107005400211811, 청년일자리 우수기업 1000만", "20260325005400212268, 2026 지역인재채용 인센티브 1000만",
