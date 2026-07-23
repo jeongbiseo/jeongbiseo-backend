@@ -139,8 +139,8 @@ public interface SubsidyRepository extends JpaRepository<SubsidyEntity, Long>, S
 			select new com.jeongbiseo.domain.subsidy.dto.SubsidyCriteria(s.id, s.targetAudience,
 				s.occupationRestriction, s.ageSignal, s.ageMin, s.ageMax, s.regionScope, s.regionCode,
 				s.employmentSignal, s.employmentTags, s.employmentRawCode, s.incomeSignal, s.incomeThreshold,
-				s.householdSignal, s.householdCondition, s.estimatedAmountMin, s.estimatedAmountMax, s.monthlyAmount,
-				s.paymentType, s.deadline, s.sourceId, s.externalId, s.regionCodes)
+				s.householdSignal, s.householdCondition, s.estimatedAmountMin, s.estimatedAmountMax, s.amountKind,
+				s.monthlyAmount, s.paymentType, s.deadline, s.sourceId, s.externalId, s.regionCodes)
 			from SubsidyEntity s
 			where s.active = true and s.recommendable = true and s.loanProduct = false and s.duplicateOfId is null
 			and (s.deadline is null or s.deadline >= :asOf)
