@@ -38,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(MemberController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import(FixedMemberResolver.class)
+@org.junit.jupiter.api.extension.ExtendWith(com.jeongbiseo.support.FixedMemberContextExtension.class)
 class MemberOnboardingControllerTest {
 
 	@Autowired

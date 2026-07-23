@@ -1,93 +1,55 @@
 package com.jeongbiseo.global.security;
 
-import io.jsonwebtoken.JwtException;
-import jakarta.servlet.http.HttpServletRequest;
-
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.http.HttpHeaders;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
+import com.jeongbiseo.global.apiPayload.code.CommonErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
-import com.jeongbiseo.global.security.exception.AuthErrorCode;
-import com.jeongbiseo.global.security.jwt.JwtProvider;
 
 /**
- * 현재 요청의 회원을 식별함. Authorization Bearer 액세스 토큰이 있으면 그 토큰의 회원으로, 없으면 개발용 고정 회원(memberId
- * 1)으로 해석함.
+ * 현재 요청의 회원을 SecurityContext에서 식별함(AUTH-W001). 토큰 검증과 컨텍스트 세팅은 JwtAuthenticationFilter가
+ * 하고, 여기서는 인증된 principal(memberId)만 읽음. 배포 N의 무헤더 고정 회원 폴백 백도어는 인증 강제화로 제거함 — 이제 인증이 없으면
+ * 특정 회원으로 대입하지 않고 COMMON401을 던짐(사내 레퍼런스의 "인증 부재는 null 신원" 불변식 정합).
  *
- * 헤더가 없을 때 401이 아니라 고정 회원으로 떨어뜨리는 것은 배포 N의 의도된 백도어임. SecurityConfig가 아직
- * anyRequest().permitAll()이고 무토큰 데모(고정 회원 시드)와 웹 슬라이스 테스트가 이 전제로 돌기 때문임. 사내 레퍼런스
- * (mind-signal의 authenticate·optionalAuthenticate, truthscope의 oauth2ResourceServer와
- * ADR-027)는 공통적으로 "인증 부재는 null 신원이지 특정 회원 대입이 아니다"를 지키므로, 이 폴백은 그 불변식의 의도적 예외이며 배포
- * N+1(JWT 필터와 permitAll 축소)에서 제거함.
- *
- * 반면 헤더가 있는데 토큰이 만료·위조·손상이면 폴백하지 않고 401(AUTH401_2)을 던짐. 조용히 고정 회원으로 떨어뜨리면 (가) 액세스 토큰 30분
- * 만료 후 서버가 401을 주지 않아 프론트의 reissue가 영원히 트리거되지 않고 모든 사용자가 소리 없이 회원 1이 되며, (나) 만료 토큰으로 회원
- * 탈퇴를 호출하면 고정 회원 1이 soft delete되어 이후 무토큰 데모 호출이 전부 MEMBER400_1로 죽기 때문임.
+ * ponytail: 클래스명은 배포 N 시절의 "고정 회원"에서 유래했으나, 광범위한 리네임(컨트롤러·테스트 import 다수) 리스크를 피해 이름은 유지하고
+ * 동작만 SecurityContext 기반으로 바꿈. 후속 정리에서 AuthMemberResolver 등으로 개명 가능함.
  */
 @Component
 public class FixedMemberResolver {
 
-	// ponytail: 무헤더 폴백용 고정 memberId. 배포 N+1에서 JWT 필터가 붙으면 이 폴백째로 제거함.
-	private static final Long FIXED_MEMBER_ID = 1L;
-
-	private static final String BEARER_PREFIX = "Bearer ";
-
-	// 슬라이스 테스트 6개가 @Import(FixedMemberResolver.class)로 이 빈만 올리므로, JwtProvider를 직접 주입받으면 그
-	// 컨텍스트들이 전부 깨짐. ObjectProvider는 대상 빈이 없어도 주입되고 getIfAvailable()이 null을 주므로 무수정으로 보존됨.
-	private final ObjectProvider<JwtProvider> jwtProviderProvider;
-
-	public FixedMemberResolver(ObjectProvider<JwtProvider> jwtProviderProvider) {
-		this.jwtProviderProvider = jwtProviderProvider;
+	/**
+	 * 현재 인증된 회원 id를 반환함(인증 필요 엔드포인트용). 보호 경로는 authorizeHttpRequests가 미인증을 먼저 걸러
+	 * EntryPoint가 401을 주므로 여기까지 무인증으로 오는 일은 없으나, 방어적으로 무인증이면 COMMON401을 던짐.
+	 * @return 회원 id
+	 * @throws CustomException 인증이 없으면 COMMON401
+	 */
+	public Long resolveMemberId() {
+		Long memberId = currentMemberId();
+		if (memberId == null) {
+			throw new CustomException(CommonErrorCode.UNAUTHENTICATED);
+		}
+		return memberId;
 	}
 
 	/**
-	 * 현재 요청의 회원 id를 반환함. Bearer 토큰이 있으면 그 회원, 없으면 고정 회원임.
-	 * @return 회원 id
-	 * @throws CustomException 토큰이 있으나 만료·위조·형식 오류일 때 AUTH401_2
+	 * 현재 인증된 회원 id를 반환하되, 인증이 없으면 null을 반환함(선택 인증 엔드포인트용, getSubsidyDetail). 비로그인·만료 토큰이면
+	 * 회원 없이 진행함(isFavorite=false).
+	 * @return 회원 id 또는 인증이 없으면 null
 	 */
-	public Long resolveMemberId() {
-		String token = extractBearerToken();
-		if (token == null) {
-			return FIXED_MEMBER_ID;
-		}
-		JwtProvider jwtProvider = this.jwtProviderProvider.getIfAvailable();
-		if (jwtProvider == null) {
-			return FIXED_MEMBER_ID;
-		}
-		try {
-			return jwtProvider.parseMemberId(token);
-		}
-		catch (JwtException | IllegalArgumentException e) {
-			// 만료·위조·형식 오류를 사유 구분 없이 재로그인 안내로 통합함(설계 4장 AUTH401_2). NumberFormatException은
-			// IllegalArgumentException 하위라 sub가 숫자가 아닌 토큰도 여기서 걸림.
-			throw new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED, e);
-		}
+	public Long resolveOptionalMemberId() {
+		return currentMemberId();
 	}
 
-	// 현재 요청의 Authorization 헤더에서 Bearer 토큰을 꺼냄. 요청 컨텍스트가 없거나(비웹 호출) 헤더가 없거나 접두가 다르면 null을
-	// 반환함. 회원 스코프 호출부 11곳은 전부 컨트롤러 요청 스레드 안이라 컨텍스트가 항상 존재함.
-	private static String extractBearerToken() {
-		RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
-		if (!(attributes instanceof ServletRequestAttributes servletAttributes)) {
+	// SecurityContext에서 memberId를 읽음. 인증이 없거나 익명(principal이 "anonymousUser" 문자열)이면 null임
+	// —
+	// JwtAuthenticationFilter는 유효 토큰일 때만 principal에 Long memberId를 담으므로 instanceof로 구분됨.
+	private static Long currentMemberId() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
 			return null;
 		}
-		HttpServletRequest request = servletAttributes.getRequest();
-		String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-		if (header == null || !header.startsWith(BEARER_PREFIX)) {
-			return null;
-		}
-		String token = header.substring(BEARER_PREFIX.length()).trim();
-		if (token.isEmpty()) {
-			// Bearer 접두를 붙였다는 것은 토큰을 보내려던 것이므로, 빈 값은 무헤더가 아니라 손상된 자격 증명임. 폴백하면
-			// 프론트가 401을 못 받아 reissue가 트리거되지 않음(무효 토큰과 같은 취급).
-			throw new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED,
-					new IllegalArgumentException("Bearer 토큰이 비어 있음"));
-		}
-		return token;
+		return (authentication.getPrincipal() instanceof Long memberId) ? memberId : null;
 	}
 
 }

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.data.domain.PageRequest;
@@ -37,10 +38,9 @@ import com.jeongbiseo.global.security.FixedMemberResolver;
 
 /**
  * 지원금 검색·상세 조회와 관심 등록·해제를 다룸(API명세서 13번 searchSubsidies, 15번 getSubsidyDetail, 16번
- * addFavorite, 17번 removeFavorite). 네 엔드포인트 모두 현재 permitAll 상태임(소셜 인증 전). 상세의 isFavorite은
- * 계약상 비로그인이면 false이나, 배포 N에서는 FixedMemberResolver가 무헤더 요청을 고정 회원 1로 해석하므로 그 회원의 등록 여부가
- * 반영됨. 명세서상 searchSubsidies와 관심 등록·해제는 인증 필요라, 인증 Wave에서 SecurityConfig 작성 시
- * authenticated로 전환할 것.
+ * addFavorite, 17번 removeFavorite). 인증 강제화(AUTH-W001) 후 검색·관심 등록·해제는 인증 필요이고, 카테고리는 공개,
+ * 상세는 선택 인증임 — 상세의 isFavorite은 비로그인이면 false, 로그인 회원이면 그 회원의 등록 여부를 반영함(SecurityConfig
+ * 매트릭스, api-versioning 3절).
  */
 @Tag(name = "Subsidy", description = "지원금 검색·상세 조회와 관심 등록·해제")
 @RestController
@@ -65,8 +65,8 @@ public class SubsidyController {
 		this.memberResolver = memberResolver;
 	}
 
-	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
-	// Wave에서 실제 발생함(명세서 각주 COMMON401 정합).
+	// 검색은 인증 필요임 — 인증 강제화(AUTH-W001) 후 무토큰 요청은 SecurityConfig가 걸러 COMMON401을 반환함(명세서 각주
+	// COMMON401 정합).
 	@Operation(summary = "지원금 검색",
 			description = "키워드·분류로 지원금을 검색함(융자 상품은 항상 제외). keyword는 지원금명 또는 소관기관 부분 일치이고 "
 					+ "공백을 무시해 비교함(\"청년 월세\"로 \"청년월세\"도 잡음). keyword·category 모두 생략 가능함. page가 음수면 "
@@ -79,7 +79,7 @@ public class SubsidyController {
 					description = "쿼리 파라미터 검증 실패(VALID400_0, page 음수 또는 page·size·sort·category·includeClosed 타입·허용값 불일치)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"))),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))) })
 	@GetMapping
@@ -104,7 +104,7 @@ public class SubsidyController {
 			description = "현재 회원의 관심 등록 지원금 목록을 최근 등록순으로 반환함. 아이템은 검색 결과와 동일 스키마임. "
 					+ "목록의 하트 상태는 이 응답의 subsidyId 집합으로 클라이언트가 대조함(목록 아이템에 isFavorite 필드를 두지 않음).")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "관심 목록 조회 성공", useReturnTypeSchema = true),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))) })
 	@GetMapping("/favorites")
@@ -116,6 +116,8 @@ public class SubsidyController {
 	// /categories도 리터럴 세그먼트라 아래 /{subsidyId}보다 우선 매칭됨. 정적 목록이라 서비스·인증 없이 바로 반환함.
 	@Operation(summary = "지원금 카테고리 목록", description = "화면 필터 칩용 카테고리 7종(code·label)을 반환함. 정적 목록이라 인증 불필요이고 파라미터도 없음.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "카테고리 목록 조회 성공", useReturnTypeSchema = true) })
+	// 정적 목록이라 인증 불필요 — 글로벌 Bearer 요구를 해제해 Swagger가 공개로 표기하게 함(런타임 permitAll 정합).
+	@SecurityRequirements
 	@GetMapping("/categories")
 	public CustomResponse<List<SubsidyCategoryResponse>> getSubsidyCategories() {
 		return CustomResponse.ok(Arrays.stream(SubsidyCategory.values()).map(SubsidyCategoryResponse::from).toList());
@@ -131,9 +133,12 @@ public class SubsidyController {
 			@ApiResponse(responseCode = "404", description = "지원금 미존재(SUBSIDY404_1)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "SUBSIDY404_1",
 							value = "{\"isSuccess\":false,\"code\":\"SUBSIDY404_1\",\"message\":\"해당 지원금 정보를 찾을 수 없어요\",\"result\":null}"))) })
+	// 선택 인증이라 글로벌 Bearer 요구를 해제함 — 비로그인도 200이고 로그인 시 isFavorite만 반영(런타임 permitAll 정합).
+	@SecurityRequirements
 	@GetMapping("/{subsidyId}")
 	public CustomResponse<SubsidyDetailResponse> getSubsidyDetail(@PathVariable Long subsidyId) {
-		return CustomResponse.ok(subsidyService.getDetail(subsidyId, memberResolver.resolveMemberId()));
+		// 선택 인증임 — 비로그인·만료 토큰이면 회원 없이(null) 조회해 isFavorite=false, 로그인 회원이면 관심 여부를 반영함.
+		return CustomResponse.ok(subsidyService.getDetail(subsidyId, memberResolver.resolveOptionalMemberId()));
 	}
 
 	@Operation(summary = "관심 등록", description = "지원금을 현재 회원의 관심 목록에 등록함. 등록 결과는 캘린더에 바로 반영됨.")
@@ -141,7 +146,7 @@ public class SubsidyController {
 			@ApiResponse(responseCode = "400", description = "경로 변수 타입 불일치(VALID400_0)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"))),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "지원금 미존재(SUBSIDY404_1)",
@@ -161,7 +166,7 @@ public class SubsidyController {
 			@ApiResponse(responseCode = "400", description = "경로 변수 타입 불일치(VALID400_0)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_0",
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"))),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "관심 등록되지 않음(FAVORITE404_1)",
