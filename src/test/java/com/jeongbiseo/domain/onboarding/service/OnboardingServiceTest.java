@@ -60,7 +60,7 @@ class OnboardingServiceTest {
 	}
 
 	@Test
-	void submit_카탈로그_밖_지역이면_regionCode를_null로_저장하고_통과시킨다() {
+	void submit_비서울_등록지역이면_5자리_regionCode를_저장한다() {
 		Member member = activeMember();
 		given(memberReader.getActiveMember(MEMBER_ID)).willReturn(member);
 		given(onboardingProfileRepository.existsByMemberId(MEMBER_ID)).willReturn(false);
@@ -69,8 +69,22 @@ class OnboardingServiceTest {
 		OnboardingProfile saved = onboardingService.submit(MEMBER_ID, BIRTH_DATE, "제주특별자치도", "서귀포시",
 				EmploymentStatus.JOB_SEEKING, null, null);
 
-		assertThat(saved.getRegionCode()).isNull();
+		assertThat(saved.getRegionCode()).isEqualTo("50130");
 		assertThat(saved.getSido()).isEqualTo("제주특별자치도");
+	}
+
+	@Test
+	void submit_카탈로그_밖_지역이면_regionCode를_null로_저장하고_통과시킨다() {
+		Member member = activeMember();
+		given(memberReader.getActiveMember(MEMBER_ID)).willReturn(member);
+		given(onboardingProfileRepository.existsByMemberId(MEMBER_ID)).willReturn(false);
+		given(onboardingProfileRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+		OnboardingProfile saved = onboardingService.submit(MEMBER_ID, BIRTH_DATE, "없는시도", "없는시군구",
+				EmploymentStatus.JOB_SEEKING, null, null);
+
+		assertThat(saved.getRegionCode()).isNull();
+		assertThat(saved.getSido()).isEqualTo("없는시도");
 	}
 
 	@Test
