@@ -7,11 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.jeongbiseo.global.security.jwt.JwtProvider;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -69,6 +71,31 @@ class AuthEnforcementIntegrationTest extends MySqlContainerSupport {
 		mockMvc.perform(get("/api/v1/subsidies/999999"))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("SUBSIDY404_1"));
+	}
+
+	@Test
+	void 관심목록과_등록해제는_무토큰이면_401_COMMON401이다() throws Exception {
+		mockMvc.perform(get("/api/v1/subsidies/favorites"))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("COMMON401"));
+		mockMvc.perform(post("/api/v1/subsidies/1/favorite"))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("COMMON401"));
+		mockMvc.perform(delete("/api/v1/subsidies/1/favorite"))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("COMMON401"));
+	}
+
+	@Test
+	void 로그인과_재발급은_시큐리티를_통과해_컨트롤러가_처리한다() throws Exception {
+		// 시큐리티가 막았다면 COMMON401이 됨. 재발급은 쿠키가 없어 컨트롤러가 AUTH401_2를 던지므로, 401이지만 code가
+		// COMMON401이 아닌 AUTH401_2라는 것이 "통과" 증거임
+		mockMvc.perform(post("/api/v1/auth/reissue"))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("AUTH401_2"));
+		// 로그인은 본문이 없어 400(본문 해석 실패)이 됨 — 401이 아니라는 것이 통과 증거임
+		mockMvc.perform(post("/api/v1/auth/kakao").contentType(MediaType.APPLICATION_JSON).content("{}"))
+			.andExpect(status().isBadRequest());
 	}
 
 }

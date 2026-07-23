@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.data.domain.PageRequest;
@@ -115,6 +116,8 @@ public class SubsidyController {
 	// /categories도 리터럴 세그먼트라 아래 /{subsidyId}보다 우선 매칭됨. 정적 목록이라 서비스·인증 없이 바로 반환함.
 	@Operation(summary = "지원금 카테고리 목록", description = "화면 필터 칩용 카테고리 7종(code·label)을 반환함. 정적 목록이라 인증 불필요이고 파라미터도 없음.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "카테고리 목록 조회 성공", useReturnTypeSchema = true) })
+	// 정적 목록이라 인증 불필요 — 글로벌 Bearer 요구를 해제해 Swagger가 공개로 표기하게 함(런타임 permitAll 정합).
+	@SecurityRequirements
 	@GetMapping("/categories")
 	public CustomResponse<List<SubsidyCategoryResponse>> getSubsidyCategories() {
 		return CustomResponse.ok(Arrays.stream(SubsidyCategory.values()).map(SubsidyCategoryResponse::from).toList());
@@ -130,6 +133,8 @@ public class SubsidyController {
 			@ApiResponse(responseCode = "404", description = "지원금 미존재(SUBSIDY404_1)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "SUBSIDY404_1",
 							value = "{\"isSuccess\":false,\"code\":\"SUBSIDY404_1\",\"message\":\"해당 지원금 정보를 찾을 수 없어요\",\"result\":null}"))) })
+	// 선택 인증이라 글로벌 Bearer 요구를 해제함 — 비로그인도 200이고 로그인 시 isFavorite만 반영(런타임 permitAll 정합).
+	@SecurityRequirements
 	@GetMapping("/{subsidyId}")
 	public CustomResponse<SubsidyDetailResponse> getSubsidyDetail(@PathVariable Long subsidyId) {
 		// 선택 인증임 — 비로그인·만료 토큰이면 회원 없이(null) 조회해 isFavorite=false, 로그인 회원이면 관심 여부를 반영함.
