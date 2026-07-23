@@ -1,5 +1,7 @@
 package com.jeongbiseo.domain.estimate;
 
+import com.jeongbiseo.support.MySqlContainerSupport;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.stream.IntStream;
@@ -8,10 +10,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
 
 import com.jeongbiseo.domain.common.enums.EmploymentStatus;
 import com.jeongbiseo.domain.common.enums.IncomeBracket;
@@ -43,14 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @Transactional
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-class EstimatedAmountIntegrationTest {
-
-	@ServiceConnection
-	static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
-
-	static {
-		MYSQL.start();
-	}
+class EstimatedAmountIntegrationTest extends MySqlContainerSupport {
 
 	private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 

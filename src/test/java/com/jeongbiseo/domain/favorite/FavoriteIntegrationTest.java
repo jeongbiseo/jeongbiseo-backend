@@ -1,16 +1,16 @@
 package com.jeongbiseo.domain.favorite;
 
+import com.jeongbiseo.support.MySqlContainerSupport;
+
 import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
 
 import com.jeongbiseo.domain.common.enums.OccupationRestriction;
 import com.jeongbiseo.domain.common.enums.PaymentType;
@@ -37,14 +37,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @Transactional
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-class FavoriteIntegrationTest {
-
-	@ServiceConnection
-	static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
-
-	static {
-		MYSQL.start();
-	}
+class FavoriteIntegrationTest extends MySqlContainerSupport {
 
 	@Autowired
 	private MemberRepository memberRepository;

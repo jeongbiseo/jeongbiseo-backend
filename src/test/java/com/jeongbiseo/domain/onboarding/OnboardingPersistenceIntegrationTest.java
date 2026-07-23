@@ -1,5 +1,7 @@
 package com.jeongbiseo.domain.onboarding;
 
+import com.jeongbiseo.support.MySqlContainerSupport;
+
 import java.time.LocalDate;
 
 import jakarta.persistence.EntityManager;
@@ -7,11 +9,9 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
 
 import com.jeongbiseo.domain.common.enums.EmploymentStatus;
 import com.jeongbiseo.domain.member.entity.Member;
@@ -31,17 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @Transactional
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-class OnboardingPersistenceIntegrationTest {
-
-	// testcontainers-junit-jupiter 의존성을 추가하지 않고 컨테이너를 수동 기동함(@ServiceConnection이 연결 정보를
-	// 주입).
-	// Ryuk가 JVM 종료 시 컨테이너를 정리함.
-	@ServiceConnection
-	static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
-
-	static {
-		MYSQL.start();
-	}
+class OnboardingPersistenceIntegrationTest extends MySqlContainerSupport {
 
 	@Autowired
 	private MemberRepository memberRepository;
