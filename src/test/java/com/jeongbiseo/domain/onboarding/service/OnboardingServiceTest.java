@@ -85,6 +85,7 @@ class OnboardingServiceTest {
 
 		assertThat(saved.getRegionCode()).isNull();
 		assertThat(saved.getSido()).isEqualTo("없는시도");
+		assertThat(saved.getSigungu()).isEqualTo("없는시군구");
 	}
 
 	@Test

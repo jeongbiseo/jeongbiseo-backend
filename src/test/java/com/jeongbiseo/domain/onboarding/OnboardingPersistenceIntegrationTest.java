@@ -80,6 +80,8 @@ class OnboardingPersistenceIntegrationTest {
 	void D3_카탈로그_밖_지역이면_regionCode_null도_저장된다() {
 		Member member = memberRepository.save(newMember());
 		onboardingProfileRepository.save(profileOf(member, null, "없는시도", "없는시군구"));
+		onboardingProfileRepository.flush();
+		entityManager.clear();
 
 		assertThat(onboardingProfileRepository.findByMemberId(member.getId())).get()
 			.extracting(OnboardingProfile::getRegionCode)

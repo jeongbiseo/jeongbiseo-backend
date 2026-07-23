@@ -30,8 +30,8 @@ import com.jeongbiseo.domain.member.entity.Role;
 import com.jeongbiseo.domain.member.repository.MemberRepository;
 import com.jeongbiseo.domain.onboarding.entity.OnboardingProfile;
 import com.jeongbiseo.domain.onboarding.entity.ReceivedSubsidy;
-import com.jeongbiseo.domain.onboarding.repository.OnboardingProfileRepository;
 import com.jeongbiseo.domain.onboarding.repository.ReceivedSubsidyRepository;
+import com.jeongbiseo.domain.onboarding.service.OnboardingService;
 import com.jeongbiseo.domain.recommendation.service.RecommendationQueryService;
 import com.jeongbiseo.domain.recommendation.service.RecommendationQueryService.RecommendationView;
 import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
@@ -66,7 +66,7 @@ class RecommendationScopeIntegrationTest {
 	private MemberRepository memberRepository;
 
 	@Autowired
-	private OnboardingProfileRepository onboardingProfileRepository;
+	private OnboardingService onboardingService;
 
 	@Autowired
 	private SubsidyRepository subsidyRepository;
@@ -93,18 +93,10 @@ class RecommendationScopeIntegrationTest {
 		LocalDate birthDate = LocalDate.now(SEOUL_ZONE).minusYears(27);
 		// D3: RegionCatalog 밖 지역이면 regionCode는 null로 저장됨. 사용자 지역코드가 null이면 강등 판정 불가라
 		// 지역형·전국형 모두 정상 노출함(09-region-demotion 반전, 종전 REGIONAL 탈락 폐기).
-		OnboardingProfile profile = OnboardingProfile.builder()
-			.member(member)
-			.birthDate(birthDate)
-			.regionCode(null)
-			.sido("없는시도")
-			.sigungu("없는시군구")
-			.employmentStatus(EmploymentStatus.JOB_SEEKING)
-			.incomeBracket(IncomeBracket.UNDER_200)
-			.householdSize(1)
-			.build();
-		onboardingProfileRepository.save(profile);
 		this.memberId = member.getId();
+		OnboardingProfile profile = onboardingService.submit(memberId, birthDate, "없는시도", "없는시군구",
+				EmploymentStatus.JOB_SEEKING, IncomeBracket.UNDER_200, 1);
+		assertThat(profile.getRegionCode()).isNull();
 	}
 
 	private static Member newMember() {
