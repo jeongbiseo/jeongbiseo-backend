@@ -71,6 +71,15 @@ public enum AmountParseStatus {
 	// 20251217005400212015, 20251218005400212025, 20250917005400211733,
 	// 20250407005400210696,
 	// 20250123005400110377)
-	PARSED_WITH_LOAN_EXCLUSION
+	PARSED_WITH_LOAN_EXCLUSION,
+
+	// 금액 표현은 있었으나 "소득" 어휘 앞 문맥과 "이하·미만·이상·초과" 뒤 문턱 마커가 함께 있어 지급액이
+	// 아닌 자격 기준선으로 배제한 경우임. 표본 2,421건에서 이 조합 12건은 전부 자격 기준선이고 실제 지급액은
+	// 0건이었음(DEC-019). amountKind는 NONE이 됨.
+	EXCLUDED_INCOME_THRESHOLD,
+
+	// 소득 자격 기준선을 일부 배제했지만 실제 지급액 후보가 하나 이상 남은 경우임. 배제 후 하나만 남더라도
+	// SINGLE로 승격하지 않고 CONDITIONAL로 유지해 예상 총액 오합산을 막음(20250901005400211565 실측).
+	PARSED_WITH_INCOME_THRESHOLD_EXCLUSION
 
 }
