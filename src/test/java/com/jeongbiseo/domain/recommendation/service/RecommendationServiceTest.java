@@ -25,6 +25,7 @@ import com.jeongbiseo.domain.subsidy.dto.SubsidyCriteria;
 import com.jeongbiseo.domain.subsidy.dto.SubsidySummary;
 import com.jeongbiseo.global.apiPayload.code.RecommendationErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
+import com.jeongbiseo.infra.client.common.dto.AmountKind;
 
 /**
  * RecommendationService 단위 테스트임(순수 JUnit, SubsidyReader는 테스트 더블로 대체, 스프링 컨텍스트 없음).
@@ -160,6 +161,20 @@ class RecommendationServiceTest {
 			assertThat(candidate.estimatedAmountMax()).isEqualTo(300_000L);
 			assertThat(candidate.regionDemoted()).isFalse();
 		});
+	}
+
+	@Test
+	void estimateCandidates_preservesAmountKind() {
+		SubsidyCriteria criteria = new SubsidyCriteria(1L, TargetAudience.PERSONAL, OccupationRestriction.NONE, null,
+				19, 34, RegionScope.NATIONWIDE, null, null, null, null, null, null, null, null, 100_000L, 300_000L,
+				AmountKind.CONDITIONAL, null, PaymentType.CASH, null, null, null, null);
+		RecommendationService service = new RecommendationService(new StubSubsidyReader(List.of(criteria), false));
+
+		List<EstimateCandidate> candidates = service.estimateCandidates(APPLICANT, Set.of(), AS_OF, 10);
+
+		assertThat(candidates).singleElement()
+			.extracting(EstimateCandidate::amountKind)
+			.isEqualTo(AmountKind.CONDITIONAL);
 	}
 
 	@Test

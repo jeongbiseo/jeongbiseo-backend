@@ -1,0 +1,37 @@
+{
+  "totalCount": 1,
+  "result": {
+    "youthPolicyList": [
+      {
+        "plcyNo": "20260416005400112761",
+        "plcyNm": "K-스타트업",
+        "plcyExplnCn": "청년 창업기업의 성장을 지원하는 기업 대상 공고",
+        "plcySprtCn": "창업기업 대상 사업화 지원",
+        "lclsfNm": "일자리",
+        "mclsfNm": "창업",
+        "sprvsnInstCdNm": "창업진흥원",
+        "plcyPvsnMthdCd": "0042002",
+        "aplyPrdSeCd": "0057002",
+        "aplyYmd": "",
+        "zipCd": "",
+        "sprtTrgtMinAge": "19",
+        "sprtTrgtMaxAge": "39",
+        "sprtTrgtAgeLmtYn": "Y",
+        "earnCndSeCd": "0043001",
+        "earnEtcCn": "",
+        "jobCd": "0013006",
+        "sbizCd": "0014001",
+        "schoolCd": "0049010",
+        "plcyMajorCd": "0011009",
+        "mrgSttsCd": "0055003",
+        "addAplyQlfcCndCn": "청년 창업기업",
+        "ptcpPrpTrgtCn": "",
+        "plcyAplyMthdCn": "온라인 신청",
+        "sbmsnDcmntCn": "공고문 참조",
+        "aplyUrlAddr": "https://www.k-startup.go.kr/",
+        "refUrlAddr1": "https://www.k-startup.go.kr/",
+        "lastMdfcnDt": "2026-04-16 00:00:00"
+      }
+    ]
+  }
+}

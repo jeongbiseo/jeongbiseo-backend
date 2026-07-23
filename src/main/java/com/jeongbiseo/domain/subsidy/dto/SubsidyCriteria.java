@@ -7,6 +7,7 @@ import com.jeongbiseo.domain.common.enums.OccupationRestriction;
 import com.jeongbiseo.domain.common.enums.PaymentType;
 import com.jeongbiseo.domain.common.enums.RegionScope;
 import com.jeongbiseo.domain.common.enums.TargetAudience;
+import com.jeongbiseo.infra.client.common.dto.AmountKind;
 
 /**
  * 매칭에 필요한 지원금 조건 스냅샷임(값 객체). Subsidy 엔티티 전체가 아니라 판정과 정렬에 쓰이는 필드만 담음(storage 계층과의 결합을 끊음).
@@ -30,6 +31,7 @@ import com.jeongbiseo.domain.common.enums.TargetAudience;
  * @param householdCondition 가구원 수 조건 자유 문자열(예 "1인 가구", "2인 이상")
  * @param estimatedAmountMin 예상 지원금액 하한
  * @param estimatedAmountMax 예상 지원금액 상한
+ * @param amountKind 금액 표현 성격. 과거 수기·시드 행은 null일 수 있음
  * @param monthlyAmount 월 지급액(해당 시)
  * @param paymentType 지급 방식
  * @param deadline 신청 마감일. null이면 상시접수 등 종료일 없음이며 정렬 시 뒤로 둠(nullsLast)
@@ -42,8 +44,23 @@ public record SubsidyCriteria(Long subsidyId, TargetAudience targetAudience,
 		RegionScope regionScope, String regionCode, EligibilitySignal employmentSignal, String employmentTags,
 		String employmentRawCode, EligibilitySignal incomeSignal, Long incomeThreshold,
 		EligibilitySignal householdSignal, String householdCondition, Long estimatedAmountMin, Long estimatedAmountMax,
-		Long monthlyAmount, PaymentType paymentType, LocalDate deadline, String sourceId, String externalId,
-		String regionCodes) {
+		AmountKind amountKind, Long monthlyAmount, PaymentType paymentType, LocalDate deadline, String sourceId,
+		String externalId, String regionCodes) {
+
+	/**
+	 * amountKind 영속화 전 전체 인자 생성자와의 호환용임. 과거 수기·시드 데이터처럼 금액 성격을 모르면 null로 둠.
+	 */
+	public SubsidyCriteria(Long subsidyId, TargetAudience targetAudience, OccupationRestriction occupationRestriction,
+			EligibilitySignal ageSignal, Integer ageMin, Integer ageMax, RegionScope regionScope, String regionCode,
+			EligibilitySignal employmentSignal, String employmentTags, String employmentRawCode,
+			EligibilitySignal incomeSignal, Long incomeThreshold, EligibilitySignal householdSignal,
+			String householdCondition, Long estimatedAmountMin, Long estimatedAmountMax, Long monthlyAmount,
+			PaymentType paymentType, LocalDate deadline, String sourceId, String externalId, String regionCodes) {
+		this(subsidyId, targetAudience, occupationRestriction, ageSignal, ageMin, ageMax, regionScope, regionCode,
+				employmentSignal, employmentTags, employmentRawCode, incomeSignal, incomeThreshold, householdSignal,
+				householdCondition, estimatedAmountMin, estimatedAmountMax, null, monthlyAmount, paymentType, deadline,
+				sourceId, externalId, regionCodes);
+	}
 
 	/**
 	 * 신호 컬럼 도입 전 시드·수기 데이터용 생성자임. 신호가 null이면 기존 비교값 기반 판정을 그대로 사용함.
@@ -54,7 +71,7 @@ public record SubsidyCriteria(Long subsidyId, TargetAudience targetAudience,
 			Long monthlyAmount, PaymentType paymentType) {
 		this(subsidyId, targetAudience, occupationRestriction, null, ageMin, ageMax, regionScope, regionCode, null,
 				employmentTags, null, null, incomeThreshold, null, householdCondition, estimatedAmountMin,
-				estimatedAmountMax, monthlyAmount, paymentType, null, null, null, null);
+				estimatedAmountMax, null, monthlyAmount, paymentType, null, null, null, null);
 	}
 
 }

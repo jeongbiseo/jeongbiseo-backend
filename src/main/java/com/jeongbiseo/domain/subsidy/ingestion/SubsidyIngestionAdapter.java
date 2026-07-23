@@ -85,6 +85,7 @@ public class SubsidyIngestionAdapter {
 			.deadline(deadline.endDate())
 			.estimatedAmountMin(amount.minAmount())
 			.estimatedAmountMax(amount.maxAmount())
+			.amountKind(amount.amountKind())
 			.amountSource(EXTERNAL_AMOUNT_SOURCE)
 			.paymentType(subsidy.paymentType())
 			.duplicationPolicy(UNKNOWN_DUPLICATION_POLICY)

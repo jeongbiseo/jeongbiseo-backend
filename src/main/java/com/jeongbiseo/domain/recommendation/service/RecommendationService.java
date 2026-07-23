@@ -154,8 +154,8 @@ public class RecommendationService {
 			.findFirst()
 			.orElseThrow(() -> new IllegalStateException("지원금 표시 정보를 찾을 수 없어요: " + criteria.subsidyId()));
 		return new EstimateCandidate(criteria.subsidyId(), summary.name(), criteria.paymentType(),
-				criteria.targetAudience(), criteria.estimatedAmountMin(), criteria.estimatedAmountMax(),
-				criteria.monthlyAmount(), selected.result().regionDemoted());
+				criteria.targetAudience(), criteria.amountKind(), criteria.estimatedAmountMin(),
+				criteria.estimatedAmountMax(), criteria.monthlyAmount(), selected.result().regionDemoted());
 	}
 
 	private static RecommendationItem toItem(MatchResult result, List<SubsidySummary> summaries) {

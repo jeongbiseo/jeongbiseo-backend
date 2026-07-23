@@ -434,6 +434,38 @@ class Gov24DeadlineAmountRegionIncomeParserTest {
 	}
 
 	@Test
+	void parseAmount_incomeThreshold_isExcludedFromAmountCandidates() {
+		ParsedAmount result = parser.parseAmount("신혼부부 중 부부합산 연소득 8,000만원 이하 무주택 가구 지원");
+
+		assertThat(result.amountKind()).isEqualTo(AmountKind.NONE);
+		assertThat(result.amountCandidates()).isEmpty();
+		assertThat(result.minAmount()).isNull();
+		assertThat(result.maxAmount()).isNull();
+		assertThat(result.parseStatus()).isEqualTo(AmountParseStatus.EXCLUDED_INCOME_THRESHOLD);
+	}
+
+	@Test
+	void parseAmount_tieredBenefitWithoutIncomeContext_isPreserved() {
+		ParsedAmount result = parser.parseAmount("출산축하금 셋째 500만원, 넷째이상 1,000만원 지급");
+
+		assertThat(result.amountCandidates()).containsExactly(5_000_000L, 10_000_000L);
+		assertThat(result.amountKind()).isEqualTo(AmountKind.CONDITIONAL);
+	}
+
+	@Test
+	void parseAmount_incomeThresholdExclusion_doesNotPromoteRemainingAmountToSingle() {
+		// 온통청년 20250901005400211565 실제 원문 구조임. 소득 기준 5천만원을 제외하면 월 10만원 하나만
+		// 남으므로 승격 방지 항이 없으면 SINGLE이 되어 예상 총액에 잘못 들어감.
+		ParsedAmount result = parser.parseAmount("(청년근로자) 19~39세 연소득 5,000만원 이하 무주택자 대상, 정착 인센티브 지원(월 100천원, 최대 24개월)");
+
+		assertThat(result.amountCandidates()).containsExactly(100_000L);
+		assertThat(result.amountKind()).isEqualTo(AmountKind.CONDITIONAL);
+		assertThat(result.minAmount()).isEqualTo(100_000L);
+		assertThat(result.maxAmount()).isEqualTo(100_000L);
+		assertThat(result.parseStatus()).isEqualTo(AmountParseStatus.PARSED_WITH_INCOME_THRESHOLD_EXCLUSION);
+	}
+
+	@Test
 	void parseAmount_typeF_realCapAfterBudgetKeyword_isNotOverExcluded() throws IOException {
 		// 과잉 배제 방지 — 배제 규칙이 진짜 개인(기업) 지급액까지 먹지 않는지 반대 방향으로 고정함.
 		// 142000000061 "총사업비의 50% 이내 / 최대 4천만원"에서 4천만원은 실제 상한액임. 예산 문맥 창을 17자
@@ -715,17 +747,19 @@ class Gov24DeadlineAmountRegionIncomeParserTest {
 		System.out.println("=== 금액 파싱 상태(AmountParseStatus) 분포 (스냅샷 n=" + items.size() + ") ===");
 		counts.forEach((status, count) -> System.out.printf("  %s: %d건%n", status, count));
 
-		// 배제가 일어난 레코드는 31건임 — 사유를 **돈의 방향**으로 셋으로 나눠 남김. 예산 12건(정부가 쓰는 돈),
-		// 자부담 7건(이용자가 내는 돈), 대출·보증 한도 12건(아무도 주지 않는 돈 — 빌린 뒤 갚아야 하는 채무 상한).
-		// 셋을 한 상태로 뭉치지 않는 이유는 팀이 엑셀에서 "왜 산정불가인가"를 바로 읽어야 하기 때문임.
+		// 배제가 일어난 레코드는 32건임. 예산 12건(정부가 쓰는 돈), 자부담 7건(이용자가 내는 돈),
+		// 대출·보증 한도 12건(아무도 주지 않는 돈 — 빌린 뒤 갚아야 하는 채무 상한), 소득 자격 기준선 1건임.
+		// 사유를 한 상태로 뭉치지 않아 팀이 엑셀에서 "왜 산정불가인가"를 바로 읽을 수 있게 함.
 		assertThat(counts.get(AmountParseStatus.NOT_FOUND)).isEqualTo(645L);
 		assertThat(counts.get(AmountParseStatus.EXCLUDED_BUDGET_CONTEXT)).isEqualTo(6L);
-		assertThat(counts.get(AmountParseStatus.PARSED)).isEqualTo(421L);
+		assertThat(counts.get(AmountParseStatus.PARSED)).isEqualTo(420L);
 		assertThat(counts.get(AmountParseStatus.PARSED_WITH_BUDGET_EXCLUSION)).isEqualTo(6L);
 		assertThat(counts.get(AmountParseStatus.EXCLUDED_SELF_PAY_CONTEXT)).isEqualTo(2L);
 		assertThat(counts.get(AmountParseStatus.PARSED_WITH_SELF_PAY_EXCLUSION)).isEqualTo(5L);
 		assertThat(counts.get(AmountParseStatus.EXCLUDED_LOAN_CONTEXT)).isEqualTo(5L);
 		assertThat(counts.get(AmountParseStatus.PARSED_WITH_LOAN_EXCLUSION)).isEqualTo(7L);
+		assertThat(counts.get(AmountParseStatus.EXCLUDED_INCOME_THRESHOLD)).isZero();
+		assertThat(counts.get(AmountParseStatus.PARSED_WITH_INCOME_THRESHOLD_EXCLUSION)).isEqualTo(1L);
 		assertThat(counts.values().stream().mapToLong(Long::longValue).sum()).isEqualTo(items.size());
 	}
 

@@ -3,8 +3,8 @@ package com.jeongbiseo.domain.common.enums;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 지원금 지급 방식임. UNKNOWN은 원문에 지급 방식이 명시되지 않은 경우이며 금액 필드 전무와 함께 산정불가(AMOUNT_INFO_MISSING) 판정의
- * 조건이 됨.
+ * 지원금 지급 방식임. UNKNOWN은 원문에 지급 방식이 명시되지 않은 경우이며, 금액이 있더라도 지급 방식 미확정 산정불가
+ * (PAYMENT_TYPE_UNCONFIRMED) 판정의 조건이 됨.
  */
 // 라벨 정본은 API명세서 PaymentType 절이고 버킷 분류 정본은 EstimatedTotalCalculator.exclusionReason임.
 // 응답 DTO가 이 enum을 타입 그대로 노출해야 이 설명과 허용값이 /v3/api-docs에 실림(String으로 평탄화하면 스키마에서 사라짐).

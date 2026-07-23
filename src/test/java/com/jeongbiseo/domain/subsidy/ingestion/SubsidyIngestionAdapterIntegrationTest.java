@@ -139,10 +139,30 @@ class SubsidyIngestionAdapterIntegrationTest {
 		assertThat(saved.getName()).isEqualTo(name);
 	}
 
+	@Test
+	void ingest_CONDITIONAL_금액성격과_금액범위를_함께_왕복한다() {
+		NormalizedSubsidy subsidy = fixture("AMOUNT-KIND-1", "조건부 지원금", 500_000L, AmountKind.CONDITIONAL);
+		adapter.ingest(List.of(subsidy), FETCHED_AT);
+
+		SubsidyEntity saved = subsidyRepository.findAllBySourceIdIn(java.util.Set.of("gov24"))
+			.stream()
+			.filter(e -> e.getExternalId().equals("AMOUNT-KIND-1"))
+			.findFirst()
+			.orElseThrow();
+
+		assertThat(saved.getAmountKind()).isEqualTo(AmountKind.CONDITIONAL);
+		assertThat(saved.getEstimatedAmountMin()).isEqualTo(500_000L);
+		assertThat(saved.getEstimatedAmountMax()).isEqualTo(500_000L);
+	}
+
 	// 필수 축만 채운 최소 NormalizedSubsidy 픽스처임. 소스는 gov24 고정, 지역은 전국(빈 목록)으로 둠.
 	private static NormalizedSubsidy fixture(String externalId, String name, long amount) {
-		ParsedAmount parsedAmount = new ParsedAmount(AmountKind.SINGLE, List.of(amount), amount, amount, "원", null,
-				AmountParseStatus.PARSED);
+		return fixture(externalId, name, amount, AmountKind.SINGLE);
+	}
+
+	private static NormalizedSubsidy fixture(String externalId, String name, long amount, AmountKind amountKind) {
+		ParsedAmount parsedAmount = new ParsedAmount(amountKind, List.of(amount), amount, amount, "원",
+				amountKind == AmountKind.CONDITIONAL ? "조건에 따라 지급" : null, AmountParseStatus.PARSED);
 		ParsedDeadline deadline = new ParsedDeadline(DeadlineKind.ALWAYS_OPEN, null, null, "상시신청");
 		return new NormalizedSubsidy(SubsidySource.GOV24, externalId, name, "테스트기관", "지원 내용 원문", "자격조건 원문", "생활안정",
 				PaymentType.CASH, "현금", parsedAmount, deadline, DeadlineBasis.PARSED_FROM_TEXT,

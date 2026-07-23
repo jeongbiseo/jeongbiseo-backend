@@ -7,7 +7,7 @@ package com.jeongbiseo.domain.recommendation;
 public enum EligibilityReason {
 
 	INCOME_MISSING("소득 정보가 없어 지원금을 산정할 수 없어요"), HOUSEHOLD_UNDETERMINED("가구원 수 정보가 없어 지원금을 산정할 수 없어요"),
-	AMOUNT_INFO_MISSING("지원 금액 정보가 공개되지 않아 산정할 수 없어요"),
+	AMOUNT_INFO_MISSING("지원 금액 정보가 공개되지 않아 산정할 수 없어요"), PAYMENT_TYPE_UNCONFIRMED("지급 방식을 확인할 수 없어 합산하지 않았어요"),
 	AGE_CONDITION_DETAILS_MISSING("지원금에 연령 제한이 있지만 비교할 세부 기준이 없어 판단할 수 없어요"),
 	AGE_CONDITION_UNKNOWN("지원금의 연령 조건이 공개되지 않아 판단할 수 없어요"),
 	INCOME_CONDITION_DETAILS_MISSING("지원금에 소득 제한이 있지만 비교할 세부 기준이 없어 판단할 수 없어요"),
@@ -28,10 +28,10 @@ public enum EligibilityReason {
 		return message;
 	}
 
-	// 자격 축(연령·고용·소득·가구) 불확실 사유인지 반환함. 금액 축 사유(AMOUNT_INFO_MISSING)만 false임
-	// ("추가 확인 필요 조건 수" 집계 재료).
+	// 자격 축(연령·고용·소득·가구) 불확실 사유인지 반환함. 금액 축 사유는 false임("추가 확인 필요 조건 수"
+	// 집계 재료).
 	public boolean qualificationUncertainty() {
-		return this != AMOUNT_INFO_MISSING;
+		return this != AMOUNT_INFO_MISSING && this != PAYMENT_TYPE_UNCONFIRMED;
 	}
 
 }

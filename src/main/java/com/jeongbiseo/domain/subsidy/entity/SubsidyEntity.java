@@ -25,6 +25,7 @@ import com.jeongbiseo.domain.common.enums.RegionScope;
 import com.jeongbiseo.domain.common.enums.SubsidyCategory;
 import com.jeongbiseo.domain.common.enums.TargetAudience;
 import com.jeongbiseo.global.common.entity.BaseEntity;
+import com.jeongbiseo.infra.client.common.dto.AmountKind;
 
 /**
  * 지원금 마스터 엔티티임(ERD SUBSIDY). 비교값(ageMin, ageMax, regionScope, regionCode, employmentTags,
@@ -88,6 +89,10 @@ public class SubsidyEntity extends BaseEntity {
 
 	@Column(name = "estimated_amount_max")
 	private Long estimatedAmountMax;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "amount_kind")
+	private AmountKind amountKind;
 
 	@Column(name = "amount_source")
 	private String amountSource;
@@ -184,14 +189,15 @@ public class SubsidyEntity extends BaseEntity {
 	@Builder
 	public SubsidyEntity(Long id, String sourceId, String externalId, Long duplicateOfId, String name, String agency,
 			SubsidyCategory category, String description, String eligibilityText, String externalUrl,
-			LocalDate deadline, Long estimatedAmountMin, Long estimatedAmountMax, String amountSource,
-			PaymentType paymentType, Integer monthlyMonths, Long monthlyAmount, String duplicationPolicy,
-			String exclusivityGroup, TargetAudience targetAudience, OccupationRestriction occupationRestriction,
-			Integer ageMin, Integer ageMax, EligibilitySignal ageSignal, RegionScope regionScope, String regionCode,
-			String regionCodes, String employmentTags, EligibilitySignal employmentSignal, String employmentRawCode,
-			Long incomeThreshold, EligibilitySignal incomeSignal, String householdCondition,
-			EligibilitySignal householdSignal, boolean active, boolean recommendable, boolean loanProduct,
-			LocalDateTime dataUpdatedAt, LocalDateTime fetchedAt) {
+			LocalDate deadline, Long estimatedAmountMin, Long estimatedAmountMax, AmountKind amountKind,
+			String amountSource, PaymentType paymentType, Integer monthlyMonths, Long monthlyAmount,
+			String duplicationPolicy, String exclusivityGroup, TargetAudience targetAudience,
+			OccupationRestriction occupationRestriction, Integer ageMin, Integer ageMax, EligibilitySignal ageSignal,
+			RegionScope regionScope, String regionCode, String regionCodes, String employmentTags,
+			EligibilitySignal employmentSignal, String employmentRawCode, Long incomeThreshold,
+			EligibilitySignal incomeSignal, String householdCondition, EligibilitySignal householdSignal,
+			boolean active, boolean recommendable, boolean loanProduct, LocalDateTime dataUpdatedAt,
+			LocalDateTime fetchedAt) {
 		this.id = id;
 		this.sourceId = sourceId;
 		this.externalId = externalId;
@@ -205,6 +211,7 @@ public class SubsidyEntity extends BaseEntity {
 		this.deadline = deadline;
 		this.estimatedAmountMin = estimatedAmountMin;
 		this.estimatedAmountMax = estimatedAmountMax;
+		this.amountKind = amountKind;
 		this.amountSource = amountSource;
 		this.paymentType = paymentType;
 		this.monthlyMonths = monthlyMonths;

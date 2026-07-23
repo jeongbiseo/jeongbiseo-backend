@@ -330,6 +330,12 @@ public final class Gov24Parser {
 	// 잘못 붙음.
 	private static final int AMOUNT_THRESHOLD_FORWARD_WINDOW = 6;
 
+	// 금액 뒤에 문턱 마커가 있고 앞 15자에 "소득"이 있을 때 그 금액을 지급액이 아닌 자격 기준선으로 봄.
+	// 표본 2,421건 전수 스캔에서 12건이 모두 자격 기준선이었고 실제 지급액 오탐은 0건이었음(DEC-019).
+	private static final String[] INCOME_THRESHOLD_CONTEXT_MARKERS = { "소득" };
+
+	private static final int INCOME_THRESHOLD_CONTEXT_WINDOW = 15;
+
 	// 금액 오분류 수정 임무 유형B — 조건 마커("당" 계열)가 AMOUNT_CONDITION_CONTEXT_WINDOW(10자) 밖에
 	// 있거나 금액 뒤에 오는 경우를 놓치는 문제의 보강 마커임. 스냅샷 전체(n=1097)에서 "[가-힣]{1,3}당" 패턴을
 	// 전수로 뽑아(임무 지시 2장 "전수로 뽑아서 규칙을 만들어라") 사람 수·가구·건수 등 실제 "~당"(per-X) 의미인
@@ -830,9 +836,9 @@ public final class Gov24Parser {
 	 * 설계 원칙 — 두 방향의 오류 중 <b>과소 배제(사업예산을 개인 지급액으로 오인)</b> 쪽을 더 무겁게 봄. 이유는 비대칭임: SINGLE 하나에
 	 * 사업예산 8억원(430000000135)이 섞이면 예상총액이 실제(수십만원 단위)의 수백 배로 부풀지만, 반대로 한 건을 과잉 배제하면 그 건만
 	 * "산정불가"(화면 231913 배지)로 정직하게 빠질 뿐 다른 값을 오염시키지 않음. 다만 과잉 배제도 추천 품질을 깎으므로,
-	 * 배제(EXCLUDED)는 <b>실측으로 확인한 좁은 마커</b>에만 걸고 애매한 것(문턱 표현·조건 표현)은 배제가 아니라 CONDITIONAL로
-	 * 내려 금액을 보존함. 즉 3단계임: 확실한 비지급액은 배제, 조건부 지급액은 CONDITIONAL(단순 합산 금지 신호), 명확한 단일 지급액만
-	 * SINGLE(예상총액 자동 채움 대상).
+	 * 배제(EXCLUDED)는 <b>실측으로 확인한 좁은 마커</b>에만 걸고 애매한 조건 표현은 CONDITIONAL로 내려 금액을 보존함. 문턱 표현도
+	 * 원칙적으로 보존하되, 앞 15자에 "소득"이 함께 있는 실측 12건은 전부 자격 기준선이라 배제함. 즉 3단계임: 확실한 비지급액은 배제, 조건부
+	 * 지급액은 CONDITIONAL(단순 합산 금지 신호), 명확한 단일 지급액만 SINGLE(예상총액 자동 채움 대상).
 	 * <p>
 	 * 스냅샷(n=1097) 실측 분포는 전체 NONE 653건(59.53%)·SINGLE 124건(11.30%)·MULTIPLE
 	 * 89건(8.11%)·CONDITIONAL 231건(21.06%)이고, 현금성(paymentType 원문 "현금" 433건) 기준으로는 NONE
@@ -852,6 +858,9 @@ public final class Gov24Parser {
 	 * <li><b>유형H 대출·보증 한도</b> — <b>아무도 주지 않는</b> 돈(빌린 뒤 갚아야 할 채무 상한.
 	 * {@link AmountParseStatus#EXCLUDED_LOAN_CONTEXT},
 	 * {@link AmountParseStatus#PARSED_WITH_LOAN_EXCLUSION})</li>
+	 * <li><b>유형K 소득 자격 기준선</b> — 수혜자가 받는 돈이 아니라 자격을 가르는 문턱 금액.
+	 * {@link AmountParseStatus#EXCLUDED_INCOME_THRESHOLD},
+	 * {@link AmountParseStatus#PARSED_WITH_INCOME_THRESHOLD_EXCLUSION})</li>
 	 * </ul>
 	 * <p>
 	 * <b>유형H가 특히 까다로운 이유 — 두 방향의 오류가 둘 다 실재함.</b> "대출"이라는 낱말이 있다고 배제하면 <b>진짜 현금 지원이
@@ -910,6 +919,8 @@ public final class Gov24Parser {
 		String selfPayExcerpt = null;
 		boolean anyLoanExcluded = false;
 		String loanExcerpt = null;
+		boolean anyIncomeThresholdExcluded = false;
+		String incomeThresholdExcerpt = null;
 		boolean anyDemoted = false;
 		String demotionExcerpt = null;
 		boolean anyConditional = false;
@@ -962,6 +973,15 @@ public final class Gov24Parser {
 				}
 				continue;
 			}
+			if (isIncomeThresholdAmount(description, start, end)) {
+				// 소득 문턱 금액은 지급액이 아니라 자격 기준선이므로 후보에서 제외함. 남은 지급액이 하나여도
+				// SINGLE로 승격되지 않게 anyIncomeThresholdExcluded를 최종 conditional 논리합에 보존함.
+				anyIncomeThresholdExcluded = true;
+				if (incomeThresholdExcerpt == null) {
+					incomeThresholdExcerpt = buildConditionSummary(description, start, end);
+				}
+				continue;
+			}
 			candidates.add(value);
 			if (unit == null) {
 				unit = detectAmountUnit(description, start);
@@ -995,6 +1015,9 @@ public final class Gov24Parser {
 			else if (anySelfPayExcluded) {
 				status = AmountParseStatus.EXCLUDED_SELF_PAY_CONTEXT;
 			}
+			else if (anyIncomeThresholdExcluded) {
+				status = AmountParseStatus.EXCLUDED_INCOME_THRESHOLD;
+			}
 			else {
 				status = AmountParseStatus.NOT_FOUND;
 			}
@@ -1010,7 +1033,7 @@ public final class Gov24Parser {
 		// 승격되면 없던 예상총액 항목이 새로 생김(451000000242 "대출이자 지원(대출한도 5천만 원) ... 연 최대
 		// 1.5백만 원 범위 내" — 5천만원을 빼면 뒤 금액이 MULTIPLE에서 SINGLE로 올라섬).
 		boolean conditional = anyConditional || hasTieredOmittedUnitEnum || anySelfPayExcluded || anyLoanExcluded
-				|| anyDemoted;
+				|| anyIncomeThresholdExcluded || anyDemoted;
 		AmountKind kind;
 		if (conditional) {
 			kind = AmountKind.CONDITIONAL;
@@ -1024,8 +1047,10 @@ public final class Gov24Parser {
 		long min = Collections.min(candidates);
 		long max = Collections.max(candidates);
 		String resolvedUnit = unit == null ? DEFAULT_AMOUNT_UNIT : unit;
-		String summary = kind == AmountKind.CONDITIONAL ? resolveConditionSummary(description, tieredMatcher,
-				hasTieredOmittedUnitEnum, conditionSummary, selfPayExcerpt, loanExcerpt, demotionExcerpt) : null;
+		String summary = kind == AmountKind.CONDITIONAL
+				? resolveConditionSummary(description, tieredMatcher, hasTieredOmittedUnitEnum, conditionSummary,
+						selfPayExcerpt, loanExcerpt, incomeThresholdExcerpt, demotionExcerpt)
+				: null;
 		AmountParseStatus status;
 		if (anyExcludedAsBudget) {
 			status = AmountParseStatus.PARSED_WITH_BUDGET_EXCLUSION;
@@ -1036,6 +1061,9 @@ public final class Gov24Parser {
 		else if (anySelfPayExcluded) {
 			status = AmountParseStatus.PARSED_WITH_SELF_PAY_EXCLUSION;
 		}
+		else if (anyIncomeThresholdExcluded) {
+			status = AmountParseStatus.PARSED_WITH_INCOME_THRESHOLD_EXCLUSION;
+		}
 		else {
 			status = AmountParseStatus.PARSED;
 		}
@@ -1044,10 +1072,11 @@ public final class Gov24Parser {
 
 	// CONDITIONAL 판정 사유가 여럿일 수 있으므로 발췌 근거를 우선순위로 고름. 개별 후보 근처 조건 마커(유형B·E)가 가장
 	// 구체적이라 먼저 쓰고, 그게 없으면 다단 차등 나열(유형C) 구간, 자부담(유형G)·대출 한도(유형H) 배제 구간,
-	// 사업화·고액 강등(유형I·J) 구간 순으로 씀. kind가 CONDITIONAL이면 이 다섯 중 하나는 반드시 있음.
+	// 소득 자격 기준선(유형K)·사업화·고액 강등(유형I·J) 구간 순으로 씀. kind가 CONDITIONAL이면 이 여섯 중 하나는
+	// 반드시 있음.
 	private static String resolveConditionSummary(String description, Matcher tieredMatcher,
 			boolean hasTieredOmittedUnitEnum, String conditionSummary, String selfPayExcerpt, String loanExcerpt,
-			String demotionExcerpt) {
+			String incomeThresholdExcerpt, String demotionExcerpt) {
 		if (conditionSummary != null) {
 			return conditionSummary;
 		}
@@ -1057,7 +1086,10 @@ public final class Gov24Parser {
 		if (selfPayExcerpt != null) {
 			return selfPayExcerpt;
 		}
-		return loanExcerpt != null ? loanExcerpt : demotionExcerpt;
+		if (loanExcerpt != null) {
+			return loanExcerpt;
+		}
+		return incomeThresholdExcerpt != null ? incomeThresholdExcerpt : demotionExcerpt;
 	}
 
 	private static long amountMultiplierFor(String unitChar) {
@@ -1221,6 +1253,16 @@ public final class Gov24Parser {
 	private static boolean hasThresholdMarkerAfter(String text, int matchEnd) {
 		int windowEnd = Math.min(text.length(), matchEnd + AMOUNT_THRESHOLD_FORWARD_WINDOW);
 		return containsAny(text.substring(matchEnd, windowEnd), AMOUNT_THRESHOLD_FORWARD_MARKERS);
+	}
+
+	// 금액 앞 소득 어휘와 뒤 문턱 마커가 함께 있을 때만 자격 기준선으로 판정함. "기준" 같은 넓은 어휘는
+	// 넣지 않아 "셋째 500만원, 넷째이상 1,000만원" 같은 실제 차등 지급액을 보존함.
+	private static boolean isIncomeThresholdAmount(String text, int matchStart, int matchEnd) {
+		if (!hasThresholdMarkerAfter(text, matchEnd)) {
+			return false;
+		}
+		int windowStart = Math.max(0, matchStart - INCOME_THRESHOLD_CONTEXT_WINDOW);
+		return containsAny(text.substring(windowStart, matchStart), INCOME_THRESHOLD_CONTEXT_MARKERS);
 	}
 
 	// 금액 숫자 앞뒤로 PER_UNIT_CONDITION_MARKERS 화이트리스트 단어가 있는지 봄(오분류 수정 임무 유형B).

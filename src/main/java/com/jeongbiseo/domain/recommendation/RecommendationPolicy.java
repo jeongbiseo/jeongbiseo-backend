@@ -70,8 +70,9 @@ public final class RecommendationPolicy {
 		addReason(reasons, employmentOutcome);
 		addReason(reasons, incomeOutcome);
 		addReason(reasons, houseOutcome);
-		if (amountInfoMissing(criteria)) {
-			reasons.add(EligibilityReason.AMOUNT_INFO_MISSING);
+		EligibilityReason amountReason = amountUncomputableReason(criteria);
+		if (amountReason != null) {
+			reasons.add(amountReason);
 		}
 
 		int score = matchScore(ageOutcome.passed(), regionMatched, employmentOutcome.passed(), incomeOutcome.passed(),
@@ -276,12 +277,18 @@ public final class RecommendationPolicy {
 	}
 
 	/**
-	 * 금액 정보 전무(3필드 전부 null) 또는 paymentType UNKNOWN이면 산정불가임.
+	 * 금액 정보 전무와 지급 방식 미확정을 구분해 산정불가 사유를 반환함. 둘 다 해당하면 금액 정보 전무를 우선함.
 	 */
-	private static boolean amountInfoMissing(SubsidyCriteria criteria) {
+	private static EligibilityReason amountUncomputableReason(SubsidyCriteria criteria) {
 		boolean noAmountFields = criteria.estimatedAmountMin() == null && criteria.estimatedAmountMax() == null
 				&& criteria.monthlyAmount() == null;
-		return noAmountFields || criteria.paymentType() == PaymentType.UNKNOWN;
+		if (noAmountFields) {
+			return EligibilityReason.AMOUNT_INFO_MISSING;
+		}
+		if (criteria.paymentType() == PaymentType.UNKNOWN) {
+			return EligibilityReason.PAYMENT_TYPE_UNCONFIRMED;
+		}
+		return null;
 	}
 
 	private static void addReason(List<EligibilityReason> reasons, ConditionOutcome outcome) {

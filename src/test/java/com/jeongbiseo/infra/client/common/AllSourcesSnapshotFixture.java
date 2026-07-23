@@ -80,10 +80,18 @@ final class AllSourcesSnapshotFixture {
 	}
 
 	static List<NormalizedSubsidy> loadYouthcenter() throws IOException {
+		return loadYouthcenter("youthcenter_snapshot.json");
+	}
+
+	static List<NormalizedSubsidy> loadYouthcenterBusinessRegression() throws IOException {
+		return loadYouthcenter("youthcenter_business_kstartup.json");
+	}
+
+	private static List<NormalizedSubsidy> loadYouthcenter(String fileName) throws IOException {
 		YouthcenterParser parser = new YouthcenterParser();
 		YouthcenterSubsidyNormalizer normalizer = new YouthcenterSubsidyNormalizer();
 		List<NormalizedSubsidy> result = new ArrayList<>();
-		for (YouthcenterPolicyDto dto : parser.parsePolicies(read("youthcenter_snapshot.json"))) {
+		for (YouthcenterPolicyDto dto : parser.parsePolicies(read(fileName))) {
 			result.add(normalizer.normalize(parser.toParsedPolicy(dto)));
 		}
 		return result;

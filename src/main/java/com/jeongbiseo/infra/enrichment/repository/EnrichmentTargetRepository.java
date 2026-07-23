@@ -26,9 +26,9 @@ public interface EnrichmentTargetRepository extends Repository<SubsidyEntity, Lo
 	 *
 	 * <p>
 	 * <b>CONDITIONAL 건은 이 조회에 잡히지 않음.</b> 파서가 조건부로 분류해도 금액 후보는 채우기 때문에
-	 * {@code estimatedAmountMin}이 null이 아님. 그리고 {@code AmountKind}는 DB에 저장되지 않아 SQL로 구분할
-	 * 방법이 없음(2026-07-20 실측). 등급 1의 1차 대상을 "금액 서술이 있는데 파서가 못 뽑은 건"으로 좁힌 것은 의도된 선택임 —
-	 * CONDITIONAL은 파서가 이미 값을 내 화면에 무언가 나오는 상태이고, 여기 잡히는 건은 아예 비어 있어 보강 이득이 가장 큼.
+	 * {@code estimatedAmountMin}이 null이 아님. {@code AmountKind}가 DB에 저장되더라도 이 조회는 과거 행의
+	 * null까지 포함하도록 금액 하한 부재를 기준으로 유지함. 등급 1의 1차 대상을 "금액 서술이 있는데 파서가 못 뽑은 건"으로 좁힌 것은 의도된
+	 * 선택임 — CONDITIONAL은 파서가 이미 값을 내 화면에 무언가 나오는 상태이고, 여기 잡히는 건은 아예 비어 있어 보강 이득이 가장 큼.
 	 * </p>
 	 * @param excluded 제외할 대상 구분(기업·사업자)
 	 * @param pageable 페이지 요청

@@ -58,13 +58,14 @@ class YouthcenterBusinessPolicyListTest {
 		assertThat(classifiedAsBusiness).as("코드 상수와 근거 파일의 목록이 같아야 함").containsExactlyInAnyOrderElementsOf(evidenceIds);
 	}
 
-	// 기업·단체가 받는 돈 10건. 개인 예상 총액에 들어가면 받지도 않을 돈이 계산됨.
+	// 추천·개인 예상 총액 모집단에서 제외해야 하는 기업·단체 대상 정책 11건임(금액 NONE 포함).
 	@ParameterizedTest(name = "[{index}] {1} -> BUSINESS")
 	@CsvSource({ "20260416005400112760, 글로벌 액셀러레이팅 3000만", "20260330005400212309, 디지털분야 청년창업 육성 1000만",
 			"20251107005400211811, 청년일자리 우수기업 1000만", "20260325005400212268, 2026 지역인재채용 인센티브 1000만",
 			"20250901005400211548, 2025 지역인재채용 인센티브 1000만", "20250717005400211349, 청년활동경험지원 500만(청년단체)",
 			"20260413005400212703, 청년활동경험지원 300만(청년단체)", "20251203005400211949, 청년 커뮤니티 동아리 100만",
-			"20250901005400211554, 청송군 청년 소모임 100만", "20260331005400212358, 청년창업공간 리모델링 500만(예비창업가)" })
+			"20250901005400211554, 청송군 청년 소모임 100만", "20260331005400212358, 청년창업공간 리모델링 500만(예비창업가)",
+			"20260416005400112761, K-스타트업 창업기업 대상 공고" })
 	void businessPoliciesAreExcluded(String policyId, String label) throws IOException {
 		assertThat(audienceById().get(policyId)).as(label).isEqualTo(TargetAudience.BUSINESS);
 	}
@@ -89,8 +90,9 @@ class YouthcenterBusinessPolicyListTest {
 	}
 
 	private Map<String, TargetAudience> audienceById() throws IOException {
-		return AllSourcesSnapshotFixture.loadYouthcenter()
-			.stream()
+		List<NormalizedSubsidy> policies = new ArrayList<>(AllSourcesSnapshotFixture.loadYouthcenter());
+		policies.addAll(AllSourcesSnapshotFixture.loadYouthcenterBusinessRegression());
+		return policies.stream()
 			.collect(Collectors.toMap(NormalizedSubsidy::externalId, NormalizedSubsidy::targetAudience,
 					(first, second) -> first));
 	}

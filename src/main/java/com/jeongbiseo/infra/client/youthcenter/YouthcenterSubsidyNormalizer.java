@@ -52,7 +52,9 @@ public final class YouthcenterSubsidyNormalizer implements SubsidyNormalizer<Par
 			"20251203005400211949", // 청년 커뮤니티(동아리) 활성화 100만
 			"20250901005400211554", // 청송군 청년 소모임 100만
 			// 창업자 지원 1건 — 창업자 배제 방침(2026-07-13 사용자 확정)
-			"20260331005400212358"); // 청년창업공간 리모델링 500만(초기 청년창업가·예비창업가)
+			"20260331005400212358", // 청년창업공간 리모델링 500만(초기 청년창업가·예비창업가)
+			// 금액 NONE 전수 검토 범위 밖에서 QA로 확인한 기업 공고 1건
+			"20260416005400112761"); // K-스타트업 창업기업 대상 공고
 
 	@Override
 	public SubsidySource source() {
@@ -79,13 +81,13 @@ public final class YouthcenterSubsidyNormalizer implements SubsidyNormalizer<Par
 	 * <b>제외</b>"인데 "사업자"라는 낱말 때문에 걸리고, {@code 청년 이사비 지원}은 "업체" 때문에 걸림. 개인 지원금을 죽이는 규칙이 됨.
 	 *
 	 * <p>
-	 * 대신 SINGLE + CASH 72건을 사람이 전수 검토해 BUSINESS 10건을 확정함(기업 5건, 단체·동아리 4건, 창업공간 1건). 목록은
-	 * {@code fixtures/youthcenter_business_plcyno.json}에 근거와 함께 있음. 72건은 한 사람이 한 시간이면 훑는
-	 * 규모라 오탐이 나는 규칙 엔진보다 싸고 정확함(ponytail).
+	 * 대신 SINGLE + CASH 72건을 사람이 전수 검토해 BUSINESS 10건을 확정했고, QA에서 확인한 금액 NONE 기업 공고 1건을
+	 * 추가함. 목록은 {@code fixtures/youthcenter_business_plcyno.json}에 근거와 함께 있음. 72건은 한 사람이 한
+	 * 시간이면 훑는 규모라 오탐이 나는 규칙 엔진보다 싸고 정확함(ponytail).
 	 *
 	 * <p>
-	 * <b>수용된 한계</b>: 이 목록은 SINGLE + CASH 72건에서만 만들었음. 금액이 NONE인 기업 공고는 검토된 적 없이 PERSONAL로
-	 * 추천에 남을 수 있음.
+	 * <b>수용된 한계</b>: 금액 NONE 공고는 전수 검토하지 않았음. 이번 QA 확인 건 외에도 기업 공고가 PERSONAL로 추천에 남을 수
+	 * 있음.
 	 */
 	private static TargetAudience toTargetAudience(String policyId) {
 		return BUSINESS_POLICY_IDS.contains(policyId) ? TargetAudience.BUSINESS : TargetAudience.PERSONAL;

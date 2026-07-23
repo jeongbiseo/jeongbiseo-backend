@@ -326,9 +326,10 @@ class RecommendationPolicyTest {
 
 	@Test
 	void qualificationUncertainty_trueForQualificationAxis_falseForAmount() {
-		// 자격 축 사유는 "추가 확인 필요"에 셈, 금액 축 사유(AMOUNT_INFO_MISSING)만 제외함
+		// 자격 축 사유는 "추가 확인 필요"에 셈, 금액 축 사유는 제외함
 		assertThat(EligibilityReason.INCOME_MISSING.qualificationUncertainty()).isTrue();
 		assertThat(EligibilityReason.AMOUNT_INFO_MISSING.qualificationUncertainty()).isFalse();
+		assertThat(EligibilityReason.PAYMENT_TYPE_UNCONFIRMED.qualificationUncertainty()).isFalse();
 	}
 
 	private static SubsidyCriteria eligibilityCriteria(EligibilitySignal ageSignal, Integer ageMin, Integer ageMax,
@@ -382,7 +383,7 @@ class RecommendationPolicyTest {
 		MatchResult result = policy.evaluate(applicant, criteria);
 
 		assertThat(result.uncomputable()).isTrue();
-		assertThat(result.uncomputableReasons()).contains(EligibilityReason.AMOUNT_INFO_MISSING);
+		assertThat(result.uncomputableReasons()).containsExactly(EligibilityReason.PAYMENT_TYPE_UNCONFIRMED);
 	}
 
 	// ---- evaluate : 지역 강등 재확인 더하기 나머지 4조건 중 하나만 개별 탈락(matched AND 체인의 각 분기 짚기) ----
@@ -481,6 +482,7 @@ class RecommendationPolicyTest {
 
 		assertThat(result.matched()).isTrue();
 		assertThat(result.uncomputableReasons()).contains(EligibilityReason.AMOUNT_INFO_MISSING);
+		assertThat(result.uncomputableReasons()).doesNotContain(EligibilityReason.PAYMENT_TYPE_UNCONFIRMED);
 		assertThat(result.uncomputable()).isTrue();
 	}
 
