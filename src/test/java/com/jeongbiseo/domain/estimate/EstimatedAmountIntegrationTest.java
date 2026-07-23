@@ -28,6 +28,7 @@ import com.jeongbiseo.domain.onboarding.entity.OnboardingProfile;
 import com.jeongbiseo.domain.onboarding.repository.OnboardingProfileRepository;
 import com.jeongbiseo.domain.subsidy.entity.SubsidyEntity;
 import com.jeongbiseo.domain.subsidy.repository.SubsidyRepository;
+import com.jeongbiseo.infra.client.common.dto.AmountKind;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -137,6 +138,8 @@ class EstimatedAmountIntegrationTest {
 	// 매칭 축(연령·지역 prefix 외·고용·소득·가구)은 열어두고 지급방식·금액·강등·대상만 통제하는 시드 빌더임.
 	private static SubsidyEntity subsidy(String externalId, TargetAudience audience, PaymentType paymentType,
 			Long estimatedAmountMin, Long estimatedAmountMax, Long monthlyAmount, String regionCodes) {
+		AmountKind amountKind = estimatedAmountMin != null || monthlyAmount != null ? AmountKind.SINGLE
+				: AmountKind.NONE;
 		return SubsidyEntity.builder()
 			.sourceId("estimate-test")
 			.externalId(externalId)
@@ -146,6 +149,7 @@ class EstimatedAmountIntegrationTest {
 			.targetAudience(audience)
 			.occupationRestriction(OccupationRestriction.NONE)
 			.paymentType(paymentType)
+			.amountKind(amountKind)
 			.estimatedAmountMin(estimatedAmountMin)
 			.estimatedAmountMax(estimatedAmountMax)
 			.monthlyAmount(monthlyAmount)

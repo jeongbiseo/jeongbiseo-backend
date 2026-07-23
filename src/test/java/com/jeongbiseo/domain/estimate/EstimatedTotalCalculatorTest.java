@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import com.jeongbiseo.domain.common.enums.PaymentType;
 import com.jeongbiseo.domain.common.enums.TargetAudience;
 import com.jeongbiseo.domain.estimate.EstimatedTotalResult.SeparateItem;
+import com.jeongbiseo.infra.client.common.dto.AmountKind;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -49,7 +50,9 @@ class EstimatedTotalCalculatorTest {
 				audience("mixed", TargetAudience.MIXED), audience("unknown-audience", TargetAudience.UNKNOWN),
 				payment("voucher", PaymentType.VOUCHER), payment("unknown-payment", PaymentType.UNKNOWN),
 				payment("null-payment", null), cash("no-amount", null, null, false), monthly("monthly-null", null),
-				business("business"));
+				business("business"), cashWithKind("conditional", AmountKind.CONDITIONAL, 100L, 300L),
+				cashWithKind("multiple", AmountKind.MULTIPLE, 100L, 300L),
+				cashWithKind("none", AmountKind.NONE, null, null), cashWithKind("null-kind", null, 100L, 100L));
 
 		EstimatedTotalResult result = calculator.calculate(candidates);
 
@@ -62,14 +65,30 @@ class EstimatedTotalCalculatorTest {
 		assertReason(result, "no-amount", EstimateExclusionReason.AMOUNT_MISSING);
 		assertReason(result, "monthly-null", EstimateExclusionReason.AMOUNT_MISSING);
 		assertReason(result, "business", EstimateExclusionReason.BUSINESS);
+		assertReason(result, "conditional", EstimateExclusionReason.CONDITIONAL_AMOUNT);
+		assertReason(result, "multiple", EstimateExclusionReason.MULTIPLE_AMOUNT);
+		assertReason(result, "none", EstimateExclusionReason.AMOUNT_MISSING);
+		assertReason(result, "null-kind", EstimateExclusionReason.AMOUNT_MISSING);
 		assertThat(result.separateItems()).allSatisfy(item -> assertThat(item.note()).isEqualTo(item.reason().note()));
+	}
+
+	@Test
+	void calculate_includesOnlySingleCashAmount() {
+		EstimateCandidate single = cashWithKind("single", AmountKind.SINGLE, 100L, 300L);
+
+		EstimatedTotalResult result = calculator.calculate(List.of(single));
+
+		assertThat(result.oneTimeItems()).extracting(item -> item.name()).containsExactly("single");
+		assertThat(result.cashTotalMin()).isEqualTo(100L);
+		assertThat(result.cashTotalMax()).isEqualTo(300L);
+		assertThat(result.separateItems()).isEmpty();
 	}
 
 	@Test
 	void calculate_regionDemotedWinsOverAudienceAndPayment() {
 		// 강등이 최우선이라, MIXED이면서 강등인 현금건은 MIXED가 아니라 REGION_UNVERIFIED로 분류됨.
 		EstimateCandidate demotedMixedCash = new EstimateCandidate(1L, "demoted-mixed", PaymentType.CASH,
-				TargetAudience.MIXED, 100L, 100L, null, true);
+				TargetAudience.MIXED, AmountKind.CONDITIONAL, 100L, 100L, null, true);
 
 		EstimatedTotalResult result = calculator.calculate(List.of(demotedMixedCash));
 
@@ -102,8 +121,14 @@ class EstimatedTotalCalculatorTest {
 	private static long nextId = 0L;
 
 	private static EstimateCandidate cash(String name, Long min, Long max, boolean demoted) {
-		return new EstimateCandidate(++nextId, name, PaymentType.CASH, TargetAudience.PERSONAL, min, max, null,
-				demoted);
+		AmountKind amountKind = min == null || max == null ? AmountKind.NONE : AmountKind.SINGLE;
+		return new EstimateCandidate(++nextId, name, PaymentType.CASH, TargetAudience.PERSONAL, amountKind, min, max,
+				null, demoted);
+	}
+
+	private static EstimateCandidate cashWithKind(String name, AmountKind amountKind, Long min, Long max) {
+		return new EstimateCandidate(++nextId, name, PaymentType.CASH, TargetAudience.PERSONAL, amountKind, min, max,
+				null, false);
 	}
 
 	private static EstimateCandidate monthly(String name, Long monthlyAmount) {
@@ -112,16 +137,18 @@ class EstimatedTotalCalculatorTest {
 	}
 
 	private static EstimateCandidate payment(String name, PaymentType paymentType) {
-		return new EstimateCandidate(++nextId, name, paymentType, TargetAudience.PERSONAL, 100L, 100L, null, false);
+		return new EstimateCandidate(++nextId, name, paymentType, TargetAudience.PERSONAL, AmountKind.SINGLE, 100L,
+				100L, null, false);
 	}
 
 	private static EstimateCandidate audience(String name, TargetAudience targetAudience) {
-		return new EstimateCandidate(++nextId, name, PaymentType.CASH, targetAudience, 100L, 100L, null, false);
+		return new EstimateCandidate(++nextId, name, PaymentType.CASH, targetAudience, AmountKind.SINGLE, 100L, 100L,
+				null, false);
 	}
 
 	private static EstimateCandidate business(String name) {
-		return new EstimateCandidate(++nextId, name, PaymentType.CASH, TargetAudience.BUSINESS, 100L, 100L, null,
-				false);
+		return new EstimateCandidate(++nextId, name, PaymentType.CASH, TargetAudience.BUSINESS, AmountKind.SINGLE, 100L,
+				100L, null, false);
 	}
 
 }
