@@ -37,10 +37,9 @@ import com.jeongbiseo.global.security.FixedMemberResolver;
 
 /**
  * 지원금 검색·상세 조회와 관심 등록·해제를 다룸(API명세서 13번 searchSubsidies, 15번 getSubsidyDetail, 16번
- * addFavorite, 17번 removeFavorite). 네 엔드포인트 모두 현재 permitAll 상태임(소셜 인증 전). 상세의 isFavorite은
- * 계약상 비로그인이면 false이나, 배포 N에서는 FixedMemberResolver가 무헤더 요청을 고정 회원 1로 해석하므로 그 회원의 등록 여부가
- * 반영됨. 명세서상 searchSubsidies와 관심 등록·해제는 인증 필요라, 인증 Wave에서 SecurityConfig 작성 시
- * authenticated로 전환할 것.
+ * addFavorite, 17번 removeFavorite). 인증 강제화(AUTH-W001) 후 검색·관심 등록·해제는 인증 필요이고, 카테고리는 공개,
+ * 상세는 선택 인증임 — 상세의 isFavorite은 비로그인이면 false, 로그인 회원이면 그 회원의 등록 여부를 반영함(SecurityConfig
+ * 매트릭스, api-versioning 3절).
  */
 @Tag(name = "Subsidy", description = "지원금 검색·상세 조회와 관심 등록·해제")
 @RestController
@@ -133,7 +132,8 @@ public class SubsidyController {
 							value = "{\"isSuccess\":false,\"code\":\"SUBSIDY404_1\",\"message\":\"해당 지원금 정보를 찾을 수 없어요\",\"result\":null}"))) })
 	@GetMapping("/{subsidyId}")
 	public CustomResponse<SubsidyDetailResponse> getSubsidyDetail(@PathVariable Long subsidyId) {
-		return CustomResponse.ok(subsidyService.getDetail(subsidyId, memberResolver.resolveMemberId()));
+		// 선택 인증임 — 비로그인·만료 토큰이면 회원 없이(null) 조회해 isFavorite=false, 로그인 회원이면 관심 여부를 반영함.
+		return CustomResponse.ok(subsidyService.getDetail(subsidyId, memberResolver.resolveOptionalMemberId()));
 	}
 
 	@Operation(summary = "관심 등록", description = "지원금을 현재 회원의 관심 목록에 등록함. 등록 결과는 캘린더에 바로 반영됨.")
