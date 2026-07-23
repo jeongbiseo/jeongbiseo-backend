@@ -1,5 +1,7 @@
 package com.jeongbiseo.domain.subsidy;
 
+import com.jeongbiseo.support.MySqlContainerSupport;
+
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
@@ -10,12 +12,10 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
 
 import com.jeongbiseo.domain.common.enums.OccupationRestriction;
 import com.jeongbiseo.domain.common.enums.PaymentType;
@@ -45,14 +45,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @Transactional
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-class SubsidySearchDetailIntegrationTest {
-
-	@ServiceConnection
-	static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
-
-	static {
-		MYSQL.start();
-	}
+class SubsidySearchDetailIntegrationTest extends MySqlContainerSupport {
 
 	private static final LocalDate AS_OF = LocalDate.of(2026, 7, 16);
 

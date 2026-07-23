@@ -1,14 +1,14 @@
 package com.jeongbiseo.domain.auth.application;
 
+import com.jeongbiseo.support.MySqlContainerSupport;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.containers.MySQLContainer;
 
 import com.jeongbiseo.domain.auth.client.GoogleOAuthClient;
 import com.jeongbiseo.domain.auth.client.KakaoOAuthClient;
@@ -34,14 +34,7 @@ import static org.mockito.BDDMockito.given;
  */
 @SpringBootTest
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-class AuthServiceIntegrationTest {
-
-	@ServiceConnection
-	static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
-
-	static {
-		MYSQL.start();
-	}
+class AuthServiceIntegrationTest extends MySqlContainerSupport {
 
 	@Autowired
 	private AuthService authService;

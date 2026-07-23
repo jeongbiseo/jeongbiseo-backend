@@ -1,15 +1,15 @@
 package com.jeongbiseo.domain.subsidy.ingestion;
 
+import com.jeongbiseo.support.MySqlContainerSupport;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
 
 import com.jeongbiseo.domain.common.enums.PaymentType;
 import com.jeongbiseo.domain.common.enums.RegionScope;
@@ -41,15 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @Transactional
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-class SubsidyIngestionAdapterIntegrationTest {
-
-	// testcontainers-junit-jupiter 의존성 없이 컨테이너를 수동 기동함(@ServiceConnection이 연결 정보를 주입).
-	@ServiceConnection
-	static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
-
-	static {
-		MYSQL.start();
-	}
+class SubsidyIngestionAdapterIntegrationTest extends MySqlContainerSupport {
 
 	private static final LocalDateTime FETCHED_AT = LocalDateTime.of(2026, 7, 16, 12, 0);
 

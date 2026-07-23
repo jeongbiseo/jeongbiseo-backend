@@ -1,5 +1,7 @@
 package com.jeongbiseo.domain.recommendation;
 
+import com.jeongbiseo.support.MySqlContainerSupport;
+
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -11,10 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
 
 import com.jeongbiseo.domain.estimate.EstimatedTotalResult;
 import com.jeongbiseo.domain.estimate.service.EstimatedAmountService;
@@ -49,16 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @Transactional
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-class RecommendationScopeIntegrationTest {
-
-	// testcontainers-junit-jupiter 의존성 없이 컨테이너를 수동 기동함(@ServiceConnection이 연결 정보를 주입).
-	// Ryuk가 JVM 종료 시 컨테이너를 정리함.
-	@ServiceConnection
-	static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
-
-	static {
-		MYSQL.start();
-	}
+class RecommendationScopeIntegrationTest extends MySqlContainerSupport {
 
 	private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 

@@ -1,13 +1,13 @@
 package com.jeongbiseo.infra.enrichment;
 
+import com.jeongbiseo.support.MySqlContainerSupport;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.TestPropertySource;
-import org.testcontainers.containers.MySQLContainer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,14 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest
 @TestPropertySource(properties = { "spring.jpa.hibernate.ddl-auto=create-drop", "app.ingestion.enabled=false" })
-class EnrichmentDisabledIntegrationTest {
-
-	@ServiceConnection
-	static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0");
-
-	static {
-		MYSQL.start();
-	}
+class EnrichmentDisabledIntegrationTest extends MySqlContainerSupport {
 
 	@Autowired
 	private ApplicationContext context;
