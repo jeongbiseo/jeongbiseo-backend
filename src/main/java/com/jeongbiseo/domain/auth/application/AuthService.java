@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,8 @@ import com.jeongbiseo.global.security.jwt.JwtProvider;
 @Service
 @Transactional(readOnly = true)
 public class AuthService {
+
+	private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
 	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -145,6 +149,8 @@ public class AuthService {
 		LocalDateTime graceThreshold = now.minusSeconds(this.refreshTokenGraceSeconds);
 		Long graceMemberId = this.refreshTokenRepository.findMemberIdByPrevTokenHash(oldHash, graceThreshold, now)
 			.orElseThrow(() -> new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED));
+		// 유예 발화는 운영에서 회전 200과 응답이 구분되지 않아 로그로만 관측 가능함. 토큰과 해시는 남기지 않고 회원 식별자만 남김.
+		log.info("리프레시 회전 유예 적용: memberId={}, graceSeconds={}", graceMemberId, this.refreshTokenGraceSeconds);
 		return new ReissueResult(this.jwtProvider.issueAccessToken(graceMemberId), null);
 	}
 
