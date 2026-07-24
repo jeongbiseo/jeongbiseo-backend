@@ -115,7 +115,7 @@ public class RecommendationController {
 			.filter(EligibilityReason::qualificationUncertainty)
 			.distinct()
 			.count();
-		// 연령이 확정됐을 때만(범위 한쪽이라도 존재) 공고 대상 연령 범위를 실음. 아니면 null.
+		// 연령이 확정됐을 때만(범위 한쪽이라도 존재) 공고 대상 연령 범위를 실음. 아니면 null임.
 		ConfirmedAgeRange ageRange = (matchResult.confirmedAgeMin() != null || matchResult.confirmedAgeMax() != null)
 				? new ConfirmedAgeRange(matchResult.confirmedAgeMin(), matchResult.confirmedAgeMax()) : null;
 		return new RecommendationItemResponse(summary.subsidyId(), summary.name(), summary.agency(), summary.deadline(),

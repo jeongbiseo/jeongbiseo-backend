@@ -12,8 +12,8 @@ import java.util.List;
  * @param matchScore 표시용 점수(연령·지역·고용·소득·가구 5축 통과 개수, 제약없음·불명도 통과로 집계됨)
  * @param confirmedMatchCount 지역을 뺀 4축 중 RESTRICTED 세부기준을 사용자 정보로 통과 확인한 개수(0에서 4, 배지·조건부
  * 타이브레이크 재료)
- * @param confirmedAgeMin 확인된 대상 연령 하한(AGE가 확정됐을 때만 유의미, 하한 개방이면 null)
- * @param confirmedAgeMax 확인된 대상 연령 상한(AGE 확정 시만 유의미, 상한 개방이면 null)
+ * @param confirmedAgeMin 확인된 대상 연령 하한(AGE가 확정됐을 때만 유의미, 하한 개방이면 null임)
+ * @param confirmedAgeMax 확인된 대상 연령 상한(AGE 확정 시만 유의미, 상한 개방이면 null임)
  * @param uncomputableReasons 산정불가 사유 목록(비어있으면 산정 가능)
  * @param deadline 신청 마감일(criteria에서 옮김, 정렬 재료)
  * @param sourceId 원천 소스 식별자(criteria에서 옮김, 정렬 타이브레이크 재료)
