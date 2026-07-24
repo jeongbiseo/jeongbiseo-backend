@@ -11,6 +11,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -53,6 +54,8 @@ class AuthServiceTest {
 
 	private static final String JWT_SECRET = "unit-test-only-jwt-secret-key-must-be-at-least-32-bytes-long-A";
 
+	private static final long GRACE_SECONDS = 30;
+
 	@Mock
 	private OAuthClient kakaoClient;
 
@@ -81,7 +84,7 @@ class AuthServiceTest {
 		given(googleClient.provider()).willReturn(Provider.GOOGLE);
 		this.jwtProvider = new JwtProvider(FIXED_CLOCK, JWT_SECRET, 30);
 		this.authService = new AuthService(List.of(kakaoClient, googleClient), jwtProvider, authRepository,
-				refreshTokenRepository, memberProvisioner, termConsentService, FIXED_CLOCK, 14);
+				refreshTokenRepository, memberProvisioner, termConsentService, FIXED_CLOCK, 14, GRACE_SECONDS);
 	}
 
 	@Test
@@ -194,8 +197,10 @@ class AuthServiceTest {
 	}
 
 	@Test
-	void reissue는_존재하지_않는_해시면_AUTH401_2를_던진다() {
-		given(refreshTokenRepository.findByTokenHash(anyString())).willReturn(Optional.empty());
+	void reissue는_회전도_실패하고_유예_대상도_아니면_AUTH401_2를_던진다() {
+		given(refreshTokenRepository.rotateByTokenHash(anyString(), anyString(), any(), any())).willReturn(0);
+		given(refreshTokenRepository.findMemberIdByPrevTokenHash(anyString(), any(), any()))
+			.willReturn(Optional.empty());
 
 		assertThatThrownBy(() -> authService.reissue("unknown-refresh-token")).isInstanceOf(CustomException.class)
 			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
@@ -203,54 +208,39 @@ class AuthServiceTest {
 	}
 
 	@Test
-	void reissue는_만료된_토큰이면_AUTH401_2를_던진다() {
-		Member member = Member.builder().role(Role.ROLE_USER).onboardingCompleted(true).build();
-		setId(member, 3L);
-		RefreshToken expired = RefreshToken.builder()
-			.member(member)
-			.tokenHash("hash")
-			.expiresAt(LocalDateTime.now(FIXED_CLOCK).minusMinutes(1))
-			.build();
-		given(refreshTokenRepository.findByTokenHash(anyString())).willReturn(Optional.of(expired));
-
-		assertThatThrownBy(() -> authService.reissue("expired-refresh-token")).isInstanceOf(CustomException.class)
-			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
-			.isEqualTo("AUTH401_2");
-	}
-
-	@Test
-	void reissue는_원자적_회전이_경쟁에서_지면_AUTH401_2를_던진다() {
-		Member member = Member.builder().role(Role.ROLE_USER).onboardingCompleted(true).build();
-		setId(member, 5L);
-		RefreshToken valid = RefreshToken.builder()
-			.member(member)
-			.tokenHash("hash")
-			.expiresAt(LocalDateTime.now(FIXED_CLOCK).plusDays(1))
-			.build();
-		given(refreshTokenRepository.findByTokenHash(anyString())).willReturn(Optional.of(valid));
-		given(refreshTokenRepository.rotateByTokenHash(anyString(), anyString(), any())).willReturn(0);
-
-		assertThatThrownBy(() -> authService.reissue("some-refresh-token")).isInstanceOf(CustomException.class)
-			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
-			.isEqualTo("AUTH401_2");
-	}
-
-	@Test
 	void reissue는_회전에_성공하면_새_액세스와_새_리프레시를_반환한다() {
-		Member member = Member.builder().role(Role.ROLE_USER).onboardingCompleted(true).build();
-		setId(member, 11L);
-		RefreshToken valid = RefreshToken.builder()
-			.member(member)
-			.tokenHash("hash")
-			.expiresAt(LocalDateTime.now(FIXED_CLOCK).plusDays(1))
-			.build();
-		given(refreshTokenRepository.findByTokenHash(anyString())).willReturn(Optional.of(valid));
-		given(refreshTokenRepository.rotateByTokenHash(anyString(), anyString(), any())).willReturn(1);
+		given(refreshTokenRepository.rotateByTokenHash(anyString(), anyString(), any(), any())).willReturn(1);
+		given(refreshTokenRepository.findMemberIdByTokenHash(anyString())).willReturn(Optional.of(11L));
 
 		ReissueResult result = authService.reissue("some-refresh-token");
 
 		assertThat(result.refreshToken()).isNotEqualTo("some-refresh-token").isNotBlank();
 		assertThat(jwtProvider.parseMemberId(result.accessToken())).isEqualTo(11L);
+	}
+
+	@Test
+	void reissue는_회전에_져도_유예창_안이면_액세스만_재발급하고_쿠키를_회전하지_않는다() {
+		given(refreshTokenRepository.rotateByTokenHash(anyString(), anyString(), any(), any())).willReturn(0);
+		given(refreshTokenRepository.findMemberIdByPrevTokenHash(anyString(), any(), any()))
+			.willReturn(Optional.of(5L));
+
+		ReissueResult result = authService.reissue("loser-refresh-token");
+
+		assertThat(result.refreshToken()).isNull();
+		assertThat(jwtProvider.parseMemberId(result.accessToken())).isEqualTo(5L);
+	}
+
+	@Test
+	void reissue의_유예창은_설정한_초만큼_거슬러_올라간다() {
+		given(refreshTokenRepository.rotateByTokenHash(anyString(), anyString(), any(), any())).willReturn(0);
+		given(refreshTokenRepository.findMemberIdByPrevTokenHash(anyString(), any(), any()))
+			.willReturn(Optional.of(5L));
+
+		authService.reissue("loser-refresh-token");
+
+		ArgumentCaptor<LocalDateTime> threshold = ArgumentCaptor.forClass(LocalDateTime.class);
+		verify(refreshTokenRepository).findMemberIdByPrevTokenHash(anyString(), threshold.capture(), any());
+		assertThat(threshold.getValue()).isEqualTo(LocalDateTime.now(FIXED_CLOCK).minusSeconds(GRACE_SECONDS));
 	}
 
 	@Test
