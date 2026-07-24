@@ -78,13 +78,15 @@ public class AuthController {
 	 */
 	@Operation(summary = "토큰 재발급",
 			description = "요청 바디 없음. 리프레시 토큰은 refreshToken 쿠키로만 받음. 성공 시 새 리프레시 토큰으로 회전해 다시 쿠키로 심음. "
+					+ "단 같은 쿠키가 동시에 두 번 들어와 회전 경합에서 진 요청은 유예창(기본 5초) 안이면 액세스 토큰만 재발급하고 "
+					+ "Set-Cookie를 보내지 않음(이긴 요청이 심은 쿠키를 유지해야 하므로). 즉 200 응답에 Set-Cookie가 항상 있지는 않음. "
 					+ "쿠키가 HttpOnly라 Swagger UI에서는 브라우저 제약으로 직접 시험 호출이 되지 않음.")
 	@ApiResponses({
-			@ApiResponse(responseCode = "200", description = "재발급 성공. 회전된 새 리프레시 토큰을 쿠키로 심음",
+			@ApiResponse(responseCode = "200", description = "재발급 성공. 회전한 경우에만 새 리프레시 토큰을 쿠키로 심음(유예 경로는 쿠키 없음)",
 					useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "401",
-					description = "재로그인 필요(AUTH401_2). 쿠키 미제공·공백, 만료, 미존재, 재사용, 동시 재발급 경합 패배를 통합함. "
-							+ "재사용과 경합 패배는 회전 실패로 같은 401이 되며 이긴 토큰은 유효하게 유지됨(설계 D9 단순 거부)",
+					description = "재로그인 필요(AUTH401_2). 쿠키 미제공·공백, 만료, 미존재, 재사용, 유예창을 벗어난 경합 패배를 통합함. "
+							+ "유예창 안의 경합 패배는 200이며 이긴 토큰이 유효하게 유지됨(설계 D9에 회전 유예를 더함)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "AUTH401_2",
 							value = "{\"isSuccess\":false,\"code\":\"AUTH401_2\",\"message\":\"다시 로그인해주세요\",\"result\":null}"))) })
 	// 리프레시 토큰 쿠키 자체가 자격 증명이라 Authorization 헤더를 쓰지 않음.
@@ -96,7 +98,11 @@ public class AuthController {
 			throw new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED);
 		}
 		ReissueResult result = this.authService.reissue(refreshToken);
-		this.cookieUtils.addRefreshTokenCookie(response, result.refreshToken());
+		// 유예 경로(중복 발사의 패자)는 회전하지 않아 raw 토큰이 없음. 이때 쿠키를 덮으면 이긴 요청이 심은 새 토큰을 지우게 되므로
+		// 건드리지 않음.
+		if (result.refreshToken() != null) {
+			this.cookieUtils.addRefreshTokenCookie(response, result.refreshToken());
+		}
 		return CustomResponse.ok(new ReissueResponse(result.accessToken()));
 	}
 

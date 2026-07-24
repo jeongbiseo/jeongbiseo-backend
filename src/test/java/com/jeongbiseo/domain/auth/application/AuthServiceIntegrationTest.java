@@ -1,5 +1,13 @@
 package com.jeongbiseo.domain.auth.application;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import com.jeongbiseo.support.MySqlContainerSupport;
 
 import org.junit.jupiter.api.AfterEach;
@@ -112,7 +120,7 @@ class AuthServiceIntegrationTest extends MySqlContainerSupport {
 	}
 
 	@Test
-	void reissue는_새_쌍을_주고_구_리프레시_재사용은_거부한다() {
+	void reissue는_새_쌍을_주고_구_리프레시는_유예창_안에서_액세스만_재발급한다() {
 		given(kakaoOAuthClient.exchange(any(), any(), any()))
 			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-3", "user3@example.com", "테스터"));
 		LoginResult issued = this.authService.handleCallback("kakao", "code-1", "verifier-1", "https://front/callback");
@@ -122,9 +130,52 @@ class AuthServiceIntegrationTest extends MySqlContainerSupport {
 		assertThat(rotated.refreshToken()).isNotEqualTo(issued.refreshToken());
 		assertThat(this.jwtProvider.parseMemberId(rotated.accessToken()))
 			.isEqualTo(this.jwtProvider.parseMemberId(issued.accessToken()));
-		assertThatThrownBy(() -> this.authService.reissue(issued.refreshToken())).isInstanceOf(CustomException.class)
+
+		// 구 토큰 재사용은 유예창 안이라 200이되 회전하지 않음(쿠키를 덮으면 이긴 쪽 토큰이 죽으므로 raw는 null).
+		ReissueResult grace = this.authService.reissue(issued.refreshToken());
+		assertThat(grace.refreshToken()).isNull();
+		assertThat(this.jwtProvider.parseMemberId(grace.accessToken()))
+			.isEqualTo(this.jwtProvider.parseMemberId(issued.accessToken()));
+	}
+
+	@Test
+	void reissue는_모르는_토큰이면_AUTH401_2를_던진다() {
+		assertThatThrownBy(() -> this.authService.reissue("not-a-real-refresh-token"))
+			.isInstanceOf(CustomException.class)
 			.extracting(e -> ((CustomException) e).getErrorCode().getCode())
 			.isEqualTo("AUTH401_2");
+	}
+
+	@Test
+	void reissue는_같은_쿠키로_동시에_들어와도_둘_다_성공하고_회전은_한_번만_한다() throws Exception {
+		given(kakaoOAuthClient.exchange(any(), any(), any()))
+			.willReturn(new OAuthUserInfo(Provider.KAKAO, "kakao-uid-race", "race@example.com", "테스터"));
+		LoginResult issued = this.authService.handleCallback("kakao", "code-1", "verifier-1", "https://front/callback");
+
+		// 프론트 중복 발사 재현. 실제 MySQL 트랜잭션 두 개를 경합시켜야 REPEATABLE READ 스냅샷 문제까지 걸림.
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			CountDownLatch start = new CountDownLatch(1);
+			List<Future<ReissueResult>> futures = new ArrayList<>();
+			for (int i = 0; i < 2; i++) {
+				futures.add(pool.submit(() -> {
+					start.await();
+					return this.authService.reissue(issued.refreshToken());
+				}));
+			}
+			start.countDown();
+
+			List<ReissueResult> results = new ArrayList<>();
+			for (Future<ReissueResult> future : futures) {
+				results.add(future.get(20, TimeUnit.SECONDS));
+			}
+			assertThat(results).allSatisfy(result -> assertThat(result.accessToken()).isNotBlank());
+			// 회전은 정확히 한 번(= raw 토큰을 받은 응답이 하나). 나머지는 유예 경로라 쿠키를 건드리지 않음.
+			assertThat(results.stream().filter(result -> result.refreshToken() != null)).hasSize(1);
+		}
+		finally {
+			pool.shutdownNow();
+		}
 	}
 
 	@Test

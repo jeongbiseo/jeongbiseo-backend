@@ -12,6 +12,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.jeongbiseo.domain.auth.client.OAuthClient;
@@ -56,10 +57,13 @@ public class AuthService {
 
 	private final long refreshTokenExpirationDays;
 
+	private final long refreshTokenGraceSeconds;
+
 	public AuthService(List<OAuthClient> oauthClients, JwtProvider jwtProvider, AuthRepository authRepository,
 			RefreshTokenRepository refreshTokenRepository, AuthMemberProvisioner memberProvisioner,
 			TermConsentService termConsentService, Clock clock,
-			@Value("${app.auth.refresh.expiration-days:14}") long refreshTokenExpirationDays) {
+			@Value("${app.auth.refresh.expiration-days:14}") long refreshTokenExpirationDays,
+			@Value("${app.auth.refresh.grace-seconds:30}") long refreshTokenGraceSeconds) {
 		// provider()를 생성 시점에 한 번만 불러 Map을 미리 만들지 않음(테스트에서 @MockitoBean으로 대체된
 		// OAuthClient는 provider() 스텁이 실제 호출 시점에야 걸리므로, 지연 조회라야 Spring 컨텍스트
 		// 기동 시점의 미스텁 null 충돌을 피함).
@@ -71,6 +75,7 @@ public class AuthService {
 		this.termConsentService = termConsentService;
 		this.clock = clock;
 		this.refreshTokenExpirationDays = refreshTokenExpirationDays;
+		this.refreshTokenGraceSeconds = refreshTokenGraceSeconds;
 	}
 
 	/**
@@ -107,32 +112,40 @@ public class AuthService {
 	}
 
 	/**
-	 * reissue: 이전 리프레시 해시를 조건으로 원자적 회전(설계 D9). 회전에 지거나 만료·미존재·미제공이면 AUTH401_2. 새 raw 리프레시
-	 * 토큰은 결과에 담아 컨트롤러가 쿠키로 세팅함.
+	 * reissue: 이전 리프레시 해시를 조건으로 원자적 회전(설계 D9). 회전에 실패하면 유예 경로로 한 번 더 판정하고, 그마저 아니면
+	 * AUTH401_2. 회전 성공 시에만 새 raw 리프레시 토큰을 결과에 담아 컨트롤러가 쿠키로 세팅함(유예 경로는 null이라 쿠키를 건드리지
+	 * 않음).
+	 *
+	 * 트랜잭션을 열지 않음(NOT_SUPPORTED). 회전 UPDATE와 그 뒤 조회가 한 트랜잭션에 묶이면 MySQL REPEATABLE READ
+	 * 스냅샷 때문에 경쟁에서 진 요청이 이긴 요청의 prev 해시를 못 보고 유예가 무력화됨(RefreshTokenRepository 주석 참조).
 	 */
-	@Transactional
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public ReissueResult reissue(String rawRefreshToken) {
 		if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
 			throw new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED);
 		}
 		String oldHash = sha256Hex(rawRefreshToken);
-		RefreshToken existing = this.refreshTokenRepository.findByTokenHash(oldHash)
-			.orElseThrow(() -> new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED));
-		if (existing.getExpiresAt().isBefore(LocalDateTime.now(this.clock))) {
-			throw new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED);
-		}
+		LocalDateTime now = LocalDateTime.now(this.clock);
+
+		// 회원 식별은 회전 전에 확보함. 회전 후 새 해시로 다시 찾으면 그 사이 다른 기기 로그인이 행을 덮어써 못 찾는 경쟁 창이 생김.
+		Optional<Long> ownerId = this.refreshTokenRepository.findMemberIdByTokenHash(oldHash);
 
 		String newRawToken = generateOpaqueToken();
 		String newHash = sha256Hex(newRawToken);
-		LocalDateTime newExpiresAt = LocalDateTime.now(this.clock).plusDays(this.refreshTokenExpirationDays);
-		int updated = this.refreshTokenRepository.rotateByTokenHash(oldHash, newHash, newExpiresAt);
-		if (updated != 1) {
-			throw new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED);
+		LocalDateTime newExpiresAt = now.plusDays(this.refreshTokenExpirationDays);
+		int updated = this.refreshTokenRepository.rotateByTokenHash(oldHash, newHash, newExpiresAt, now);
+		if (updated == 1) {
+			Long memberId = ownerId.orElseThrow(() -> new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED));
+			return new ReissueResult(this.jwtProvider.issueAccessToken(memberId), newRawToken);
 		}
 
-		Long memberId = existing.getMember().getId();
-		String newAccessToken = this.jwtProvider.issueAccessToken(memberId);
-		return new ReissueResult(newAccessToken, newRawToken);
+		// 유예 경로: 방금 회전된 직전 해시로 들어온 요청임(프론트 중복 발사의 패자). 두 경우가 여기로 모임 — 승자가 이미 커밋해
+		// 위 조회부터 못 찾은 경우와, 조회는 됐지만 UPDATE가 승자 커밋 뒤에 0행이 된 경우. 액세스 토큰만 재발급하고 쿠키는 이긴
+		// 쪽이 심은 것을 그대로 둠. 유예창을 벗어났거나 아예 모르는 토큰이면 재로그인 요구임.
+		LocalDateTime graceThreshold = now.minusSeconds(this.refreshTokenGraceSeconds);
+		Long graceMemberId = this.refreshTokenRepository.findMemberIdByPrevTokenHash(oldHash, graceThreshold, now)
+			.orElseThrow(() -> new CustomException(AuthErrorCode.REFRESH_TOKEN_FAILED));
+		return new ReissueResult(this.jwtProvider.issueAccessToken(graceMemberId), null);
 	}
 
 	/**

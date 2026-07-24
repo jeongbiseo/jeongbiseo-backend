@@ -84,6 +84,17 @@ class AuthControllerTest {
 	}
 
 	@Test
+	void reissue_유예_경로면_액세스만_주고_쿠키를_세팅하지_않는다() throws Exception {
+		// 중복 발사의 패자임. 쿠키를 덮으면 이긴 요청이 심은 새 토큰이 죽으므로 Set-Cookie가 없어야 함.
+		given(authService.reissue("old-raw")).willReturn(new ReissueResult("newAccess", null));
+
+		mockMvc.perform(post("/api/v1/auth/reissue").cookie(new Cookie("refreshToken", "old-raw")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result.accessToken").value("newAccess"))
+			.andExpect(header().doesNotExist("Set-Cookie"));
+	}
+
+	@Test
 	void reissue_리프레시_쿠키가_없으면_401을_반환한다() throws Exception {
 		mockMvc.perform(post("/api/v1/auth/reissue"))
 			.andExpect(status().isUnauthorized())
