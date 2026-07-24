@@ -263,6 +263,9 @@ class RecommendationPolicyTest {
 		assertThat(result.uncomputableReasons()).isEmpty();
 		// UNRESTRICTED(제약 없음)는 통과이되 확인은 아님 — confirmedMatchCount에 안 셈
 		assertThat(result.confirmedMatchCount()).isZero();
+		// 연령이 60~70으로 존재해도 UNRESTRICTED라 확정이 아니므로 연령 범위를 싣지 않음(확정일 때만 싣는다는 보장)
+		assertThat(result.confirmedAgeMin()).isNull();
+		assertThat(result.confirmedAgeMax()).isNull();
 	}
 
 	@Test
@@ -280,6 +283,24 @@ class RecommendationPolicyTest {
 				EligibilityReason.HOUSEHOLD_CONDITION_DETAILS_MISSING);
 		// RESTRICTED이나 세부기준이 없어 판단 보류(DETAILS_MISSING) — 확인이 아니므로 안 셈
 		assertThat(result.confirmedMatchCount()).isZero();
+		assertThat(result.confirmedAgeMin()).isNull();
+		assertThat(result.confirmedAgeMax()).isNull();
+	}
+
+	@Test
+	void confirmedAgeRange_carriesOnlyLowerBound_whenAgeMaxOpen() {
+		// 연령 RESTRICTED에 하한만 있고 상한 개방(ageMax null)인 확정 케이스 — 하한만 실리고 상한은 null
+		SubsidyCriteria criteria = eligibilityCriteria(EligibilitySignal.RESTRICTED, 65, null,
+				EligibilitySignal.UNRESTRICTED, null, "0013011", EligibilitySignal.UNRESTRICTED, null,
+				EligibilitySignal.UNRESTRICTED, null);
+		ApplicantProfile senior = new ApplicantProfile(70, "11620", EmploymentStatus.JOB_SEEKING,
+				IncomeBracket.UNDER_200, 1);
+
+		MatchResult result = policy.evaluate(senior, criteria);
+
+		assertThat(result.confirmedMatchCount()).isEqualTo(1);
+		assertThat(result.confirmedAgeMin()).isEqualTo(65);
+		assertThat(result.confirmedAgeMax()).isNull();
 	}
 
 	@Test
@@ -305,6 +326,9 @@ class RecommendationPolicyTest {
 
 		assertThat(result.matched()).isTrue();
 		assertThat(result.confirmedMatchCount()).isEqualTo(4);
+		// AGE가 확정됐으므로 공고의 대상 연령 범위를 실음
+		assertThat(result.confirmedAgeMin()).isEqualTo(19);
+		assertThat(result.confirmedAgeMax()).isEqualTo(34);
 	}
 
 	@Test
@@ -322,6 +346,9 @@ class RecommendationPolicyTest {
 		assertThat(result.matched()).isTrue();
 		assertThat(result.uncomputableReasons()).contains(EligibilityReason.INCOME_MISSING);
 		assertThat(result.confirmedMatchCount()).isEqualTo(1);
+		// 확인된 축은 연령뿐이고, 확인된 연령 범위가 공고 조건 그대로 실림(운영 데이터의 실질 케이스)
+		assertThat(result.confirmedAgeMin()).isEqualTo(19);
+		assertThat(result.confirmedAgeMax()).isEqualTo(34);
 	}
 
 	@Test
