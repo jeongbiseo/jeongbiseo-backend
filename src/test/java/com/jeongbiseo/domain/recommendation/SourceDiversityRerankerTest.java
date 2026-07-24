@@ -91,7 +91,7 @@ class SourceDiversityRerankerTest {
 	}
 
 	private static MatchResult mr(long subsidyId, String sourceId, String externalId) {
-		return new MatchResult(subsidyId, false, true, 5, 0, List.of(), LocalDate.of(2026, 7, 20), sourceId,
+		return new MatchResult(subsidyId, false, true, 5, 0, null, null, List.of(), LocalDate.of(2026, 7, 20), sourceId,
 				externalId);
 	}
 

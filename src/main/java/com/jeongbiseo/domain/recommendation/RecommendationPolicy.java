@@ -82,9 +82,13 @@ public final class RecommendationPolicy {
 		// regionDemoted 축으로 이미 반영이라 이중 가중 제외).
 		int confirmedMatchCount = (ageOutcome.confirmed() ? 1 : 0) + (employmentOutcome.confirmed() ? 1 : 0)
 				+ (incomeOutcome.confirmed() ? 1 : 0) + (houseOutcome.confirmed() ? 1 : 0);
+		// AGE가 확정된 경우에만 공고의 대상 연령 범위를 실음(사용자 나이가 아니라 공고 조건). 확정은 세부기준 존재를 함의하므로 최소 한쪽은
+		// non-null임.
+		Integer confirmedAgeMin = ageOutcome.confirmed() ? criteria.ageMin() : null;
+		Integer confirmedAgeMax = ageOutcome.confirmed() ? criteria.ageMax() : null;
 
-		return new MatchResult(criteria.subsidyId(), demoted, matched, score, confirmedMatchCount, List.copyOf(reasons),
-				criteria.deadline(), criteria.sourceId(), criteria.externalId());
+		return new MatchResult(criteria.subsidyId(), demoted, matched, score, confirmedMatchCount, confirmedAgeMin,
+				confirmedAgeMax, List.copyOf(reasons), criteria.deadline(), criteria.sourceId(), criteria.externalId());
 	}
 
 	/**

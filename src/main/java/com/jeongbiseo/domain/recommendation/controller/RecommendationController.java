@@ -21,6 +21,7 @@ import com.jeongbiseo.domain.recommendation.EligibilityReason;
 import com.jeongbiseo.domain.recommendation.MatchResult;
 import com.jeongbiseo.domain.recommendation.RecommendationItem;
 import com.jeongbiseo.domain.recommendation.dto.response.RecommendationItemResponse;
+import com.jeongbiseo.domain.recommendation.dto.response.RecommendationItemResponse.ConfirmedAgeRange;
 import com.jeongbiseo.domain.recommendation.dto.response.RecommendationResponse;
 import com.jeongbiseo.domain.recommendation.service.RecommendationQueryService;
 import com.jeongbiseo.domain.recommendation.service.RecommendationQueryService.RecommendationView;
@@ -114,10 +115,13 @@ public class RecommendationController {
 			.filter(EligibilityReason::qualificationUncertainty)
 			.distinct()
 			.count();
+		// 연령이 확정됐을 때만(범위 한쪽이라도 존재) 공고 대상 연령 범위를 실음. 아니면 null.
+		ConfirmedAgeRange ageRange = (matchResult.confirmedAgeMin() != null || matchResult.confirmedAgeMax() != null)
+				? new ConfirmedAgeRange(matchResult.confirmedAgeMin(), matchResult.confirmedAgeMax()) : null;
 		return new RecommendationItemResponse(summary.subsidyId(), summary.name(), summary.agency(), summary.deadline(),
 				dDay, summary.eligibilitySummary(), summary.estimatedAmountMin(), summary.estimatedAmountMax(),
 				summary.paymentType(), matchResult.matchScore(), matchResult.uncomputable(), reasons,
-				matchResult.confirmedMatchCount(), unverifiedConditionCount);
+				matchResult.confirmedMatchCount(), unverifiedConditionCount, ageRange);
 	}
 
 }

@@ -26,6 +26,7 @@ import com.jeongbiseo.domain.common.enums.PaymentType;
  * @param uncomputableReasons 산정불가 사유 안내 문구 목록(확장 필드, 비어있으면 산정 가능)
  * @param confirmedMatchCount 확인된 개인 조건 수(확장 필드, 0에서 4)
  * @param unverifiedConditionCount 추가 확인 필요 조건 수(확장 필드, 0에서 4)
+ * @param confirmedAgeRange 확인된 대상 연령 범위(확장 필드). 연령이 확정됐을 때만 값이 있고 아니면 null임
  */
 public record RecommendationItemResponse(Long subsidyId, String name, String agency,
 		@Schema(description = "신청 마감일. 상시 모집이거나 마감일이 없는 유형이면 null임", nullable = true) LocalDate deadline,
@@ -38,6 +39,13 @@ public record RecommendationItemResponse(Long subsidyId, String name, String age
 		@Schema(description = "확인된 개인 조건 수(0에서 4). 지원금이 명시한 제한을 사용자 정보로 통과 확인한 축의 개수임. "
 				+ "지역은 별도 축이라 포함하지 않음. matchScore와 달리 제약없음·불명은 세지 않음이라 백분율·5점 표기에 쓰지 말 것") int confirmedMatchCount,
 		@Schema(description = "추가 확인 필요 조건 수(0에서 4). 자격 축 중 조건 미공개·세부기준 부재·사용자 정보 미입력으로 "
-				+ "판단 보류된 축의 개수임(금액 산정불가는 포함하지 않음)") int unverifiedConditionCount) {
+				+ "판단 보류된 축의 개수임(금액 산정불가는 포함하지 않음)") int unverifiedConditionCount,
+		@Schema(description = "공고의 대상 연령 범위. 연령 조건이 확정됐을 때만 값이 있고 아니면 null임. "
+				+ "사용자 나이가 아니라 공고 조건임. 한쪽만 개방이면 그쪽만 null", nullable = true) ConfirmedAgeRange confirmedAgeRange) {
+
+	/** 공고의 대상 연령 범위임(추천 이유 표시용). 각 경계는 개방이면 null임. */
+	public record ConfirmedAgeRange(@Schema(nullable = true) Integer minAge, @Schema(nullable = true) Integer maxAge) {
+
+	}
 
 }
