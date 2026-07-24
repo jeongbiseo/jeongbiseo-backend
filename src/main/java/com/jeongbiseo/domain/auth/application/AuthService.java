@@ -21,6 +21,7 @@ import com.jeongbiseo.domain.auth.entity.Provider;
 import com.jeongbiseo.domain.auth.entity.RefreshToken;
 import com.jeongbiseo.domain.auth.repository.AuthRepository;
 import com.jeongbiseo.domain.auth.repository.RefreshTokenRepository;
+import com.jeongbiseo.domain.consent.service.TermConsentService;
 import com.jeongbiseo.domain.member.entity.Member;
 import com.jeongbiseo.global.apiPayload.code.ValidationErrorCode;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
@@ -49,12 +50,15 @@ public class AuthService {
 
 	private final AuthMemberProvisioner memberProvisioner;
 
+	private final TermConsentService termConsentService;
+
 	private final Clock clock;
 
 	private final long refreshTokenExpirationDays;
 
 	public AuthService(List<OAuthClient> oauthClients, JwtProvider jwtProvider, AuthRepository authRepository,
-			RefreshTokenRepository refreshTokenRepository, AuthMemberProvisioner memberProvisioner, Clock clock,
+			RefreshTokenRepository refreshTokenRepository, AuthMemberProvisioner memberProvisioner,
+			TermConsentService termConsentService, Clock clock,
 			@Value("${app.auth.refresh.expiration-days:14}") long refreshTokenExpirationDays) {
 		// provider()를 생성 시점에 한 번만 불러 Map을 미리 만들지 않음(테스트에서 @MockitoBean으로 대체된
 		// OAuthClient는 provider() 스텁이 실제 호출 시점에야 걸리므로, 지연 조회라야 Spring 컨텍스트
@@ -64,6 +68,7 @@ public class AuthService {
 		this.authRepository = authRepository;
 		this.refreshTokenRepository = refreshTokenRepository;
 		this.memberProvisioner = memberProvisioner;
+		this.termConsentService = termConsentService;
 		this.clock = clock;
 		this.refreshTokenExpirationDays = refreshTokenExpirationDays;
 	}
@@ -82,6 +87,18 @@ public class AuthService {
 		OAuthUserInfo userInfo = resolveClient(providerEnum).exchange(code, codeVerifier, redirectUri);
 		ProvisionResult provisioned = provisionMember(providerEnum, userInfo);
 		Member member = provisioned.member();
+
+		// 매 로그인마다 누락된 필수 약관을 멱등하게 보강함(add-missing). 별도 트랜잭션(REQUIRES_NEW)이라 로그인 흐름과
+		// 독립적으로 커밋되고, 동시 첫 로그인 승자·패자가 같은 회원에 대해 경쟁 삽입해 (member_id, term_type) UNIQUE가
+		// 충돌해도 그 콜백만 롤백되지 로그인 전체를 막지 않음. 충돌은 항목당 1건 멱등이라 삼키며, 양쪽이 다 롤백돼 누락되면
+		// 다음 로그인이 복구함. 버그 기간에 이미 가입한 회원의 백필도 이 무조건 호출로 로그인 시 점진 복구됨. 이 연결이 없어
+		// 마이페이지 약관이 "동의 내역 없음"으로 나오던 버그를 고침.
+		try {
+			this.termConsentService.ensureRequiredConsents(member);
+		}
+		catch (DataIntegrityViolationException e) {
+			// 동시 첫 로그인 경쟁 삽입 충돌. 멱등 보강이라 무시함(누락 시 다음 로그인이 보강).
+		}
 
 		String accessToken = this.jwtProvider.issueAccessToken(member.getId());
 		String rawRefreshToken = issueRefreshToken(member);

@@ -24,6 +24,7 @@ import com.jeongbiseo.domain.auth.entity.Provider;
 import com.jeongbiseo.domain.auth.entity.RefreshToken;
 import com.jeongbiseo.domain.auth.repository.AuthRepository;
 import com.jeongbiseo.domain.auth.repository.RefreshTokenRepository;
+import com.jeongbiseo.domain.consent.service.TermConsentService;
 import com.jeongbiseo.domain.member.entity.Member;
 import com.jeongbiseo.domain.member.entity.Role;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
@@ -67,6 +68,9 @@ class AuthServiceTest {
 	@Mock
 	private AuthMemberProvisioner memberProvisioner;
 
+	@Mock
+	private TermConsentService termConsentService;
+
 	private JwtProvider jwtProvider;
 
 	private AuthService authService;
@@ -77,7 +81,7 @@ class AuthServiceTest {
 		given(googleClient.provider()).willReturn(Provider.GOOGLE);
 		this.jwtProvider = new JwtProvider(FIXED_CLOCK, JWT_SECRET, 30);
 		this.authService = new AuthService(List.of(kakaoClient, googleClient), jwtProvider, authRepository,
-				refreshTokenRepository, memberProvisioner, FIXED_CLOCK, 14);
+				refreshTokenRepository, memberProvisioner, termConsentService, FIXED_CLOCK, 14);
 	}
 
 	@Test
@@ -119,14 +123,57 @@ class AuthServiceTest {
 		assertThat(result.refreshToken()).isNotBlank();
 		assertThat(jwtProvider.parseMemberId(result.accessToken())).isEqualTo(7L);
 		verify(memberProvisioner, never()).createMemberWithAuth(any(), anyString(), any(), any());
+		// 기존 회원도 매 로그인 누락 약관을 멱등 보강함(버그 기간 가입자 백필).
+		verify(termConsentService).ensureRequiredConsents(existingMember);
+	}
+
+	@Test
+	void handleCallback은_소셜_첫로그인이면_필수약관_동의를_보강한다() {
+		given(kakaoClient.exchange("code", "verifier", "redirect"))
+			.willReturn(new OAuthUserInfo(Provider.KAKAO, "uid-new", "e@example.com", "테스터"));
+		Member created = Member.builder().role(Role.ROLE_USER).onboardingCompleted(false).build();
+		setId(created, 42L);
+		given(authRepository.findByProviderAndProviderIdWithMember(Provider.KAKAO, "uid-new"))
+			.willReturn(Optional.empty());
+		given(memberProvisioner.createMemberWithAuth(eq(Provider.KAKAO), eq("uid-new"), any(), any()))
+			.willReturn(created);
+		given(refreshTokenRepository.findByMemberId(42L)).willReturn(Optional.empty());
+
+		LoginResult result = authService.handleCallback("kakao", "code", "verifier", "redirect");
+
+		assertThat(result.isNewMember()).isTrue();
+		verify(termConsentService).ensureRequiredConsents(created);
+	}
+
+	@Test
+	void handleCallback은_약관_보강이_동시성_충돌로_실패해도_로그인은_성공한다() {
+		given(kakaoClient.exchange("code", "verifier", "redirect"))
+			.willReturn(new OAuthUserInfo(Provider.KAKAO, "uid-race", "e@example.com", "테스터"));
+		Member created = Member.builder().role(Role.ROLE_USER).onboardingCompleted(false).build();
+		setId(created, 51L);
+		given(authRepository.findByProviderAndProviderIdWithMember(Provider.KAKAO, "uid-race"))
+			.willReturn(Optional.empty());
+		given(memberProvisioner.createMemberWithAuth(eq(Provider.KAKAO), eq("uid-race"), any(), any()))
+			.willReturn(created);
+		given(refreshTokenRepository.findByMemberId(51L)).willReturn(Optional.empty());
+		org.mockito.BDDMockito.willThrow(new DataIntegrityViolationException("duplicate consent"))
+			.given(termConsentService)
+			.ensureRequiredConsents(created);
+
+		LoginResult result = authService.handleCallback("kakao", "code", "verifier", "redirect");
+
+		assertThat(result.isNewMember()).isTrue();
+		assertThat(result.refreshToken()).isNotBlank();
+		assertThat(jwtProvider.parseMemberId(result.accessToken())).isEqualTo(51L);
 	}
 
 	@Test
 	void handleCallback은_동시_첫로그인_유니크충돌시_기존_auth를_재조회한다() {
 		given(kakaoClient.exchange("code", "verifier", "redirect"))
 			.willReturn(new OAuthUserInfo(Provider.KAKAO, "uid-2", "e@example.com", "테스터"));
+		Auth winner = winnerAuth("uid-2");
 		given(authRepository.findByProviderAndProviderIdWithMember(Provider.KAKAO, "uid-2"))
-			.willReturn(Optional.empty(), Optional.of(winnerAuth("uid-2")));
+			.willReturn(Optional.empty(), Optional.of(winner));
 		given(memberProvisioner.createMemberWithAuth(eq(Provider.KAKAO), eq("uid-2"), any(), any()))
 			.willThrow(new DataIntegrityViolationException("duplicate"));
 		given(refreshTokenRepository.findByMemberId(9L)).willReturn(Optional.empty());
@@ -135,6 +182,8 @@ class AuthServiceTest {
 
 		assertThat(result.isNewMember()).isFalse();
 		assertThat(jwtProvider.parseMemberId(result.accessToken())).isEqualTo(9L);
+		// 레이스 패자도 재조회한 승자 회원 기준으로 약관을 보강함(항목당 1건 멱등이라 이중 기록 없음).
+		verify(termConsentService).ensureRequiredConsents(winner.getMember());
 	}
 
 	@Test
