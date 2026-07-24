@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
  * {@code @OpenAPIDefinition}의 글로벌 {@code security} 요구임. 둘 중 하나만 두면 "버튼은 있는데 헤더가 안 나가는"
  * 상태가 됨.
  *
- * 여기서 표시하는 인증 요구는 SecurityConfig가 JwtAuthenticationFilter로 실제 강제하는 값과 일치함(AUTH-W001,
+ * 여기서 표시하는 인증 요구는 SecurityConfig의 authorizeHttpRequests가 실제 강제하는 값과 일치함(AUTH-W001,
  * {@code .agents/rules/api-versioning.md} 3절). 인증이 불필요한 엔드포인트는 해당 메서드에서
  * {@code @SecurityRequirements}(빈 값)로 글로벌 요구를 해제함.
  */
