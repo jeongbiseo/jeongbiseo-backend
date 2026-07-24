@@ -50,8 +50,8 @@ public class RecommendationController {
 		this.memberResolver = memberResolver;
 	}
 
-	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
-	// Wave에서 실제 발생함(OnboardingController와 동일 관용).
+	// 401(COMMON401)은 미인증 시 SecurityErrorResponder가 반환함(AUTH-W001 인증 강제화, 명세서 각주
+	// COMMON401 정합).
 	@Operation(summary = "추천 리스트 조회",
 			description = "회원의 온보딩 프로필을 기준으로 개인 맞춤 추천 리스트를 조회함. 온보딩 미완료면 404, 탈퇴 계정이면 400으로 거절함. "
 					+ "대출·융자 상품과 마감된 공고는 추천 모집단에서 제외함. 거주 지역이 다른 공고는 탈락시키지 않고 정렬 후순위로 내림. "
@@ -66,7 +66,7 @@ public class RecommendationController {
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_0\",\"message\":\"잘못된 파라미터 입니다.\",\"result\":null}"),
 							@ExampleObject(name = "MEMBER400_1",
 									value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}") })),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1) 또는 온보딩 정보 없음(ONB404_1)",

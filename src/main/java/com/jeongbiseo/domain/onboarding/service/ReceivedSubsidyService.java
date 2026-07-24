@@ -74,8 +74,8 @@ public class ReceivedSubsidyService {
 	 * @return 교체 완료된 기수령 지원금 id 목록
 	 * @throws CustomException 존재하지 않는 subsidyId가 포함되면 SUBSIDY404_1
 	 */
-	// ponytail: 회원 단위 잠금 없음. 고정 회원 1명 데모라 동시 PUT이 없고,
-	// 실사용 동시성이 생기면 회원 행 잠금 또는 직렬화로 올릴 것(백로그).
+	// ponytail: 회원 단위 잠금 없음. 동일 회원 동시 PUT에서는 delete/save가 교차돼 최종 상태가 요청 순서와
+	// 달라질 수 있음. 필요해지면 회원 행 잠금 또는 낙관적 버전 검증으로 직렬화할 것(백로그).
 	@Transactional
 	public List<Long> replaceAll(Long memberId, List<Long> subsidyIds) {
 		List<Long> distinct = subsidyIds.stream().distinct().toList();

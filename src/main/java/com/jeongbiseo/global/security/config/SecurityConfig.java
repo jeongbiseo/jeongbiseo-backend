@@ -45,6 +45,12 @@ public class SecurityConfig {
 				.permitAll()
 				// auth: logout만 인증 필요, 나머지(login {provider}·reissue)는 공개. logout을 와일드카드보다
 				// 먼저 지정
+				// 관례: 앞으로 인증이 필요한 auth POST 엔드포인트를 추가하면(예: 탈퇴 전 재인증) 반드시 아래
+				// /api/v1/auth/*
+				// 와일드카드
+				// permitAll보다 위에 그 경로의 .authenticated() 규칙을 명시함. requestMatchers는 위에서부터
+				// 매칭되므로 와일드카드
+				// 아래에 두면 permitAll이 먼저 잡혀 무인증으로 노출됨(api-versioning.md 3절)
 				.requestMatchers(HttpMethod.POST, "/api/v1/auth/logout")
 				.authenticated()
 				.requestMatchers(HttpMethod.POST, "/api/v1/auth/*")

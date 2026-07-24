@@ -102,13 +102,13 @@ public class AuthController {
 
 	/**
 	 * logOut: POST /api/v1/auth/logout 인증 필수(Bearer). 회원 식별은 전 도메인 단일 패턴인
-	 * FixedMemberResolver로 주입함(설계 D5). 리프레시 쿠키를 삭제함.
+	 * FixedMemberResolver로 인증된 회원 principal에서 주입함(설계 D5). 리프레시 쿠키를 삭제함.
 	 */
 	@Operation(summary = "로그아웃",
-			description = "서버의 리프레시 토큰 행을 지우고 쿠키를 Max-Age 0으로 삭제함. 회원 식별은 FixedMemberResolver 고정 회원임(배포 N).")
+			description = "서버의 리프레시 토큰 행을 지우고 쿠키를 Max-Age 0으로 삭제함. 회원 식별은 FixedMemberResolver로 인증된 회원에서 함.")
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "로그아웃 성공. 리프레시 쿠키를 삭제함", useReturnTypeSchema = true),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 enforcement Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))) })
 	@PostMapping("/logout")
