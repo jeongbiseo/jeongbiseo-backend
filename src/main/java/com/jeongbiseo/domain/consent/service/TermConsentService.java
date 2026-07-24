@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.jeongbiseo.domain.consent.TermType;
@@ -83,11 +84,13 @@ public class TermConsentService {
 	}
 
 	/**
-	 * 시더 전용으로 회원에게 누락된 필수 약관 동의만 현재 버전으로 추가함(add-missing). 이미 있는 동의는 건드리지 않아 매 기동마다
-	 * decidedAt이 갱신되는 것을 피함 — 기존 회원이 있는 배포에서도 마이페이지 약관 조회가 동의 상태로 나오게 하기 위함임.
+	 * 회원에게 누락된 필수 약관 동의만 현재 버전으로 추가함(add-missing). 이미 있는 동의는 건드리지 않아 decidedAt이 갱신되는 것을
+	 * 피함 — 기존 회원이 있는 배포에서도 마이페이지 약관 조회가 동의 상태로 나오게 하기 위함임. 소셜 로그인마다 호출돼 동시 첫 로그인이 같은 회원에
+	 * 대해 경쟁 삽입할 수 있으므로 REQUIRES_NEW로 격리함 — (member_id, term_type) UNIQUE 충돌이 나면 이 트랜잭션만
+	 * 롤백돼 호출부(로그인)가 영향받지 않고, 호출부가 충돌을 삼켜 멱등 완료로 처리함.
 	 * @param member 대상 회원
 	 */
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void ensureRequiredConsents(Member member) {
 		LocalDateTime decidedAt = LocalDateTime.now(this.clock);
 		for (TermType termType : TermType.required()) {

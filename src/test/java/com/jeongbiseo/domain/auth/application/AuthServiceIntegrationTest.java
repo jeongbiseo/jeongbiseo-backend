@@ -16,6 +16,7 @@ import com.jeongbiseo.domain.auth.client.OAuthUserInfo;
 import com.jeongbiseo.domain.auth.entity.Provider;
 import com.jeongbiseo.domain.auth.repository.AuthRepository;
 import com.jeongbiseo.domain.auth.repository.RefreshTokenRepository;
+import com.jeongbiseo.domain.consent.repository.MemberTermConsentRepository;
 import com.jeongbiseo.domain.member.repository.MemberRepository;
 import com.jeongbiseo.domain.member.service.MemberService;
 import com.jeongbiseo.global.apiPayload.exception.CustomException;
@@ -54,6 +55,9 @@ class AuthServiceIntegrationTest extends MySqlContainerSupport {
 	@Autowired
 	private MemberRepository memberRepository;
 
+	@Autowired
+	private MemberTermConsentRepository memberTermConsentRepository;
+
 	@MockitoBean
 	private KakaoOAuthClient kakaoOAuthClient;
 
@@ -73,6 +77,7 @@ class AuthServiceIntegrationTest extends MySqlContainerSupport {
 	void cleanUp() {
 		this.refreshTokenRepository.deleteAll();
 		this.authRepository.deleteAll();
+		this.memberTermConsentRepository.deleteAll();
 		this.memberRepository.deleteAll();
 	}
 
