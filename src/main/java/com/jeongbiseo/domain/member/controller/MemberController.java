@@ -29,7 +29,8 @@ import com.jeongbiseo.global.security.FixedMemberResolver;
 
 /**
  * 회원 자원(내 회원 정보 조회, 내 온보딩 조회·수정, 회원 탈퇴)을 다룸(API명세서 21번 getMe·6번 getMyOnboarding·7번
- * updateMyOnboarding·8번 deleteMember). 회원 식별은 FixedMemberResolver 고정 회원임(소셜 인증 전, 결정 7번).
+ * updateMyOnboarding·8번 deleteMember). 회원 식별은 FixedMemberResolver로 인증된 회원 principal에서
+ * 함(AUTH-W001).
  */
 @Tag(name = "Member", description = "회원 자원(내 회원 정보 조회, 내 온보딩 조회·수정, 회원 탈퇴)")
 @RestController
@@ -60,7 +61,7 @@ public class MemberController {
 			@ApiResponse(responseCode = "400", description = "탈퇴된 계정(MEMBER400_1)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "MEMBER400_1",
 							value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}"))),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1)",
@@ -73,17 +74,17 @@ public class MemberController {
 	}
 
 	// 내 온보딩 정보 조회 처리함 (GET /api/v1/members/me/onboarding, operationId getMyOnboarding)
-	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
-	// Wave에서
-	// 실제 발생하며, 프론트가 이 계약으로 구현 중이라 명세대로 문서화함(명세서 각주 COMMON401 정합). MEMBER400_1(탈퇴 계정)은
-	// memberReader.getActiveMember가 실제로 던지나 명세서 FAIL 목록에는 없어 코드 실측 기준으로 추가 문서화함(불일치
-	// 표 참조).
+	// 401(COMMON401)은 미인증 시 SecurityErrorResponder가 반환함(AUTH-W001 인증 강제화, 명세서 각주
+	// COMMON401 정합).
+	// MEMBER400_1(탈퇴 계정)은 memberReader.getActiveMember가 실제로 던지나 명세서 FAIL 목록에는 없어 코드 실측
+	// 기준으로 추가
+	// 문서화함(불일치 표 참조).
 	@Operation(summary = "내 온보딩 조회", description = "회원의 온보딩 프로필을 조회함. 온보딩을 완료하지 않았으면 404로 거절함.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "온보딩 조회 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400", description = "탈퇴된 계정(MEMBER400_1)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "MEMBER400_1",
 							value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}"))),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1) 또는 온보딩 미완료(ONB404_1)",
@@ -105,7 +106,7 @@ public class MemberController {
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_1\",\"message\":\"잘못된 DTO 필드입니다.\",\"result\":{\"birthDate\":\"생년월일은 필수예요\"}}"),
 							@ExampleObject(name = "MEMBER400_1",
 									value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}") })),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1) 또는 온보딩 미완료(ONB404_1)",
@@ -129,7 +130,7 @@ public class MemberController {
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_1\",\"message\":\"잘못된 DTO 필드입니다.\",\"result\":{\"reason\":\"탈퇴 사유는 200자 이하여야 해요\"}}"),
 							@ExampleObject(name = "MEMBER400_1",
 									value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}") })),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1)",

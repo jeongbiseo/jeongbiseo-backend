@@ -24,7 +24,8 @@ import com.jeongbiseo.global.security.FixedMemberResolver;
 /**
  * 마이페이지 약관 자원(약관 동의 조회, 마케팅 수신 동의 변경)을 다룸(API명세서 24번 getMyTermConsents·25번
  * updateMarketingConsent). 경로는 members 도메인 공간(/api/v1/members/me/terms)에 두어 "내 자원"의 /me
- * 규칙을 따르고, 컨트롤러는 consent 도메인에 둠. 회원 식별은 FixedMemberResolver 고정 회원임(소셜 인증 전, 결정 7번).
+ * 규칙을 따르고, 컨트롤러는 consent 도메인에 둠. 회원 식별은 FixedMemberResolver로 인증된 회원 principal에서
+ * 함(AUTH-W001).
  */
 @Tag(name = "Consent", description = "마이페이지 약관 자원(약관 동의 조회, 마케팅 수신 동의 변경)")
 @RestController
@@ -41,15 +42,16 @@ public class ConsentController {
 	}
 
 	// 마이페이지 약관 조회 처리함 (GET /api/v1/members/me/terms, operationId getMyTermConsents)
-	// 표시 약관 2종(서비스 이용약관·개인정보 처리방침)의 동의 상태·시각과 마케팅 수신 동의 상태를 반환함. 동의 이력이 없는 회원은 표시 약관이
-	// agreed=false, agreedAt=null로 나옴 — 소셜 가입 흐름의 동의 기록 연결 전까지의 계약임.
+	// 표시 약관 2종(서비스 이용약관·개인정보 처리방침)의 동의 상태·시각과 마케팅 수신 동의 상태를 반환함. 소셜 가입이 필수 동의를 기록하므로
+	// 정상 경로 회원은 agreed=true로 나오고, 동의 이력이 없는 회원(연결 이전 legacy)만 표시 약관이 agreed=false,
+	// agreedAt=null로 나옴.
 	@Operation(summary = "마이페이지 약관 조회",
 			description = "표시 약관 2종의 동의 여부·동의 시각과 마케팅 수신 동의 상태를 반환함. 동의 이력이 없는 회원은 표시 약관이 미동의(agreed=false)로 나옴.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "약관 조회 성공", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "400", description = "탈퇴된 계정(MEMBER400_1)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "MEMBER400_1",
 							value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}"))),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1)",
@@ -73,7 +75,7 @@ public class ConsentController {
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_1\",\"message\":\"잘못된 DTO 필드입니다.\",\"result\":{\"agreed\":\"동의 여부는 필수예요\"}}"),
 							@ExampleObject(name = "MEMBER400_1",
 									value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}") })),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1)",

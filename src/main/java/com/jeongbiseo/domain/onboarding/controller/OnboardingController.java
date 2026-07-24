@@ -31,7 +31,7 @@ import com.jeongbiseo.global.security.FixedMemberResolver;
 
 /**
  * 온보딩 최초 제출과 기수령 지원금 설정을 다룸(API명세서 9번 submitOnboarding, setReceivedSubsidies). 회원 식별은
- * FixedMemberResolver 고정 회원임(소셜 인증 전, 결정 7번).
+ * FixedMemberResolver로 인증된 회원 principal에서 함(AUTH-W001).
  */
 @Tag(name = "Onboarding", description = "온보딩 최초 제출과 기수령 지원금 설정")
 @RestController
@@ -51,9 +51,8 @@ public class OnboardingController {
 		this.memberResolver = memberResolver;
 	}
 
-	// 401(COMMON401)은 명세서 계약이나 현재 SecurityConfig가 전면 permitAll이라 실제로 던지는 코드는 없음. 소셜 인증
-	// Wave에서
-	// 실제 발생하며, 프론트가 이 계약으로 구현 중이라 명세대로 문서화함(명세서 각주 COMMON401 정합).
+	// 401(COMMON401)은 미인증 시 SecurityErrorResponder가 반환함(AUTH-W001 인증 강제화, 명세서 각주
+	// COMMON401 정합).
 	@Operation(summary = "온보딩 최초 제출",
 			description = "생년월일·거주지·고용상태 등을 받아 온보딩을 최초 제출함. 이미 완료한 회원이면 409로 거절함. "
 					+ "이름은 이 요청에 없음 — 소셜 첫 로그인 때 프로필에서 받아 저장하므로 온보딩 화면이 입력받지 않음. "
@@ -65,7 +64,7 @@ public class OnboardingController {
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_1\",\"message\":\"잘못된 DTO 필드입니다.\",\"result\":{\"birthDate\":\"생년월일은 필수예요\"}}"),
 							@ExampleObject(name = "MEMBER400_1",
 									value = "{\"isSuccess\":false,\"code\":\"MEMBER400_1\",\"message\":\"탈퇴된 계정이에요\",\"result\":null}") })),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "회원 미존재(MEMBER404_1)",
@@ -91,7 +90,7 @@ public class OnboardingController {
 			@ApiResponse(responseCode = "400", description = "요청 검증 실패(VALID400_1)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "VALID400_1",
 							value = "{\"isSuccess\":false,\"code\":\"VALID400_1\",\"message\":\"잘못된 DTO 필드입니다.\",\"result\":{\"subsidyIds\":\"지원금 ID 목록은 필수예요\"}}"))),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))),
 			@ApiResponse(responseCode = "404", description = "존재하지 않는 지원금 id 포함(SUBSIDY404_1)",
@@ -109,7 +108,7 @@ public class OnboardingController {
 			description = "현재 회원이 저장한 기수령 지원금 목록(지원금 id와 이름)을 반환합니다. "
 					+ "저장된 항목이 없으면 content: [], totalCount: 0으로 200을 반환합니다.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "기수령 지원금 목록 조회 성공", useReturnTypeSchema = true),
-			@ApiResponse(responseCode = "401", description = "인증 필요(현재 permitAll, 소셜 인증 Wave에서 실제 발생)",
+			@ApiResponse(responseCode = "401", description = "인증 필요(미인증 시 COMMON401)",
 					content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "COMMON401",
 							value = "{\"isSuccess\":false,\"code\":\"COMMON401\",\"message\":\"인증이 필요합니다\",\"result\":null}"))) })
 	@GetMapping("/received-subsidies")
